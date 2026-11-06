@@ -46,6 +46,15 @@ bootstrap = '''(() => {
 
 
 def common(text):
+    # Offline design previews deliberately do not contact production Firebase.
+    for filename in ['firebase-config.js', 'firebase-client.js', 'account-state.js']:
+        text = text.replace('<script src="' + filename + '" defer></script>', '')
+    offline_auth = """window.RIPPR_AUTH_OFFLINE=true;window.RIPPR_ACCOUNT={user:null,ready:true,error:null};
+window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>null,observe:cb=>{queueMicrotask(()=>cb(null));return()=>{}},
+createAccount:()=>Promise.reject({code:'auth/offline-preview'}),signInEmail:()=>Promise.reject({code:'auth/offline-preview'}),
+signInGoogle:()=>Promise.reject({code:'auth/offline-preview'}),resetPassword:()=>Promise.reject({code:'auth/offline-preview'}),
+signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'})};"""
+    text = text.replace('</head>', '<script>' + offline_auth + '</script></head>')
     navigation_css = (ROOT / 'navigation.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
     text = re.sub(r'<link rel="stylesheet" href="navigation\.css(?:\?[^"]*)?">', lambda match: '<style>' + navigation_css + '</style>', text)
     text = text.replace('<script src="navigation.js" defer></script>', '')
@@ -84,9 +93,15 @@ auth = auth.replace('</body>', '<script>' + bootstrap + '</script><script>' + au
 (OUT / 'rippr-auth.html').write_text(common(auth))
 
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-    for path in sorted(ROOT.rglob('*')):
-        if path.is_file() and '.git' not in path.relative_to(ROOT).parts:
-            archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
+    source_files = ['README.md', '.gitignore', '.firebaserc', 'firebase.json', 'package.json', 'package-lock.json',
+                    'index.html', 'opening.html', 'auth.html', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
+                    'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js']
+    for name in source_files:
+        archive.write(ROOT / name, 'rippr/' + name)
+    for folder in ['scripts', 'src', 'assets']:
+        for path in sorted((ROOT / folder).rglob('*')):
+            if path.is_file() and '__pycache__' not in path.parts:
+                archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
     for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html']:
         archive.write(OUT / name, 'previews/' + name)
 with zipfile.ZipFile(OUT / 'rippr-site.zip') as archive:

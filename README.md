@@ -1,50 +1,95 @@
 # rippr
 
-The approved dark homepage mockup, implemented with HTML, CSS, and JavaScript. Includes exactly five tiers (Basic, Plus, Premium, Elite, Ultimate), a four-banner rotating hero, a rotating pack carousel, and grail previews. The desktop layout follows the mockup; smaller screens use a responsive catalog.
+A responsive single-card pack-opening site with five tiers (Basic, Plus, Premium, Elite, Ultimate), rotating hero/carousel, interactive foil ripping, and Firebase Authentication.
 
-## Run
+## Development
+
+Node.js 22+ and Python 3 are required for the build/development commands.
 
 ```sh
 cd /workspace/rippr
-python3 -m http.server 3000 --bind 127.0.0.1
+npm ci --no-audit --no-fund
+npm run build
+npm run serve
 ```
 
-No installation or build is required. Visit the server in your browser. All fonts and art are local.
+The server listens only on `127.0.0.1:3000` and serves `dist/`. The SDK bundle is committed, so the source checkout can also be served directly for small HTML/CSS edits. After editing `src/firebase-client.js`, rebuild the bundle.
 
-## Use
+## Firebase project
 
-- The shared compact header spans the full viewport width across home, opening, and account pages, with consistent 13px desktop navigation, 14px mobile links, and a 64px bar. The mobile menu overlays content without changing its position. The mobile disclosure supports Escape, outside taps, responsive reset, and focus return; home carousels pause while navigation is open.
-- The hero preserves the original style, rotates through four banners, and uses a compact 220px mobile height. Banner controls support pause and manual selection, and reduced motion disables autoplay by default.
-- Pack artwork uses transparent-background cutouts throughout the hero, carousel, and opening pages.
-- Browse five tiers using arrows, tier buttons, keyboard arrows, or swipes.
-- Rotation pauses on hover; keyboard/manual navigation pauses it until Play. Reduced motion defaults to paused.
-- Each pack links to `opening.html?pack=<id>` and uses its matching artwork.
-- Open 1–5 demo packs; each pack reveals exactly one concept card. The pack zooms into a centered stage, then users drag across the foil before revealing it. Enter/Space also rips the foil; arrow keys advance the tear. Each pack in a batch has its own rip step.
-- Shimmer and foil layers use the selected artwork's intrinsic ratio and alpha mask.
-- Demo rarity odds are 10% rare, 20% uncommon, and 70% common.
-- Grail previews, Collection, and How it works open accessible dialogs. Log in and Sign up link to the matching account form.
-- `auth.html?mode=signup` and `auth.html?mode=login` implement the approved split-screen account concept, with a compact split panel (maximum 940px), an 80px mobile artwork strip, keyboard tabs, validation, and a password visibility toggle. Google buttons switch between Sign up and Sign in; OAuth is not connected and clicks show an explicit preview notice.
-- Authentication is a frontend preview. Valid form submissions explicitly say no account was created or login performed. Email/password values are never sent, stored, or logged. Connecting an authentication provider and publishing real Terms/Privacy documents are required before production account use. Saved collections remain placeholders. No payments, real items, or card values are involved.
+The client is configured for **rippr-2b01c** in `firebase-config.js`. This is public Firebase web app configuration, not an Admin SDK credential. Analytics is not initialized.
 
-## Files
+Owner setup in [Firebase Console](https://console.firebase.google.com/project/rippr-2b01c/authentication/providers):
 
-- `index.html`, `style.css`, `app.js`: homepage layout and interactions.
-- `navigation.css`, `navigation.js`: shared header styling, mobile-menu behavior, and navigation dialogs. Typography and font rendering are explicit here; the opening page no longer has legacy header/nav overrides. Header markup is present in each HTML page, and exports inline the shared resources.
-- `packs.js`: shared five-pack catalog.
-- `auth.html`, `auth.css`, `auth.js`: sign-up/login UI; authentication service not connected.
-- The account page reuses the same Plus, Premium, and Ultimate pack files as the homepage and opening flow.
-- `opening.html`: animated opening flow, odds, and grail previews.
-- `assets/pack-basic.svg` through `assets/pack-ultimate.svg`: SVG presentation viewports of the approved Pokémon-themed tier artwork, with Poké Ball icons and one-card labels. These contain raster illustrations, not editable vector masters. Earlier concept assets are retained. Grail assets also contain raster artwork.
-- `assets/fonts/`: bundled Manrope variable font and its OFL license.
+1. Open Authentication and enable **Email/Password**. **Google is paused at the owner’s request.** When the owner is ready, enable Google, select the support email, then set `RIPPR_AUTH_FEATURES.google` to `true` in `firebase-config.js`.
+2. Under Authentication → Settings → Authorized domains, allow the hostname serving this site. Verify `rippr-2b01c.firebaseapp.com` and `rippr-2b01c.web.app`; add `localhost` / `127.0.0.1` if testing locally. New projects may not authorize localhost automatically.
+3. If the 12-character password requirement should be enforced beyond this UI, configure the Firebase Authentication password policy accordingly.
+4. Replace the placeholder Terms and Privacy content before a public account launch.
 
-## Export offline previews
+Live providers and authorized domains have not been verified from the cloud environment: the Firebase API request was blocked by outbound policy and the CLI had no authenticated Firebase session. Required network domains were saved to the cloud environment draft; saving the draft does not apply runtime access or publish it.
+
+## Authentication
+
+- Email/password signup, login, and password reset use the official Firebase SDK.
+- New email accounts receive a verification email. Account controls support resend and checking verification status.
+- Google is deliberately disabled in both the UI and SDK wrapper. No Google popup is initiated while disabled. Its prepared integration uses Firebase `signInWithPopup` and requires consent for the signup entry point once the owner enables it.
+- The account page provides sign-out. Shared navigation shows Account while signed in, including after a reload.
+- Firebase maintains its normal browser session. The app does not log or save plaintext passwords.
+- Private administration credentials must never be placed in chat, source, or the deploy directory. No service-account key is required by the frontend.
+- Collections, pack results, and card values are still demo functionality. No Firestore database, payment system, or physical-item backend has been added.
+
+## Local Auth Emulator
+
+```sh
+npm run emulators
+```
+
+This runs only the Auth Emulator on `127.0.0.1:9099`, using **demo-rippr**, not the live project. Automated browser tests can inject the following before any site scripts load:
+
+```js
+window.RIPPR_FIREBASE_CONFIG = {
+  apiKey: 'demo-rippr-api-key',
+  authDomain: 'localhost',
+  projectId: 'demo-rippr',
+  appId: 'demo-rippr-web'
+};
+window.RIPPR_FIREBASE_EMULATOR_URL = 'http://127.0.0.1:9099';
+```
+
+The app refuses emulator connections from non-loopback hosts. Do not use production accounts for setup tests. The Google emulator popup also needs `apis.google.com` for Google's iframe library; it was blocked in this environment, so full Google OAuth has not been validated here.
+
+## Firebase Hosting
+
+`npm run build` bundles Firebase Auth and copies only the site files into `dist/`. Repository metadata, dependency folders, CLI logs, and tooling are not deployed. `firebase.json` points Hosting to this directory; `.firebaserc` targets rippr-2b01c.
+
+With project access on your own machine, authenticate through the official CLI and deploy:
+
+```sh
+npx firebase login
+npm run deploy
+```
+
+Deployment has **not** been performed. It requires authenticated project access and working Firebase network access. Do not share CLI tokens or private keys in chat.
+
+## Site behavior
+
+- The shared full-width navigation is consistent across home, opening, and account pages. Its mobile dropdown overlays content without moving it.
+- The compact hero rotates four banners. The five-tier carousel supports arrows, keyboard navigation, swipes, and pause. Reduced motion disables autoplay by default.
+- Each pack reveals one concept card. Pack artwork, shimmer, and foil use the same intrinsic ratio and alpha outline. Open zooms to a centered stage; drag across the foil or press Enter/Space to rip it. Batch openings include one rip per pack.
+- Demo card odds are 10% rare, 20% uncommon, and 70% common.
+
+## Offline previews
 
 ```sh
 python3 scripts/export-previews.py /workspace/downloads
 ```
 
-This creates three self-contained HTML files and `rippr-site.zip`. Keep the three HTML files together for navigation between them. The exported previews embed art and fonts and require no server. The browser must allow JavaScript and local Blob image URLs.
+The exporter creates three self-contained HTML files and `rippr-site.zip`. Keep the three previews together for navigation. **Offline previews deliberately do not connect to Firebase**; auth actions explain that the hosted site is required. Source ZIPs exclude dependency folders, CLI state/logs, deployment outputs, and local credentials.
 
-## Validation
+## Files and validation
 
-Validated in Chromium at desktop, tablet, and mobile sizes: artwork loading, no horizontal overflow, carousel navigation, rotation, swipes, dialogs and keyboard focus, all five pack links, one-card openings, five-pack openings, restart, and reduced-motion behavior. Account-page checks cover signup/login deep links and history, keyboard tabs, validation, password visibility, policy-dialog focus, honest preview submissions, and offline operation without external requests. Header checks compare computed styles and rendered images across all pages at 320–1440px with matching active state. Navigation checks cover all three pages at 320–1536px, account links, keyboard navigation and focus restoration across resize, mobile menu dismissal, carousel pausing, and standalone exports with no external requests. The reusable export script verifies the ZIP archive's integrity.
+`src/firebase-client.js` wraps the official Firebase SDK. `firebase-client.js` is its generated browser bundle. `account-state.js` shares session state with navigation. Account UI is in `auth.html`, `auth.css`, and `auth.js`; shared navigation is in `navigation.css` / `navigation.js`.
+
+Pack and grail SVGs are presentation viewports containing the approved raster artwork, not vector masters. The account page reuses the same pack files as the homepage. Manrope and its OFL license are bundled locally.
+
+Validation completed against the **local emulator**: signup, invalid/valid login, session persistence across pages, sign-out, email verification actions and status refresh, password reset and login with the reset password. Google remains disabled in the UI and SDK with no Google requests or popups. Full Google sign-in is intentionally postponed. Live email delivery, provider/domain settings, project administration, and Hosting deployment remain unverified. Existing navigation/pack interactions and offline previews have also been checked in Chromium.

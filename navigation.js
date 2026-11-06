@@ -73,5 +73,18 @@
     const bounds = dialog.getBoundingClientRect();
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
   });
+  function updateAccountLinks() {
+    const user = window.RIPPR_ACCOUNT?.user;
+    const login = header.querySelector('.nav-login');
+    const signup = header.querySelector('.nav-signup');
+    login.hidden = Boolean(user);
+    signup.textContent = user ? 'Account' : 'Sign up';
+    signup.href = user ? 'auth.html?mode=login' : 'auth.html?mode=signup';
+    const mobileAccount = menu.querySelector('a:last-child');
+    mobileAccount.textContent = user ? 'Account' : 'Log in';
+    mobileAccount.href = 'auth.html?mode=login';
+  }
+  document.addEventListener('rippr:authchange', updateAccountLinks);
+  updateAccountLinks();
   setMenu(false);
 })();

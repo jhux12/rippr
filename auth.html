@@ -8,7 +8,7 @@
   <meta name="description" content="Join rippr. One pack. One card. Something unexpected.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="auth.css">
-  <script src="auth.js" defer></script>
+  <script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="account-state.js" defer></script><script src="auth.js" defer></script>
 <link rel="stylesheet" href="navigation.css?v=2"><script src="navigation.js" defer></script></head>
 <body>
   <a class="skip-link" href="#auth-panel">Skip to account form</a>
@@ -63,7 +63,7 @@
             <label for="password">Password</label>
             <div class="password-input"><input id="password" name="password" type="password" autocomplete="new-password" placeholder="Create a password" minlength="12" required aria-describedby="password-help password-error"><button id="password-toggle" type="button" aria-label="Show password" aria-controls="password" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M9 5.5A12 12 0 0 1 12 5c6.3 0 10 7 10 7a20 20 0 0 1-4 4.5M6 6.5A20 20 0 0 0 2 12s3.7 7 10 7c1 0 2-.2 3-.6"/></svg></button></div>
             <p id="password-help" class="password-help">At least 12 characters</p>
-            <p id="password-error" class="field-error" hidden></p>
+            <p id="password-error" class="field-error" hidden></p><p class="password-recovery"><button id="reset-password" class="text-link" type="button" hidden>Forgot password?</button></p>
           </div>
           <div id="terms-group" class="terms-group"><div class="terms-row"><input id="terms" type="checkbox" required aria-labelledby="terms-label" aria-describedby="terms-error"><span id="terms-label">I agree to the <button type="button" class="text-link" data-policy="terms">Terms</button> and <button type="button" class="text-link" data-policy="privacy">Privacy Policy</button></span></div><p id="terms-error" class="field-error" hidden></p></div>
           <button id="auth-submit" class="submit-button" type="submit" disabled>Create account</button>
@@ -72,6 +72,14 @@
         </form>
         <p class="switch-mode"><span id="switch-intro">Already have an account?</span> <button id="switch-mode" class="text-link" type="button">Log in</button></p>
       </div>
+      <section id="account-panel" hidden aria-labelledby="account-title">
+        <h1 id="account-title" tabindex="-1">You're signed in.</h1>
+        <p id="account-email" class="account-email"></p>
+        <p id="verification-status" class="account-note"></p>
+        <p id="account-status" class="auth-status" role="status" tabindex="-1" hidden></p>
+        <a class="submit-button account-explore" href="index.html#packs">Explore packs</a>
+        <div class="account-actions-row"><button id="refresh-verification" type="button" class="text-link">Check verification</button><button id="resend-verification" type="button" class="text-link">Resend verification</button><button id="sign-out" type="button" class="text-link">Sign out</button></div>
+      </section>
     </section>
   </main>
   <footer class="auth-footer">Collect the unexpected.</footer>
