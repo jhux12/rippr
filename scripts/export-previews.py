@@ -93,7 +93,7 @@ auth = auth.replace('</body>', '<script>' + bootstrap + '</script><script>' + au
 (OUT / 'rippr-auth.html').write_text(common(auth))
 
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-    source_files = ['README.md', '.gitignore', '.firebaserc', 'firebase.json', 'package.json', 'package-lock.json',
+    source_files = ['README.md', '.gitignore', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'index.html', 'opening.html', 'auth.html', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
                     'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js']
     for name in source_files:

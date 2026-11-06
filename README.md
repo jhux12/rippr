@@ -58,6 +58,10 @@ window.RIPPR_FIREBASE_EMULATOR_URL = 'http://127.0.0.1:9099';
 
 The app refuses emulator connections from non-loopback hosts. Do not use production accounts for setup tests. The Google emulator popup also needs `apis.google.com` for Google's iframe library; it was blocked in this environment, so full Google OAuth has not been validated here.
 
+## Vercel
+
+`vercel.json` explicitly selects the static framework, runs `npm ci` and `npm run build`, and publishes `dist/`. Deploy the newest `main` commit; redeploying an older commit will not include this configuration. The Vercel Root Directory must be the repository root. No Vercel environment variables are required for the public Firebase web config already in the source.
+
 ## Firebase Hosting
 
 `npm run build` bundles Firebase Auth and copies only the site files into `dist/`. Repository metadata, dependency folders, CLI logs, and tooling are not deployed. `firebase.json` points Hosting to this directory; `.firebaserc` targets rippr-2b01c.
