@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function owner() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() == 'jhuxf12@outlook.com';
+    }
+    match /card-images/{filename} {
+      allow read: if true;
+      allow create: if owner() && filename.matches('[a-zA-Z0-9-]+\\.(jpg|png|webp)')
+        && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      // Uploaded image URLs are immutable, so existing published art cannot be overwritten.
+      allow update, delete: if false;
+    }
+    match /{path=**} { allow read, write: if false; }
+  }
+}

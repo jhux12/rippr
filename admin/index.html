@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080f18">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Packs — rippr Admin</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/firebase-config.js" defer></script>
+  <script src="/catalog.js" defer></script>
+  <script src="/firebase-client.js" defer></script>
+  <script src="/account-state.js" defer></script>
+  <script src="/packs.js" defer></script>
+  <script src="/admin/admin.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
+  <header class="admin-header">
+    <button type="button" id="sidebar-toggle" class="icon-button sidebar-toggle" aria-label="Open admin navigation" aria-expanded="false" aria-controls="admin-sidebar" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="admin-brand" href="/" aria-label="rippr home"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg>rippr</a>
+    <span class="admin-badge">Admin</span>
+    <a class="view-site" href="/">View site <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></a>
+    <a id="owner-avatar" class="owner-avatar" href="/auth.html?mode=login" aria-label="Your account">J</a>
+  </header>
+  <section id="access-gate" class="access-gate" aria-labelledby="gate-title">
+    <span class="gate-spark" aria-hidden="true">✦</span>
+    <h1 id="gate-title">Checking access</h1>
+    <p id="gate-copy" role="status">Connecting to your account…</p>
+    <div class="gate-actions">
+      <a id="gate-login" class="button primary" href="/auth.html?mode=login&amp;next=%2Fadmin" hidden>Log in</a>
+      <button id="gate-resend" class="button secondary" type="button" hidden>Resend verification</button>
+      <button id="gate-check" class="button primary" type="button" hidden>I've verified my email</button>
+      <button id="gate-signout" class="button secondary" type="button" hidden>Switch account</button>
+      <button id="gate-retry" class="button secondary" type="button" hidden>Retry</button>
+    </div>
+  </section>
+  <div class="admin-layout" id="admin-layout" hidden>
+    <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation" hidden></button>
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <nav aria-label="Admin navigation">
+        <button type="button" class="sidebar-link" data-view="packs" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4"/></svg><span>Packs</span></button>
+        <button type="button" class="sidebar-link" data-view="library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="13" height="16" rx="2"/><path d="M16 2H5a2 2 0 0 0-2 2v13"/></svg><span>Card library</span></button>
+        <button type="button" class="sidebar-link" data-view="members"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v3"/></svg><span>Members</span></button>
+        <button type="button" class="sidebar-link" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg><span>Settings</span></button>
+      </nav>
+      <div class="sidebar-owner"><span class="owner-dot"></span><span>Owner</span><button id="sign-out" type="button" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4v16h6M10 12h11m-4-4 4 4-4 4"/></svg></button></div>
+    </aside>
+    <main id="workspace" class="workspace" tabindex="-1">
+      <div class="page-heading"><h1 id="page-title">Packs</h1><span id="dirty-indicator" class="dirty-indicator" hidden>Unsaved changes</span></div>
+      <div id="connection-notice" class="connection-notice" role="status" hidden><span id="connection-copy"></span><button type="button" id="retry-connection">Retry</button><a href="https://github.com/jhux12/rippr#admin-setup" target="_blank" rel="noopener noreferrer">Setup guide ↗</a></div>
+      <section id="packs-view" aria-label="Manage packs">
+        <div class="tier-grid" id="tier-grid" role="group" aria-label="Choose pack tier"></div>
+        <div class="pack-toolbar">
+          <h2 id="selected-pack-title">Basic pack <span aria-hidden="true">⌄</span></h2>
+          <div class="pack-tabs" role="tablist" aria-label="Pack settings"><button id="contents-tab" role="tab" aria-controls="contents-panel" aria-selected="true" tabindex="0" type="button">Contents</button><button id="pack-settings-tab" role="tab" aria-controls="pack-settings-panel" aria-selected="false" tabindex="-1" type="button">Settings</button></div>
+          <div class="toolbar-actions"><button id="add-item" class="button secondary" type="button"><span aria-hidden="true">＋</span> Add item</button><button id="save-pack" class="button primary" type="button" disabled>Save changes</button></div>
+        </div>
+        <section id="contents-panel" class="contents-layout" role="tabpanel" aria-labelledby="contents-tab">
+          <section class="panel contents-panel" aria-labelledby="contents-title">
+            <div class="panel-heading"><h2 id="contents-title">Pack contents</h2><label class="search-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><input id="card-search" type="search" placeholder="Search cards…" aria-label="Search pack cards"></label></div>
+            <div class="table-scroll"><table class="items-table"><thead><tr><th scope="col">Card</th><th scope="col">Rarity</th><th scope="col">Value</th><th scope="col">Chance</th><th scope="col"><span class="sr-only">Edit item</span></th></tr></thead><tbody id="item-rows"></tbody></table></div>
+            <p class="empty-state" id="no-items" hidden>No cards found.</p>
+            <div class="contents-footer"><span class="count-pill">1 card per pack</span><span class="odds-total" id="odds-total"></span></div>
+          </section>
+          <section class="panel editor-panel" id="editor-panel" aria-labelledby="editor-title">
+            <div class="editor-heading"><h2 id="editor-title">Edit item</h2><button class="icon-button" id="close-editor" type="button" aria-label="Close item editor"><span aria-hidden="true">×</span></button></div>
+            <form id="item-form" novalidate>
+              <div class="editor-grid">
+                <div class="item-preview"><img id="item-preview" src="/assets/grail-first-light.svg" alt="First Light card artwork"><span id="preview-name" hidden>First Light</span></div>
+                <div class="editor-inputs">
+                  <label for="item-name">Card name</label><input id="item-name" type="text" maxlength="100" required value="First Light" autocomplete="off">
+                  <label for="item-rarity">Rarity</label><select id="item-rarity"></select>
+                  <label for="item-value">Value</label><div class="input-unit"><span>$</span><input id="item-value" type="text" inputmode="decimal" value="100.00" aria-label="Card value in USD"></div>
+                  <label for="item-chance">Pull chance</label><div class="input-unit"><input id="item-chance" type="text" inputmode="decimal" value="1" aria-label="Pull chance in percent"><span>%</span></div>
+                  <label class="toggle-label" for="item-grail"><input id="item-grail" type="checkbox" role="switch" checked><span class="toggle-track" aria-hidden="true"></span><span>Show in grails</span></label>
+                </div>
+              </div>
+              <p id="item-error" class="form-error" role="alert" hidden></p>
+              <div class="editor-actions"><button class="button secondary" id="upload-image" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 14v6h16v-6"/></svg> Upload image</button><button class="button primary" id="update-item" type="submit">Update item</button></div>
+              <input id="image-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+              <div class="editor-bottom"><span id="upload-help">JPG, PNG or WebP · up to 5 MB</span><button id="delete-item" type="button">Remove item</button></div>
+            </form>
+            <div id="editor-empty" class="empty-state" hidden>Select a card to edit, or add an item.</div>
+          </section>
+        </section>
+        <section id="pack-settings-panel" class="panel pack-settings-panel" role="tabpanel" aria-labelledby="pack-settings-tab" hidden><h2>Pack settings</h2><div class="setting-row"><div><h3>Enable pack</h3><p>Allow demo openings for this tier.</p></div><label class="toggle-label"><input id="pack-enabled" type="checkbox" role="switch" aria-label="Enable pack"><span class="toggle-track" aria-hidden="true"></span></label></div><div class="setting-row"><h3>Cards per pack</h3><span class="count-pill">1</span></div></section>
+      </section>
+      <section id="library-view" class="panel library-view" aria-label="Card library" hidden><div class="panel-heading"><h2>Card library</h2><label class="search-field"><input id="library-search" type="search" placeholder="Search cards…" aria-label="Search card library"></label></div><div id="library-grid" class="library-grid"></div></section>
+      <section id="members-view" class="panel simple-view" hidden><h2>Members</h2><p>Manage your sign-in accounts in Firebase Authentication.</p><a class="button secondary" href="https://console.firebase.google.com/project/rippr-2b01c/authentication/users" target="_blank" rel="noopener noreferrer">Open Firebase Authentication ↗</a></section>
+      <section id="settings-view" class="panel simple-view" hidden><h2>Owner account</h2><p id="settings-owner"></p><div class="setting-row"><span>Email verification</span><span class="verified-label">Verified</span></div><div class="setting-row"><span>Catalog</span><span id="catalog-connection">Connecting…</span></div><button id="settings-signout" class="button secondary" type="button">Sign out</button></section>
+      <p id="admin-status" class="admin-status" role="status" aria-live="polite" hidden></p>
+    </main>
+  </div>
+  <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title">Discard item edits?</h2><p id="confirm-copy"></p><div class="dialog-actions"><button id="confirm-cancel" class="button secondary" type="button">Keep editing</button><button id="confirm-ok" class="button primary" type="button">Discard edits</button></div></dialog>
+  <noscript><p class="access-gate">Enable JavaScript to sign in and manage your packs.</p></noscript>
+</body>
+</html>

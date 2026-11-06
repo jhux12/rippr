@@ -1,6 +1,6 @@
 # rippr
 
-A responsive single-card pack-opening site with five tiers (Basic, Plus, Premium, Elite, Ultimate), rotating hero/carousel, interactive foil ripping, and Firebase Authentication.
+A responsive single-card pack-opening site with five tiers (Basic, Plus, Premium, Elite, Ultimate), rotating hero/carousel, interactive foil ripping, Firebase Authentication, and an owner-only pack editor at `/admin`.
 
 ## Development
 
@@ -36,7 +36,37 @@ Live providers and authorized domains have not been verified from the cloud envi
 - The account page provides sign-out. Shared navigation shows Account while signed in, including after a reload.
 - Firebase maintains its normal browser session. The app does not log or save plaintext passwords.
 - Private administration credentials must never be placed in chat, source, or the deploy directory. No service-account key is required by the frontend.
-- Collections, pack results, and card values are still demo functionality. No Firestore database, payment system, or physical-item backend has been added.
+- Collections, pack results, and card values are still demo functionality. Published pack catalogs use Firestore and uploaded card artwork uses Storage. No payment system, saved pull history, or physical-item backend has been added.
+
+## Admin setup
+
+Open **`/admin`** (also available as `/admin/`) for the pack-management dashboard. Its layout follows the approved admin concept and adapts to mobile. It uses the actual site pack images.
+
+**`jhuxf12@outlook.com` is the sole configured owner.** Sign in through the normal account page and verify this email before opening the admin panel. If this email has no Firebase account yet, register it through the normal signup page. No account password has been created or changed by this implementation. A verified owner also gets an **Open admin** link on the account page. Google remains disabled.
+
+Firestore and Storage are already enabled according to the project owner. Before live saving/uploads will work, publish the repository's [Firestore rules](firestore.rules) and [Storage rules](storage.rules) to **rippr-2b01c**. From a terminal authenticated to this Firebase project:
+
+```sh
+npx firebase login
+npm run deploy:rules
+```
+
+Alternatively, paste each rules file into the corresponding **Rules** tab in Firebase Console and publish it there. Review any existing rules first: the supplied files intentionally deny access to unrelated collections and storage paths. These rules do not change Authentication users or Hosting. **Production rules have not been deployed from this environment: the Firebase CLI has no authenticated project-admin session.**
+
+Editing access is checked by the UI and independently enforced by Firebase Security Rules using the verified email in the Firebase-issued token. Changing browser state or sending `isAdmin: true` does not grant database or upload access. No client can assign itself a role. Pack catalogs and card images are public display data; only the verified owner can publish catalogs and create image objects.
+
+The dashboard supports:
+
+- Five independent pack catalogs, card search, adding/editing/removing items, image uploads, value/rarity/chance fields, and grail selection.
+- Draft editing followed by **Save changes** to publish the current tier. Unsaved tiers have a dot; the browser warns before leaving unsaved edits. Reloading discards local drafts.
+- Integer cents and chance basis points, up to two decimal places, with exactly 100% total odds required by the editor and SDK. Public readers validate saved contents before using them. Each catalog supports 1–100 cards; zero-chance cards are never drawn.
+- A transaction/version check that rejects stale saves from another session. Reload before retrying a conflict.
+- JPG, PNG and WebP uploads up to 5 MB. Uploads are public and immutable; removing a card from a pack does not remove artwork used by other tiers. The editor also rejects images over 8192 pixels per side.
+- An **Enable pack** setting controlling demo openings, a card library across the five tiers, and a link to Firebase Authentication for member administration. The site does not expose Firebase user-list administration credentials in the browser.
+
+Public pack pages read the saved catalog for the selected tier, show its card odds and grail images, and reveal its actual card artwork. Each pack still reveals exactly one card. If a catalog is missing, demo defaults are shown. If reading fails, the odds caption explicitly says that demo defaults are being used. No admin changes are stored in localStorage or presented as saved after a failed Firebase request.
+
+Defaults are illustrative concept cards matching the admin mockup (60%, 25%, 10%, 4%, 1%). **Draws remain free client-side demos.** Values are illustrative and do not create inventory, charge balances, or award physical items. Paid openings would need a separate authoritative server draw and wallet system.
 
 ## Local Auth Emulator
 
@@ -44,16 +74,19 @@ Live providers and authorized domains have not been verified from the cloud envi
 npm run emulators
 ```
 
-This runs only the Auth Emulator on `127.0.0.1:9099`, using **demo-rippr**, not the live project. Automated browser tests can inject the following before any site scripts load:
+This runs Auth (`9099`), Firestore (`8080`) and Storage (`9199`) on `127.0.0.1`, using **demo-rippr**, not the live project. Automated browser tests can inject the following before any site scripts load:
 
 ```js
 window.RIPPR_FIREBASE_CONFIG = {
   apiKey: 'demo-rippr-api-key',
   authDomain: 'localhost',
   projectId: 'demo-rippr',
-  appId: 'demo-rippr-web'
+  appId: 'demo-rippr-web',
+  storageBucket: 'demo-rippr.appspot.com'
 };
 window.RIPPR_FIREBASE_EMULATOR_URL = 'http://127.0.0.1:9099';
+window.RIPPR_FIRESTORE_EMULATOR_URL = 'http://127.0.0.1:8080';
+window.RIPPR_STORAGE_EMULATOR_URL = 'http://127.0.0.1:9199';
 ```
 
 The app refuses emulator connections from non-loopback hosts. Do not use production accounts for setup tests. The Google emulator popup also needs `apis.google.com` for Google's iframe library; it was blocked in this environment, so full Google OAuth has not been validated here.
@@ -81,7 +114,7 @@ Deployment has **not** been performed. It requires authenticated project access 
 - A compact wallet balance in the shared header opens the responsive top-up popup. Both show the same $0.00 demo balance; choosing or submitting a top-up does not charge a card or add funds. Payments and account wallets are not connected yet.
 - The compact hero rotates four banners. The five-tier carousel supports arrows, keyboard navigation, swipes, and pause. Reduced motion disables autoplay by default.
 - Each pack reveals one concept card. Pack artwork, shimmer, and foil use the same intrinsic ratio and alpha outline. Open zooms to a centered stage; drag across the foil or press Enter/Space to rip it. Batch openings include one rip per pack.
-- Demo card odds are 10% rare, 20% uncommon, and 70% common.
+- Demo draws use the selected pack's saved item chances. The odds table and grails use that same catalog.
 
 ## Offline previews
 
@@ -94,6 +127,10 @@ The exporter creates three self-contained HTML files and `rippr-site.zip`. Keep 
 ## Files and validation
 
 `src/firebase-client.js` wraps the official Firebase SDK. `firebase-client.js` is its generated browser bundle. `account-state.js` shares session state with navigation. Account UI is in `auth.html`, `auth.css`, and `auth.js`; shared navigation is in `navigation.css` / `navigation.js`.
+
+`admin/` contains the admin UI. `src/catalog-model.js` is shared by the Firebase wrapper and the generated `catalog.js` browser bundle; `opening.js` consumes the same validated per-tier contents. `npm test` checks catalog validation and draw boundaries. `npm run test:rules` uses local Firestore/Storage emulators to check the owner/visitor/member access matrix, upload limits, forbidden image types, immutable image objects, and catalog version constraints. Emulator downloads require `storage.googleapis.com`; live catalog/image access uses `firestore.googleapis.com` and `firebasestorage.googleapis.com`.
+
+Admin validation completed: catalog unit tests; real SDK sign-in, verified-owner gating, sign-out, and safe `/admin` return links against the local Auth Emulator; browser checks for editing, upload validation, save failures, separate tier contents, public odds/grails/reveals, and responsive layouts from 320 to 1728 px. Catalog save/upload browser checks used an explicit backend fixture. **The Firestore/Storage rules emulator suite could not run here because the required emulator download from `storage.googleapis.com` was blocked with HTTP 403.** Run `npm run test:rules` from an environment that can download the official emulators. Production rules remain unpublished and unverified from this workspace.
 
 Pack and grail SVGs are presentation viewports containing the approved raster artwork, not vector masters. The account page reuses the same pack files as the homepage. Manrope and its OFL license are bundled locally.
 

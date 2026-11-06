@@ -90,7 +90,10 @@
   function showAccount(user) {
     signedInUser = user;
     $('.auth-tabs').hidden = Boolean(user); $('#auth-panel').hidden = Boolean(user); $('#account-panel').hidden = !user;
+    $('#open-admin').hidden = !user?.isAdmin;
     if (!user) return;
+    // Only a fixed internal destination is accepted; never redirect to arbitrary URLs.
+    if (user.isAdmin && new URLSearchParams(location.search).get('next') === '/admin') { location.replace('/admin'); return; }
     document.title = 'Your account — rippr';
     $('#account-email').textContent = user.email || user.displayName || 'Your rippr account';
     $('#verification-status').textContent = user.emailVerified ? 'Your email is verified.' : 'Verify your email using the link in your inbox.';

@@ -3,13 +3,24 @@
   "version": "1.0.0",
   "private": true,
   "description": "rippr single-card pack openings and Firebase Authentication",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "serve": "python3 -m http.server 3000 --bind 127.0.0.1 --directory dist",
-    "emulators": "firebase emulators:start --only auth --project demo-rippr",
+    "emulators": "firebase emulators:start --only auth,firestore,storage --project demo-rippr",
+    "test": "node tests/catalog-model.test.mjs",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-rippr 'node tests/firebase-rules.test.mjs'",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage --project rippr-2b01c",
     "deploy": "npm run build && firebase deploy --only hosting --project rippr-2b01c"
   },
-  "dependencies": { "firebase": "13.2.0" },
-  "devDependencies": { "esbuild": "0.28.2", "firebase-tools": "15.35.0" }
+  "dependencies": {
+    "firebase": "13.2.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "esbuild": "0.28.2",
+    "firebase-tools": "15.35.0"
+  }
 }

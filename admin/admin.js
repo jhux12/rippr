@@ -1,0 +1,289 @@
+(() => {
+  'use strict';
+  const $ = selector => document.querySelector(selector);
+  const client = window.RipprFirebase, model = window.RipprCatalog;
+  const tiers = window.RIPPR_PACKS;
+  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const percent = value => (value / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+  const imageURL = value => model.safeImageURL(value) ? (value.startsWith('assets/') ? '/' + value : value) : '/assets/card-placeholder.svg';
+  const packs = new Map(tiers.map(tier => [tier.id, model.defaultPack(tier.id)]));
+  const loaded = new Set(), dirty = new Set();
+  let selectedPack = 'basic', selectedItem = 'first-light', currentImage, editorDirty = false;
+  let newItem = false, busy = false, ownerUid = null, generation = 0, statusTimer;
+  const mobile = matchMedia('(max-width:760px)');
+  const pack = () => packs.get(selectedPack);
+  const owner = () => model.isAdminUser(client?.currentUser());
+
+  function status(message, error = false) {
+    clearTimeout(statusTimer);
+    $('#admin-status').textContent = message;
+    $('#admin-status').classList.toggle('is-error', error);
+    $('#admin-status').hidden = !message;
+    if (!error) statusTimer = setTimeout(() => { $('#admin-status').hidden = true; }, 6000);
+  }
+  function errorText(error) {
+    if (error?.code === 'catalog/conflict') return 'This pack changed in another session. Reload the saved contents before saving again.';
+    if (error?.code === 'catalog/invalid-data' || error?.code === 'catalog/invalid-image') return error.message;
+    if (/permission-denied|unauthorized/.test(error?.code || '')) return 'Access was denied. Check your verified owner sign-in and Firebase access rules.';
+    return 'Could not connect to Firebase. Your edits are still here. Check the connection and setup guide, then retry.';
+  }
+  function setBusy(value) {
+    busy = value;
+    $('#workspace').setAttribute('aria-busy', String(value));
+    $('#workspace').querySelectorAll('button,input,select').forEach(control => { control.disabled = value; });
+    refreshSave();
+  }
+  function refreshSave() {
+    $('#save-pack').disabled = busy || !loaded.has(selectedPack) || (!dirty.has(selectedPack) && !editorDirty && pack().version > 0);
+    $('#save-pack').textContent = busy ? 'Working…' : 'Save changes';
+    $('#dirty-indicator').hidden = !dirty.size && !editorDirty;
+  }
+  function markDirty() { dirty.add(selectedPack); renderTiers(); refreshSave(); }
+  function changedEditor(event) { if (event?.target?.id === 'image-file') return; editorDirty = true; refreshSave(); }
+  function setSidebar(open) {
+    const visible = open && mobile.matches && owner();
+    document.body.classList.toggle('sidebar-open', visible);
+    $('#sidebar-toggle').setAttribute('aria-expanded', String(visible));
+    $('#sidebar-toggle').setAttribute('aria-label', visible ? 'Close admin navigation' : 'Open admin navigation');
+    $('#sidebar-backdrop').hidden = !visible;
+  }
+  function view(name, focus = false) {
+    if (!owner()) return;
+    for (const id of ['packs', 'library', 'members', 'settings']) $(`#${id}-view`).hidden = id !== name;
+    document.querySelectorAll('[data-view]').forEach(button => {
+      if (button.dataset.view === name) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
+    });
+    $('#page-title').textContent = { packs:'Packs', library:'Card library', members:'Members', settings:'Settings' }[name];
+    document.title = `${$('#page-title').textContent} — rippr Admin`;
+    if (name === 'library') renderLibrary();
+    setSidebar(false);
+    if (focus) $('#workspace').focus({ preventScroll:true });
+  }
+  function renderTiers() {
+    $('#tier-grid').innerHTML = tiers.map(tier => `<button type="button" class="tier-tile" data-pack="${tier.id}" aria-pressed="${tier.id === selectedPack}" ${busy ? 'disabled' : ''}><img src="/${tier.image}" alt="" width="70" height="135"><strong>${tier.name}</strong>${dirty.has(tier.id) ? '<span class="tier-dirty" aria-label="Unsaved changes"></span>' : ''}</button>`).join('');
+  }
+  function renderRows() {
+    const query = $('#card-search').value.trim().toLowerCase();
+    const visible = pack().items.filter(item => item.name.toLowerCase().includes(query));
+    $('#item-rows').innerHTML = visible.map(item => {
+      const tone = model.RARITIES.find(rarity => rarity.name === item.rarity)?.color || '#adbdcf';
+      return `<tr data-item="${escape(item.id)}" class="${item.id === selectedItem && !newItem ? 'is-selected' : ''}"><td><div class="card-cell"><img src="${escape(imageURL(item.image))}" alt="" width="47" height="58"><span>${escape(item.name)}</span></div></td><td><span class="rarity-chip" style="--rarity:${tone}">${escape(item.rarity)}</span></td><td>${money.format(item.valueCents / 100)}</td><td>${percent(item.chanceBps)}%</td><td><button type="button" class="icon-button" aria-label="Edit ${escape(item.name)}" ${busy ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 15l12-12a2 2 0 0 1 3 0l2 2a2 2 0 0 1 0 3L9 20l-6 1 1-6Z"/></svg></button></td></tr>`;
+    }).join('');
+    $('#no-items').hidden = visible.length > 0;
+    const total = pack().items.reduce((sum, item) => sum + item.chanceBps, 0);
+    $('#odds-total').textContent = `Total odds: ${percent(total)}%`;
+    $('#odds-total').classList.toggle('is-invalid', total !== 10000);
+  }
+  function editor(item, isNew = false) {
+    editorDirty = false; newItem = isNew;
+    $('#item-error').hidden = true;
+    $('#item-form').hidden = !item;
+    $('#editor-empty').hidden = Boolean(item);
+    $('#editor-title').textContent = isNew ? 'Add item' : 'Edit item';
+    $('#update-item').textContent = isNew ? 'Add to pack' : 'Update item';
+    if (!item) { selectedItem = null; refreshSave(); return; }
+    selectedItem = item.id; currentImage = item.image;
+    $('#item-name').value = item.name;
+    $('#item-rarity').value = item.rarity;
+    $('#item-value').value = (item.valueCents / 100).toFixed(2);
+    $('#item-chance').value = percent(item.chanceBps);
+    $('#item-grail').checked = item.grail;
+    $('#item-preview').src = imageURL(item.image);
+    $('#item-preview').alt = `${item.name || 'New card'} artwork`;
+    $('#preview-name').textContent = item.name || 'New card';
+    $('#delete-item').hidden = isNew;
+    refreshSave();
+  }
+  function renderPack() {
+    $('#selected-pack-title').firstChild.textContent = `${tiers.find(tier => tier.id === selectedPack).name} pack `;
+    $('#pack-enabled').checked = pack().enabled;
+    renderTiers(); renderRows(); refreshSave();
+  }
+  function confirmAction(title, copy, label) {
+    const dialog = $('#confirm-dialog');
+    if (dialog.open) return Promise.resolve(false);
+    $('#confirm-title').textContent = title; $('#confirm-copy').textContent = copy; $('#confirm-ok').textContent = label;
+    dialog.returnValue = ''; dialog.showModal();
+    return new Promise(resolve => dialog.addEventListener('close', () => resolve(dialog.returnValue === 'ok'), { once:true }));
+  }
+  async function mayLeaveEditor() {
+    return !editorDirty || await confirmAction('Discard item edits?', 'Update this item first to keep your changes in the pack draft.', 'Discard edits');
+  }
+  async function choosePack(id) {
+    if (busy || id === selectedPack || !await mayLeaveEditor()) return;
+    selectedPack = id; $('#card-search').value = '';
+    editor(pack().items.at(-1)); renderPack();
+  }
+  function stageItem() {
+    if ($('#item-form').hidden) return true;
+    const item = { id:selectedItem, name:$('#item-name').value.trim(), image:currentImage, rarity:$('#item-rarity').value, valueCents:model.decimalToUnits($('#item-value').value), chanceBps:model.decimalToUnits($('#item-chance').value), grail:$('#item-grail').checked };
+    const next = newItem ? [...pack().items, item] : pack().items.map(existing => existing.id === selectedItem ? item : existing);
+    const issues = model.validateItems(next).filter(issue => issue !== 'Pull chances must total exactly 100%.');
+    if (issues.length) { $('#item-error').textContent = issues[0]; $('#item-error').hidden = false; return false; }
+    pack().items = next; markDirty(); editor(item); renderRows();
+    return true;
+  }
+  function showConnection() {
+    const ready = loaded.size === tiers.length;
+    $('#connection-notice').hidden = ready;
+    $('#connection-copy').textContent = 'Saved contents are unavailable for some tiers. Showing demo defaults; connect Firebase to save.';
+    $('#catalog-connection').textContent = ready ? 'Connected' : 'Setup or connection needed';
+  }
+  async function loadPacks() {
+    const request = ++generation, uid = ownerUid;
+    setBusy(true);
+    const results = await Promise.allSettled(tiers.map(async tier => {
+      const result = await Promise.race([client.loadPackContents(tier.id), new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out.')), 9000))]);
+      return [tier.id, result];
+    }));
+    if (request !== generation || !owner() || ownerUid !== uid) return;
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        const [id, saved] = result.value;
+        // Retry never overwrites an unsaved draft or the version it was based on.
+        if (!dirty.has(id) && !(id === selectedPack && editorDirty)) packs.set(id, saved);
+        loaded.add(id);
+      }
+    });
+    showConnection();
+    if (!editorDirty) editor(pack().items.find(item => item.id === selectedItem) || pack().items.at(-1));
+    setBusy(false); renderPack();
+  }
+  function renderLibrary() {
+    const cards = new Map();
+    for (const tier of tiers) for (const item of packs.get(tier.id).items) {
+      const key = `${item.id}:${item.name}:${item.image}`;
+      if (!cards.has(key)) cards.set(key, { ...item, packs:[] });
+      cards.get(key).packs.push(tier);
+    }
+    const query = $('#library-search').value.trim().toLowerCase();
+    $('#library-grid').innerHTML = [...cards.values()].filter(item => item.name.toLowerCase().includes(query)).map(item => `<article class="library-card"><img src="${escape(imageURL(item.image))}" alt="${escape(item.name)}" loading="lazy"><h3>${escape(item.name)}</h3><span class="rarity-chip" style="--rarity:${model.RARITIES.find(rarity => rarity.name === item.rarity).color}">${escape(item.rarity)}</span><p>${item.packs.map(tier => tier.name).join(' · ')}</p><button type="button" class="button secondary" data-library-pack="${item.packs[0].id}" data-library-item="${escape(item.id)}">Edit in ${item.packs[0].name}</button></article>`).join('') || '<p class="empty-state">No cards found.</p>';
+  }
+  async function signOut() {
+    if (busy) return;
+    if ((dirty.size || editorDirty) && !await confirmAction('Sign out with unsaved changes?', 'Your unsaved edits will be discarded.', 'Sign out')) return;
+    try { await client.signOut(); renderAccess(); } catch { status('Could not sign out. Please retry.', true); }
+  }
+  function renderAccess() {
+    const user = client?.currentUser();
+    const allowed = model.isAdminUser(user);
+    $('#access-gate').hidden = allowed;
+    $('#admin-layout').hidden = !allowed;
+    $('#sidebar-toggle').hidden = !allowed;
+    for (const id of ['gate-login','gate-resend','gate-check','gate-signout','gate-retry']) $('#' + id).hidden = true;
+    if (allowed) {
+      $('#settings-owner').textContent = user.email;
+      $('#owner-avatar').title = user.email;
+      if (ownerUid !== user.uid) {
+        ownerUid = user.uid; dirty.clear(); loaded.clear(); editorDirty = false;
+        tiers.forEach(tier => packs.set(tier.id, model.defaultPack(tier.id)));
+        renderPack(); editor(pack().items.at(-1)); loadPacks();
+      }
+    } else {
+      if (ownerUid) { ownerUid = null; generation++; dirty.clear(); loaded.clear(); editorDirty = false; setBusy(false); }
+      setSidebar(false);
+      if (!user) {
+        $('#gate-title').textContent = 'Admin sign-in';
+        $('#gate-copy').textContent = 'Log in with your owner account to manage rippr.';
+        $('#gate-login').hidden = false;
+      } else if (user.email?.toLowerCase() === model.OWNER_EMAIL) {
+        $('#gate-title').textContent = 'Verify your email';
+        $('#gate-copy').textContent = 'Open the verification link sent to your owner email, then check again.';
+        $('#gate-resend').hidden = false; $('#gate-check').hidden = false; $('#gate-signout').hidden = false;
+      } else {
+        $('#gate-title').textContent = 'Admin access only';
+        $('#gate-copy').textContent = 'This account does not have permission to manage rippr.';
+        $('#gate-signout').hidden = false;
+      }
+    }
+  }
+
+  $('#item-rarity').innerHTML = model.RARITIES.map(rarity => `<option>${rarity.name}</option>`).join('');
+  $('#tier-grid').addEventListener('click', event => { const button = event.target.closest('[data-pack]'); if (button) choosePack(button.dataset.pack); });
+  $('#item-rows').addEventListener('click', async event => {
+    const row = event.target.closest('[data-item]');
+    if (!row || busy || !await mayLeaveEditor()) return;
+    editor(pack().items.find(item => item.id === row.dataset.item)); renderRows();
+  });
+  $('#card-search').addEventListener('input', renderRows);
+  $('#library-search').addEventListener('input', renderLibrary);
+  $('#item-form').addEventListener('input', changedEditor);
+  $('#item-form').addEventListener('change', changedEditor);
+  $('#item-name').addEventListener('input', () => { $('#preview-name').textContent = $('#item-name').value || 'New card'; });
+  $('#item-form').addEventListener('submit', event => { event.preventDefault(); if (!busy && owner() && stageItem()) status('Item updated in your draft. Save changes to publish it.'); });
+  $('#add-item').addEventListener('click', async () => {
+    if (busy || !await mayLeaveEditor()) return;
+    if (pack().items.length >= 100) { status('Each pack supports up to 100 cards.', true); return; }
+    editor({ id:crypto.randomUUID(), name:'', image:'assets/card-placeholder.svg', rarity:'Common', valueCents:0, chanceBps:0, grail:false }, true);
+    renderRows(); $('#item-name').focus(); $('#editor-panel').scrollIntoView({ behavior:matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth', block:'nearest' });
+  });
+  $('#close-editor').addEventListener('click', async () => { if (!busy && await mayLeaveEditor()) { editor(null); renderRows(); } });
+  $('#delete-item').addEventListener('click', async () => {
+    if (busy || !await confirmAction('Remove this item?', 'It will be removed from this pack when you save changes. Other tiers keep their own contents.', 'Remove item')) return;
+    pack().items = pack().items.filter(item => item.id !== selectedItem);
+    markDirty(); editor(pack().items.at(-1)); renderRows();
+  });
+  $('#upload-image').addEventListener('click', () => { if (!busy) $('#image-file').click(); });
+  $('#image-file').addEventListener('change', async event => {
+    const file = event.target.files[0]; event.target.value = '';
+    if (!file || busy || !owner()) return;
+    setBusy(true);
+    try {
+      if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) throw { code:'catalog/invalid-image', message:'Choose a JPG, PNG, or WebP image up to 5 MB.' };
+      let bitmap;
+      try { bitmap = await createImageBitmap(file); }
+      catch { throw { code:'catalog/invalid-image', message:'This image could not be read. Choose a valid JPG, PNG, or WebP file.' }; }
+      const valid = bitmap.width > 0 && bitmap.height > 0 && bitmap.width <= 8192 && bitmap.height <= 8192; bitmap.close();
+      if (!valid) throw { code:'catalog/invalid-image', message:'Choose an image no larger than 8192 pixels on either side.' };
+      const url = await client.uploadCardImage(file);
+      if (!owner()) return;
+      currentImage = url; $('#item-preview').src = url; changedEditor();
+      status('Image uploaded. Update the item, then save your pack.');
+    } catch (error) { status(errorText(error), true); }
+    finally { setBusy(false); }
+  });
+  $('#save-pack').addEventListener('click', async () => {
+    if (busy || !owner() || !loaded.has(selectedPack)) return;
+    if (editorDirty && !stageItem()) return;
+    const issues = model.validateItems(pack().items);
+    if (issues.length) { status(issues[0], true); return; }
+    const id = selectedPack, draft = structuredClone(pack());
+    setBusy(true);
+    try {
+      const version = await client.savePackContents(id, draft, draft.version);
+      if (!owner()) return;
+      pack().version = version; pack().source = 'firebase'; dirty.delete(id);
+      status(`${tiers.find(tier => tier.id === id).name} pack saved. Its contents are now available on the site.`);
+    } catch (error) { status(errorText(error), true); }
+    finally { setBusy(false); renderTiers(); }
+  });
+  $('#retry-connection').addEventListener('click', () => { if (!busy && owner()) loadPacks(); });
+  $('#pack-enabled').addEventListener('change', event => { pack().enabled = event.target.checked; markDirty(); });
+  function chooseTab(settings) {
+    for (const [id, selected] of [['contents-tab',!settings],['pack-settings-tab',settings]]) { $('#' + id).setAttribute('aria-selected', String(selected)); $('#' + id).tabIndex = selected ? 0 : -1; }
+    $('#contents-panel').hidden = settings; $('#pack-settings-panel').hidden = !settings;
+  }
+  $('#contents-tab').addEventListener('click', () => chooseTab(false));
+  $('#pack-settings-tab').addEventListener('click', () => chooseTab(true));
+  $('.pack-tabs').addEventListener('keydown', event => { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); const settings = event.key === 'End' || (event.key !== 'Home' && $('#contents-tab').getAttribute('aria-selected') === 'true'); chooseTab(settings); $(settings ? '#pack-settings-tab' : '#contents-tab').focus(); } });
+  document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => { if (!busy) view(button.dataset.view, mobile.matches); }));
+  $('#library-grid').addEventListener('click', async event => {
+    const button = event.target.closest('[data-library-pack]'); if (!button || busy || !await mayLeaveEditor()) return;
+    selectedPack = button.dataset.libraryPack; editor(pack().items.find(item => item.id === button.dataset.libraryItem)); renderPack(); chooseTab(false); view('packs', true);
+  });
+  $('#sidebar-toggle').addEventListener('click', () => setSidebar(!document.body.classList.contains('sidebar-open')));
+  $('#sidebar-backdrop').addEventListener('click', () => { setSidebar(false); $('#sidebar-toggle').focus(); });
+  mobile.addEventListener('change', () => setSidebar(false));
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) { setSidebar(false); $('#sidebar-toggle').focus(); } });
+  $('#confirm-ok').addEventListener('click', () => $('#confirm-dialog').close('ok'));
+  $('#confirm-cancel').addEventListener('click', () => $('#confirm-dialog').close('cancel'));
+  for (const id of ['sign-out','settings-signout','gate-signout']) $('#' + id).addEventListener('click', signOut);
+  $('#gate-resend').addEventListener('click', async () => { try { await client.resendVerification(); $('#gate-copy').textContent = 'Verification email sent. Open the link in your inbox.'; } catch { $('#gate-copy').textContent = 'Could not send the verification email. Please try again.'; } });
+  $('#gate-check').addEventListener('click', async () => { try { await client.refreshUser(); renderAccess(); } catch { $('#gate-copy').textContent = 'Could not check verification. Please try again.'; } });
+  $('#gate-retry').addEventListener('click', () => location.reload());
+  document.addEventListener('rippr:authchange', renderAccess);
+  window.addEventListener('beforeunload', event => { if (owner() && (dirty.size || editorDirty)) { event.preventDefault(); event.returnValue = ''; } });
+  if (client) client.ready.then(renderAccess).catch(() => { $('#gate-title').textContent = 'Sign-in unavailable'; $('#gate-copy').textContent = 'Check your connection and try again.'; $('#gate-retry').hidden = false; });
+  else { $('#gate-title').textContent = 'Sign-in unavailable'; $('#gate-copy').textContent = 'Reload the page to reconnect.'; $('#gate-retry').hidden = false; }
+})();

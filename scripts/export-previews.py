@@ -21,7 +21,7 @@ def uri(path, mime):
 rasters = []
 recipes = {}
 for asset in sorted((ROOT / 'assets').glob('*.svg')):
-    if not asset.name.startswith(('pack-', 'grail-')):
+    if not asset.name.startswith(('pack-', 'grail-', 'card-')):
         continue
     text = asset.read_text()
     for raster in re.findall(r'data:image/png;base64,[A-Za-z0-9+/=]+', text):
@@ -58,6 +58,7 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     navigation_css = (ROOT / 'navigation.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
     text = re.sub(r'<link rel="stylesheet" href="navigation\.css(?:\?[^"]*)?">', lambda match: '<style>' + navigation_css + '</style>', text)
     text = text.replace('<script src="navigation.js" defer></script>', '')
+    text = text.replace('<script src="catalog.js"></script>', '<script>' + (ROOT / 'catalog.js').read_text() + '</script>')
     text = text.replace('</body>', '<script>' + (ROOT / 'navigation.js').read_text() + '</script></body>')
     text = text.replace('href="assets/favicon.svg"', 'href="' + uri(ROOT / 'assets/favicon.svg', 'image/svg+xml') + '"')
     filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html'}
@@ -79,6 +80,7 @@ home = home.replace('</body>', '<script>' + bootstrap + '</script><script>' + ap
 
 opening = (ROOT / 'opening.html').read_text()
 opening = opening.replace('<script src="packs.js"></script>', '<script>' + bootstrap + '</script>')
+opening = opening.replace('<script src="opening.js"></script>', '<script>' + (ROOT / 'opening.js').read_text() + '</script>')
 # The selected pack's inline style supplies its locally materialized image.
 opening = re.sub(r'url\("assets/pack-[^"]+\.svg"\)', 'none', opening)
 (OUT / 'rippr-opening.html').write_text(common(opening))
@@ -93,12 +95,13 @@ auth = auth.replace('</body>', '<script>' + bootstrap + '</script><script>' + au
 (OUT / 'rippr-auth.html').write_text(common(auth))
 
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-    source_files = ['README.md', '.gitignore', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
+    source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'index.html', 'opening.html', 'auth.html', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
-                    'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js']
+                    'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
+                    'catalog.js', 'opening.js', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
-    for folder in ['scripts', 'src', 'assets']:
+    for folder in ['scripts', 'src', 'assets', 'admin', 'tests']:
         for path in sorted((ROOT / folder).rglob('*')):
             if path.is_file() and '__pycache__' not in path.parts:
                 archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
