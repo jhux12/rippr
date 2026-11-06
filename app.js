@@ -2,46 +2,86 @@
   'use strict';
   const packs = window.RIPPR_PACKS;
   const grid = document.querySelector('#pack-grid');
-  const sort = document.querySelector('#sort');
+  const carousel = document.querySelector('#pack-carousel');
   const status = document.querySelector('#catalog-status');
+  const toggle = document.querySelector('#rotation-toggle');
   const modal = document.querySelector('#modal');
   const content = document.querySelector('#modal-content');
-  const filters = [...document.querySelectorAll('[data-filter]')];
-  let filter = 'all';
-  let returnFocus;
-
-  function render() {
-    let visible = packs.filter(pack => filter !== 'featured' || pack.featured);
-    if (sort.value === 'az') visible.sort((a, b) => a.name.localeCompare(b.name));
-    if (sort.value === 'za') visible.sort((a, b) => b.name.localeCompare(a.name));
-    grid.replaceChildren(...visible.map(pack => {
-      const card = document.createElement('article');
-      card.className = 'pack-card';
-      card.style.setProperty('--accent', pack.accent);
-      card.innerHTML = `<a class="pack-image-link" href="opening.html?pack=${pack.id}" aria-label="View ${pack.name} pack"><img class="pack-image" src="${pack.image}" alt="${pack.name} rippr booster pack" width="141" height="242"></a><h3>${pack.name}</h3><p>1 card</p><a class="view-pack" href="opening.html?pack=${pack.id}" aria-label="View ${pack.name} pack">View pack <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a>`;
-      return card;
-    }));
-    status.textContent = `${visible.length} ${filter === 'featured' ? 'featured ' : ''}packs shown`;
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  let current = 0, paused = motion.matches, hovered = false, timer, returnFocus;
+  const selectors = document.querySelector('#tier-selectors');
+  packs.forEach((pack, i) => {
+    const card = document.createElement('article');
+    card.className = 'tier-slide';
+    card.style.setProperty('--accent', pack.accent);
+    card.setAttribute('role', 'group');
+    card.setAttribute('aria-roledescription', 'slide');
+    card.setAttribute('aria-label', `${i+1} of ${packs.length}: ${pack.name}`);
+    card.innerHTML = `<button type="button" class="tier-art" aria-label="Select ${pack.name}"><img src="${pack.image}" alt="${pack.name} pack" width="250" height="390"></button><div class="tier-info"><p class="tier-number">TIER 0${pack.tier}</p><h3>${pack.name}</h3><p class="tier-card-count">1 card</p><a class="view-pack" href="opening.html?pack=${pack.id}">View pack <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a></div>`;
+    card.querySelector('button').addEventListener('click', () => move(i, true));
+    grid.append(card);
+    const button = document.createElement('button');
+    button.type = 'button'; button.textContent = pack.name;
+    button.addEventListener('click', () => move(i, true));
+    selectors.append(button);
+  });
+  const slides = [...grid.children], tierButtons = [...selectors.children];
+  function schedule() {
+    clearInterval(timer);
+    toggle.textContent = paused ? 'Play' : 'Pause';
+    toggle.setAttribute('aria-label', paused ? 'Start rotation' : 'Pause rotation');
+    status.setAttribute('aria-live', paused ? 'polite' : 'off');
+    if (!paused && !hovered && !document.hidden && !modal.open) timer = setInterval(() => move(current + 1), 4500);
   }
-
-  filters.forEach(button => button.addEventListener('click', () => {
-    filter = button.dataset.filter;
-    filters.forEach(item => {
-      item.classList.toggle('selected', item === button);
-      item.setAttribute('aria-pressed', String(item === button));
+  function move(index, manual = false) {
+    current = (index + packs.length) % packs.length;
+    slides.forEach((slide, i) => {
+      const offset = ((i-current+packs.length+2)%packs.length)-2;
+      slide.style.setProperty('--offset', offset);
+      slide.dataset.distance = Math.abs(offset);
+      slide.classList.toggle('is-active', offset === 0);
+      slide.setAttribute('aria-hidden', String(offset !== 0));
+      slide.inert = offset !== 0;
+      slide.querySelector('button').tabIndex = -1;
     });
-    render();
-  }));
-  sort.addEventListener('change', render);
+    tierButtons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === current)));
+    carousel.style.setProperty('--accent', packs[current].accent);
+    status.textContent = `${packs[current].name}, tier ${current+1} of ${packs.length}, one card per pack`;
+    if (manual) paused = true;
+    schedule();
+  }
+  document.querySelector('#previous-pack').addEventListener('click', () => move(current-1, true));
+  document.querySelector('#next-pack').addEventListener('click', () => move(current+1, true));
+  toggle.addEventListener('click', () => { paused = !paused; schedule(); });
+  carousel.addEventListener('pointerenter', () => { hovered = true; schedule(); });
+  carousel.addEventListener('pointerleave', () => { hovered = false; schedule(); });
+  carousel.addEventListener('focusin', () => { paused = true; schedule(); });
+  carousel.addEventListener('keydown', event => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault(); move(current + (event.key === 'ArrowRight' ? 1 : -1), true);
+    }
+  });
+  let touchStart;
+  carousel.addEventListener('touchstart', event => { touchStart = {x:event.touches[0].clientX,y:event.touches[0].clientY}; }, {passive:true});
+  carousel.addEventListener('touchend', event => {
+    if (!touchStart) return;
+    const dx = event.changedTouches[0].clientX-touchStart.x, dy = event.changedTouches[0].clientY-touchStart.y;
+    if (Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)) move(current + (dx<0?1:-1), true);
+    touchStart = null;
+  }, {passive:true});
+  document.addEventListener('visibilitychange', schedule);
+  motion.addEventListener('change', () => { if(motion.matches) paused = true; schedule(); });
+  move(0);
 
   function show(html, trigger) {
     returnFocus = trigger;
     content.innerHTML = html;
     modal.showModal();
+    schedule();
   }
   function close() { modal.close(); }
   modal.querySelector('.modal-close').addEventListener('click', close);
-  modal.addEventListener('close', () => returnFocus?.focus({ preventScroll: true }));
+  modal.addEventListener('close', () => { returnFocus?.focus({ preventScroll: true }); schedule(); });
   modal.addEventListener('click', event => {
     if (event.target !== modal) return;
     const r = modal.getBoundingClientRect();
@@ -71,5 +111,4 @@
     const grail = grails[button.dataset.grail];
     show(`<div class="modal-kicker">GRAIL PREVIEW</div><h2 id="modal-title">${grail.name}</h2><img class="modal-grail" src="${grail.image}" alt="${grail.name} concept card"><p>Original concept artwork. Demo preview only.</p>`, button);
   }));
-  render();
 })();

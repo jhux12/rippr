@@ -36,29 +36,20 @@
       </div>
       <div class="hero-art" aria-hidden="true">
         <div class="hero-plane plane-one"></div><div class="hero-plane plane-two"></div>
-        <img class="hero-pack hero-pack-left" src="assets/pack-prism.svg" alt="" width="141" height="242">
-        <img class="hero-pack hero-pack-right" src="assets/pack-after-hours.svg" alt="" width="141" height="242">
-        <img class="hero-pack hero-pack-center" src="assets/pack-origins.svg" alt="" width="141" height="242">
+        <img class="hero-pack hero-pack-left" src="assets/pack-plus.svg" alt="" width="141" height="242">
+        <img class="hero-pack hero-pack-right" src="assets/pack-ultimate.svg" alt="" width="141" height="242">
+        <img class="hero-pack hero-pack-center" src="assets/pack-premium.svg" alt="" width="141" height="242">
       </div>
     </section>
 
     <section id="packs" class="catalog" aria-labelledby="packs-title">
-      <div class="catalog-toolbar">
-        <h2 id="packs-title">Explore packs</h2>
-        <div class="filters" role="group" aria-label="Filter packs">
-          <button type="button" class="filter-button selected" data-filter="all" aria-pressed="true">All</button>
-          <button type="button" class="filter-button" data-filter="originals" aria-pressed="false">Originals</button>
-          <button type="button" class="filter-button" data-filter="featured" aria-pressed="false">Featured</button>
-        </div>
-        <div class="sort-control">
-          <label class="sr-only" for="sort">Sort packs</label>
-          <select id="sort"><option value="featured">Featured</option><option value="az">Name: A–Z</option><option value="za">Name: Z–A</option></select>
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
-        </div>
+      <div class="catalog-toolbar"><h2 id="packs-title">Find your level.</h2><div class="carousel-controls"><button id="previous-pack" type="button" aria-label="Previous pack">←</button><button id="next-pack" type="button" aria-label="Next pack">→</button><button id="rotation-toggle" type="button" aria-label="Pause rotation">Pause</button></div></div>
+      <div id="pack-carousel" class="pack-carousel" role="region" aria-roledescription="carousel" aria-label="Five pack tiers">
+        <div id="pack-grid" class="carousel-stage"></div>
+        <div id="tier-selectors" class="tier-selectors" role="group" aria-label="Choose pack tier"></div>
+        <p id="catalog-status" class="sr-only" role="status" aria-live="off"></p>
       </div>
-      <p id="catalog-status" class="sr-only" role="status" aria-live="polite"></p>
-      <div id="pack-grid" class="pack-grid"></div>
-      <noscript><p>Enable JavaScript to filter packs, or <a href="opening.html?pack=origins">open an Origins demo pack</a>.</p></noscript>
+      <noscript><p><a href="opening.html?pack=basic">Open a Basic demo pack</a></p></noscript>
     </section>
 
     <section class="grails" aria-labelledby="grails-title">

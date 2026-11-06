@@ -1,38 +1,38 @@
-// Shared catalog for the homepage and demo opening page.
+// Shared five-tier catalog.
 window.RIPPR_PACKS = [
   {
-    "id": "origins",
-    "name": "Origins",
-    "image": "assets/pack-origins.svg",
-    "accent": "#f9b8d6",
-    "featured": true
+    "id": "basic",
+    "name": "Basic",
+    "image": "assets/pack-basic.svg",
+    "accent": "#b8c8d8",
+    "tier": 1
   },
   {
-    "id": "prism",
-    "name": "Prism",
-    "image": "assets/pack-prism.svg",
+    "id": "plus",
+    "name": "Plus",
+    "image": "assets/pack-plus.svg",
     "accent": "#55d9ff",
-    "featured": true
+    "tier": 2
   },
   {
-    "id": "bloom",
-    "name": "Bloom",
-    "image": "assets/pack-bloom.svg",
-    "accent": "#9ddfc3",
-    "featured": false
+    "id": "premium",
+    "name": "Premium",
+    "image": "assets/pack-premium.svg",
+    "accent": "#b798ef",
+    "tier": 3
   },
   {
-    "id": "after-hours",
-    "name": "After Hours",
-    "image": "assets/pack-after-hours.svg",
-    "accent": "#bd98ea",
-    "featured": true
+    "id": "elite",
+    "name": "Elite",
+    "image": "assets/pack-elite.svg",
+    "accent": "#ff9e88",
+    "tier": 4
   },
   {
-    "id": "daybreak",
-    "name": "Daybreak",
-    "image": "assets/pack-daybreak.svg",
-    "accent": "#ffc35b",
-    "featured": false
+    "id": "ultimate",
+    "name": "Ultimate",
+    "image": "assets/pack-ultimate.svg",
+    "accent": "#ffcf70",
+    "tier": 5
   }
 ];
