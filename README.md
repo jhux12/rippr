@@ -1,6 +1,6 @@
 # rippr
 
-The approved dark homepage mockup, implemented with HTML, CSS, and JavaScript. Includes exactly five tiers (Basic, Plus, Premium, Elite, Ultimate), a compact hero, a rotating pack carousel, and grail previews. The desktop layout follows the mockup; smaller screens use a responsive catalog.
+The approved dark homepage mockup, implemented with HTML, CSS, and JavaScript. Includes exactly five tiers (Basic, Plus, Premium, Elite, Ultimate), a four-banner rotating hero, a rotating pack carousel, and grail previews. The desktop layout follows the mockup; smaller screens use a responsive catalog.
 
 ## Run
 
@@ -13,6 +13,8 @@ No installation or build is required. Visit the server in your browser. All font
 
 ## Use
 
+- The hero preserves the original style, rotates through four banners, and uses a compact 220px mobile height. Banner controls support pause and manual selection, and reduced motion disables autoplay by default.
+- Pack artwork uses transparent-background cutouts throughout the hero, carousel, and opening pages.
 - Browse five tiers using arrows, tier buttons, keyboard arrows, or swipes.
 - Rotation pauses on hover; keyboard/manual navigation pauses it until Play. Reduced motion defaults to paused.
 - Each pack links to `opening.html?pack=<id>` and uses its matching artwork.

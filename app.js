@@ -73,15 +73,60 @@
   motion.addEventListener('change', () => { if(motion.matches) paused = true; schedule(); });
   move(0);
 
+  const hero = document.querySelector('.hero');
+  const heroDots = document.querySelector('#hero-dots');
+  const heroRotation = document.querySelector('#hero-rotation');
+  const heroStatus = document.querySelector('#hero-status');
+  const banners = [
+    {title:'Your next great pull.',copy:'One pack. One card. Something unexpected.',cta:'Explore packs',href:'#packs',art:['plus','ultimate','premium']},
+    {title:'Start your collection.',copy:'A little curiosity starts with Basic.',cta:'Explore Basic',href:'opening.html?pack=basic',art:['plus','premium','basic']},
+    {title:'Find your next favorite.',copy:'Discover Plus, Premium, and Elite.',cta:'Explore tiers',href:'#packs',art:['plus','elite','premium']},
+    {title:'Aim a little higher.',copy:'Meet Ultimate. Our highest tier.',cta:'View Ultimate',href:'opening.html?pack=ultimate',art:['premium','elite','ultimate']}
+  ];
+  let heroIndex=0, heroPaused=motion.matches, heroHovered=false, heroTimer;
+  banners.forEach((banner,i)=>{
+    const button=document.createElement('button');button.type='button';
+    button.setAttribute('aria-label',`Banner ${i+1}: ${banner.title}`);
+    button.addEventListener('click',()=>changeHero(i,true));heroDots.append(button);
+  });
+  function heroSchedule(){
+    clearInterval(heroTimer);
+    heroRotation.textContent=heroPaused?'Play':'Pause';
+    heroRotation.setAttribute('aria-label',heroPaused?'Play banners':'Pause banners');
+    heroStatus.setAttribute('aria-live',heroPaused?'polite':'off');
+    if(!heroPaused&&!heroHovered&&!document.hidden&&!modal.open)heroTimer=setInterval(()=>changeHero(heroIndex+1),6500);
+  }
+  function changeHero(index,manual=false){
+    heroIndex=(index+banners.length)%banners.length;const banner=banners[heroIndex];
+    document.querySelector('#hero-title').textContent=banner.title;
+    hero.querySelector('.hero-copy p').textContent=banner.copy;
+    const cta=document.querySelector('#hero-cta');cta.textContent=banner.cta;cta.setAttribute('href',banner.href);
+    ['left','right','center'].forEach((position,i)=>{hero.querySelector(`.hero-pack-${position}`).src=packs.find(pack=>pack.id===banner.art[i]).image});
+    [...heroDots.children].forEach((button,i)=>button.setAttribute('aria-pressed',String(i===heroIndex)));
+    heroStatus.textContent=`Banner ${heroIndex+1} of ${banners.length}: ${banner.title}`;
+    hero.classList.remove('hero-enter');void hero.offsetWidth;hero.classList.add('hero-enter');
+    if(manual)heroPaused=true;heroSchedule();
+  }
+  document.querySelector('#hero-previous').addEventListener('click',()=>changeHero(heroIndex-1,true));
+  document.querySelector('#hero-next').addEventListener('click',()=>changeHero(heroIndex+1,true));
+  heroRotation.addEventListener('click',()=>{heroPaused=!heroPaused;heroSchedule()});
+  hero.addEventListener('pointerenter',()=>{heroHovered=true;heroSchedule()});
+  hero.addEventListener('pointerleave',()=>{heroHovered=false;heroSchedule()});
+  hero.addEventListener('focusin',event=>{if(event.target!==heroRotation){heroPaused=true;heroSchedule()}});
+  document.addEventListener('visibilitychange',heroSchedule);
+  motion.addEventListener('change',()=>{if(motion.matches)heroPaused=true;heroSchedule()});
+  changeHero(0);
+
   function show(html, trigger) {
     returnFocus = trigger;
     content.innerHTML = html;
     modal.showModal();
     schedule();
+    heroSchedule();
   }
   function close() { modal.close(); }
   modal.querySelector('.modal-close').addEventListener('click', close);
-  modal.addEventListener('close', () => { returnFocus?.focus({ preventScroll: true }); schedule(); });
+  modal.addEventListener('close', () => { returnFocus?.focus({ preventScroll: true }); schedule(); heroSchedule(); });
   modal.addEventListener('click', event => {
     if (event.target !== modal) return;
     const r = modal.getBoundingClientRect();

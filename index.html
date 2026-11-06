@@ -28,11 +28,11 @@
   </header>
 
   <main id="main" class="page-shell">
-    <section class="hero" aria-labelledby="hero-title">
+    <section class="hero" aria-labelledby="hero-title" aria-roledescription="carousel">
       <div class="hero-copy">
         <h1 id="hero-title">Your next great pull.</h1>
         <p>One pack. One card. Something unexpected.</p>
-        <a class="primary-button" href="#packs">Explore packs</a>
+        <a id="hero-cta" class="primary-button" href="#packs">Explore packs</a>
       </div>
       <div class="hero-art" aria-hidden="true">
         <div class="hero-plane plane-one"></div><div class="hero-plane plane-two"></div>
@@ -40,6 +40,13 @@
         <img class="hero-pack hero-pack-right" src="assets/pack-ultimate.svg" alt="" width="141" height="242">
         <img class="hero-pack hero-pack-center" src="assets/pack-premium.svg" alt="" width="141" height="242">
       </div>
+      <div class="hero-controls" role="group" aria-label="Hero banners">
+        <button id="hero-previous" type="button" aria-label="Previous banner"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></button>
+        <div id="hero-dots"></div>
+        <button id="hero-next" type="button" aria-label="Next banner"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button>
+        <button id="hero-rotation" type="button" aria-label="Pause banners">Pause</button>
+      </div>
+      <p id="hero-status" class="sr-only" role="status" aria-live="off"></p>
     </section>
 
     <section id="packs" class="catalog" aria-labelledby="packs-title">
