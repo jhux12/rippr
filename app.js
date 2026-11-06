@@ -139,7 +139,8 @@
     } else if (button.dataset.dialog === 'collection') {
       show('<h2 id="modal-title">Your collection</h2><div class="collection-empty"><span aria-hidden="true">✧</span><p>A little room for discovery.</p></div><p>Saved collections are coming soon. For now, enjoy a demo opening and view your cards at the end.</p><button class="primary-button" data-explore>Explore packs</button>', button);
     } else {
-      show('<h2 id="modal-title">Welcome to rippr.</h2><p>Accounts are coming soon. You can try every demo pack without signing in.</p><button class="primary-button" data-explore>Explore packs</button>', button);
+      location.href = 'auth.html?mode=login';
+      return;
     }
     content.querySelector('[data-explore]').addEventListener('click', () => {
       close();

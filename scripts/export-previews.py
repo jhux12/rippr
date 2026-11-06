@@ -21,7 +21,7 @@ def uri(path, mime):
 rasters = []
 recipes = {}
 for asset in sorted((ROOT / 'assets').glob('*.svg')):
-    if not asset.name.startswith(('pack-', 'grail-')):
+    if not asset.name.startswith(('pack-', 'grail-')) and asset.name != 'auth-showcase.svg':
         continue
     text = asset.read_text()
     for raster in re.findall(r'data:image/png;base64,[A-Za-z0-9+/=]+', text):
@@ -47,7 +47,10 @@ bootstrap = '''(() => {
 
 def common(text):
     text = text.replace('href="assets/favicon.svg"', 'href="' + uri(ROOT / 'assets/favicon.svg', 'image/svg+xml') + '"')
-    text = text.replace('index.html', 'rippr-homepage.html').replace('opening.html', 'rippr-opening.html')
+    filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html'}
+    # Rewrite complete relative filenames once, including query/hash links. Do not
+    # rewrite an already exported filename such as rippr-opening.html again.
+    text = re.sub(r'(?<![\w-])(?:index|opening|auth)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
     return text
 
 
@@ -67,13 +70,22 @@ opening = opening.replace('<script src="packs.js"></script>', '<script>' + boots
 opening = re.sub(r'url\("assets/pack-[^"]+\.svg"\)', 'none', opening)
 (OUT / 'rippr-opening.html').write_text(common(opening))
 
+auth = (ROOT / 'auth.html').read_text()
+auth_css = (ROOT / 'auth.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
+auth = auth.replace('<link rel="stylesheet" href="auth.css">', '<style>' + auth_css + '</style>')
+auth = re.sub(r'\s*<script src="(?:packs|auth)\.js"(?: defer)?></script>', '', auth)
+auth = re.sub(r'src="(assets/(?:pack-|grail-|auth-showcase)[^"]*\.svg)"', lambda match: 'data-asset="' + match[1] + '"', auth)
+auth_js = (ROOT / 'auth.js').read_text()
+auth = auth.replace('</body>', '<script>' + bootstrap + '</script><script>' + auth_js + '</script></body>')
+(OUT / 'rippr-auth.html').write_text(common(auth))
+
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(ROOT.rglob('*')):
         if path.is_file() and '.git' not in path.relative_to(ROOT).parts:
             archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
-    for name in ['rippr-homepage.html', 'rippr-opening.html']:
+    for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html']:
         archive.write(OUT / name, 'previews/' + name)
 with zipfile.ZipFile(OUT / 'rippr-site.zip') as archive:
     assert archive.testzip() is None
-for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-site.zip']:
+for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-site.zip']:
     print(f'{name}: {(OUT / name).stat().st_size:,} bytes')
