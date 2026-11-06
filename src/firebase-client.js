@@ -3,11 +3,11 @@ import {
   initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver,
   connectAuthEmulator, onAuthStateChanged, createUserWithEmailAndPassword,
   signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut,
-  sendEmailVerification, sendPasswordResetEmail, reload
+  sendEmailVerification, sendPasswordResetEmail, reload, getIdTokenResult
 } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, doc, getDocFromServer, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { isAdminUser, assertPackId, defaultPack, validateItems, readStoredPack } from './catalog-model.js';
+import { OWNER_EMAIL, isAdminUser, isAdminToken, assertPackId, defaultPack, validateItems, readStoredPack } from './catalog-model.js';
 
 const app = initializeApp(window.RIPPR_FIREBASE_CONFIG);
 const auth = initializeAuth(app, {
@@ -86,12 +86,19 @@ function getImageStorage() {
 }
 async function requireAdmin() {
   await ready;
-  if (!isAdminUser(auth.currentUser)) throw Object.assign(new Error('A verified owner sign-in is required.'), { code: 'catalog/permission-denied' });
-  return auth.currentUser;
+  const user = auth.currentUser;
+  if (!user || user.email?.toLowerCase() !== OWNER_EMAIL) throw Object.assign(new Error('A verified owner sign-in is required.'), { code: 'catalog/permission-denied' });
+  // Rules evaluate the token claims, which can lag behind the cached user profile.
+  // Refresh before a privileged request so a recently verified email reaches rules.
+  const { claims } = await getIdTokenResult(user, true);
+  if (auth.currentUser?.uid !== user.uid || !isAdminToken(claims, user.uid)) {
+    throw Object.assign(new Error('Firebase has not confirmed this owner sign-in.'), { code: claims.email_verified === false ? 'catalog/verification-required' : 'catalog/permission-denied' });
+  }
+  return user;
 }
 export async function loadPackContents(packId) {
   assertPackId(packId);
-  const snapshot = await getDocFromServer(doc(getDatabase(), 'packContents', packId));
+  const snapshot = await getDoc(doc(getDatabase(), 'packContents', packId));
   return snapshot.exists() ? readStoredPack(snapshot.data()) : defaultPack(packId);
 }
 export async function savePackContents(packId, pack, expectedVersion) {

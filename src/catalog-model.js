@@ -20,6 +20,10 @@ const seeds = [
 export function isAdminUser(user) {
   return Boolean(user?.emailVerified && user.email?.toLowerCase() === OWNER_EMAIL);
 }
+export function isAdminToken(claims, uid) {
+  return Boolean(uid && claims?.sub === uid && claims.email_verified === true
+    && claims.email?.toLowerCase() === OWNER_EMAIL);
+}
 export function assertPackId(id) {
   if (!PACK_IDS.includes(id)) throw Object.assign(new Error('Unknown pack tier.'), { code: 'catalog/invalid-pack' });
 }

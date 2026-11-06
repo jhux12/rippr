@@ -24,6 +24,7 @@
   }
   function errorText(error) {
     if (error?.code === 'catalog/conflict') return 'This pack changed in another session. Reload the saved contents before saving again.';
+    if (error?.code === 'catalog/verification-required') return 'Firebase has not confirmed your email verification. Open the verification link in your inbox, then check verification on your account page.';
     if (error?.code === 'catalog/invalid-data' || error?.code === 'catalog/invalid-image') return error.message;
     if (/permission-denied|unauthorized/.test(error?.code || '')) return 'Access was denied. Check your verified owner sign-in and Firebase access rules.';
     return 'Could not connect to Firebase. Your edits are still here. Check the connection and setup guide, then retry.';

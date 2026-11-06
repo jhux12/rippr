@@ -1,12 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OWNER_EMAIL, PACK_IDS, defaultPack, isAdminUser, safeImageURL, decimalToUnits, validateItems, readStoredPack, drawItem } from '../src/catalog-model.js';
+import { OWNER_EMAIL, PACK_IDS, defaultPack, isAdminUser, isAdminToken, safeImageURL, decimalToUnits, validateItems, readStoredPack, drawItem } from '../src/catalog-model.js';
 
 test('only the verified designated email is an owner', () => {
   assert.equal(isAdminUser(null), false);
   assert.equal(isAdminUser({ email:OWNER_EMAIL, emailVerified:false }), false);
   assert.equal(isAdminUser({ email:'someone@example.com', emailVerified:true, isAdmin:true }), false);
   assert.equal(isAdminUser({ email:OWNER_EMAIL.toUpperCase(), emailVerified:true }), true);
+});
+test('privileged requests require verified owner claims for the current UID', () => {
+  const claims = {sub:'owner',email:OWNER_EMAIL,email_verified:true};
+  assert.equal(isAdminToken(claims,'owner'),true);
+  assert.equal(isAdminToken({...claims,email_verified:false},'owner'),false);
+  assert.equal(isAdminToken({...claims,email:'member@example.com'},'owner'),false);
+  assert.equal(isAdminToken({...claims,sub:'different-user'},'owner'),false);
+  assert.equal(isAdminToken({...claims,email_verified:'true'},'owner'),false);
+  assert.equal(isAdminToken(null,'owner'),false);
 });
 test('each fixed tier has independent valid defaults', () => {
   const basic = defaultPack('basic'), plus = defaultPack('plus');
