@@ -46,6 +46,10 @@ bootstrap = '''(() => {
 
 
 def common(text):
+    navigation_css = (ROOT / 'navigation.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
+    text = text.replace('<link rel="stylesheet" href="navigation.css">', '<style>' + navigation_css + '</style>')
+    text = text.replace('<script src="navigation.js" defer></script>', '')
+    text = text.replace('</body>', '<script>' + (ROOT / 'navigation.js').read_text() + '</script></body>')
     text = text.replace('href="assets/favicon.svg"', 'href="' + uri(ROOT / 'assets/favicon.svg', 'image/svg+xml') + '"')
     filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html'}
     # Rewrite complete relative filenames once, including query/hash links. Do not

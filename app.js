@@ -9,6 +9,7 @@
   const content = document.querySelector('#modal-content');
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   let current = 0, paused = motion.matches, hovered = false, timer, returnFocus;
+  let navigationBusy = false;
   const selectors = document.querySelector('#tier-selectors');
   packs.forEach((pack, i) => {
     const card = document.createElement('article');
@@ -31,7 +32,7 @@
     toggle.textContent = paused ? 'Play' : 'Pause';
     toggle.setAttribute('aria-label', paused ? 'Start rotation' : 'Pause rotation');
     status.setAttribute('aria-live', paused ? 'polite' : 'off');
-    if (!paused && !hovered && !document.hidden && !modal.open) timer = setInterval(() => move(current + 1), 4500);
+    if (!paused && !hovered && !document.hidden && !modal.open && !navigationBusy) timer = setInterval(() => move(current + 1), 4500);
   }
   function move(index, manual = false) {
     current = (index + packs.length) % packs.length;
@@ -94,7 +95,7 @@
     heroRotation.textContent=heroPaused?'Play':'Pause';
     heroRotation.setAttribute('aria-label',heroPaused?'Play banners':'Pause banners');
     heroStatus.setAttribute('aria-live',heroPaused?'polite':'off');
-    if(!heroPaused&&!heroHovered&&!document.hidden&&!modal.open)heroTimer=setInterval(()=>changeHero(heroIndex+1),6500);
+    if(!heroPaused&&!heroHovered&&!document.hidden&&!modal.open&&!navigationBusy)heroTimer=setInterval(()=>changeHero(heroIndex+1),6500);
   }
   function changeHero(index,manual=false){
     heroIndex=(index+banners.length)%banners.length;const banner=banners[heroIndex];
@@ -116,6 +117,11 @@
   document.addEventListener('visibilitychange',heroSchedule);
   motion.addEventListener('change',()=>{if(motion.matches)heroPaused=true;heroSchedule()});
   changeHero(0);
+  document.addEventListener('rippr:navigationchange', event => {
+    navigationBusy = Boolean(event.detail.menuOpen || event.detail.dialogOpen);
+    schedule();
+    heroSchedule();
+  });
 
   function show(html, trigger) {
     returnFocus = trigger;

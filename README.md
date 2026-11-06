@@ -13,6 +13,7 @@ No installation or build is required. Visit the server in your browser. All font
 
 ## Use
 
+- The shared header matches the desktop/mobile navigation concept across home, opening, and account pages. The mobile disclosure supports Escape, outside taps, responsive reset, and focus return; home carousels pause while navigation is open.
 - The hero preserves the original style, rotates through four banners, and uses a compact 220px mobile height. Banner controls support pause and manual selection, and reduced motion disables autoplay by default.
 - Pack artwork uses transparent-background cutouts throughout the hero, carousel, and opening pages.
 - Browse five tiers using arrows, tier buttons, keyboard arrows, or swipes.
@@ -21,13 +22,14 @@ No installation or build is required. Visit the server in your browser. All font
 - Open 1–5 demo packs; each pack reveals exactly one concept card. The pack zooms into a centered stage, then users drag across the foil before revealing it. Enter/Space also rips the foil; arrow keys advance the tear. Each pack in a batch has its own rip step.
 - Shimmer and foil layers use the selected artwork's intrinsic ratio and alpha mask.
 - Demo rarity odds are 10% rare, 20% uncommon, and 70% common.
-- Grail previews, Collection, and How it works open accessible dialogs. Log in and Get started link to the matching account form.
+- Grail previews, Collection, and How it works open accessible dialogs. Log in and Sign up link to the matching account form.
 - `auth.html?mode=signup` and `auth.html?mode=login` implement the approved split-screen account concept, with a compact split panel (maximum 940px), an 80px mobile artwork strip, keyboard tabs, validation, and a password visibility toggle. Google buttons switch between Sign up and Sign in; OAuth is not connected and clicks show an explicit preview notice.
 - Authentication is a frontend preview. Valid form submissions explicitly say no account was created or login performed. Email/password values are never sent, stored, or logged. Connecting an authentication provider and publishing real Terms/Privacy documents are required before production account use. Saved collections remain placeholders. No payments, real items, or card values are involved.
 
 ## Files
 
 - `index.html`, `style.css`, `app.js`: homepage layout and interactions.
+- `navigation.css`, `navigation.js`: shared header styling, mobile-menu behavior, and navigation dialogs. Header markup is present in each HTML page, and exports inline the shared resources.
 - `packs.js`: shared five-pack catalog.
 - `auth.html`, `auth.css`, `auth.js`: sign-up/login UI; authentication service not connected.
 - The account page reuses the same Plus, Premium, and Ultimate pack files as the homepage and opening flow.
@@ -45,4 +47,4 @@ This creates three self-contained HTML files and `rippr-site.zip`. Keep the thre
 
 ## Validation
 
-Validated in Chromium at desktop, tablet, and mobile sizes: artwork loading, no horizontal overflow, carousel navigation, rotation, swipes, dialogs and keyboard focus, all five pack links, one-card openings, five-pack openings, restart, and reduced-motion behavior. Account-page checks cover signup/login deep links and history, keyboard tabs, validation, password visibility, policy-dialog focus, honest preview submissions, and offline operation without external requests. The reusable export script verifies the ZIP archive's integrity.
+Validated in Chromium at desktop, tablet, and mobile sizes: artwork loading, no horizontal overflow, carousel navigation, rotation, swipes, dialogs and keyboard focus, all five pack links, one-card openings, five-pack openings, restart, and reduced-motion behavior. Account-page checks cover signup/login deep links and history, keyboard tabs, validation, password visibility, policy-dialog focus, honest preview submissions, and offline operation without external requests. Navigation checks cover all three pages at 320–1536px, account links, keyboard navigation and focus restoration across resize, mobile menu dismissal, carousel pausing, and standalone exports with no external requests. The reusable export script verifies the ZIP archive's integrity.

@@ -9,12 +9,30 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="auth.css">
   <script src="auth.js" defer></script>
-</head>
+<link rel="stylesheet" href="navigation.css"><script src="navigation.js" defer></script></head>
 <body>
   <a class="skip-link" href="#auth-panel">Skip to account form</a>
-  <header class="auth-header">
-    <a class="brand" href="index.html" aria-label="rippr home">rippr<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg></a>
-    <a class="back-link" href="index.html#packs"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg>Back to packs</a>
+  <header class="site-navigation">
+    <div class="nav-shell">
+      <a class="nav-brand" href="index.html" aria-label="rippr home"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg><span>rippr</span></a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a class="nav-link" href="index.html#packs" data-nav-packs>Packs</a>
+        <button class="nav-link" type="button" data-nav-dialog="collection">Collection</button>
+        <button class="nav-link" type="button" data-nav-dialog="how">How it works</button>
+      </nav>
+      <div class="nav-actions">
+        <a class="nav-login" href="auth.html?mode=login">Log in</a>
+        <a class="nav-signup" href="auth.html?mode=signup">Sign up</a>
+        <button class="nav-toggle" id="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-navigation" aria-label="Open navigation menu" hidden><svg class="nav-hamburger" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="nav-close-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
+      </div>
+    </div>
+    <nav id="mobile-navigation" class="mobile-navigation" aria-label="Mobile navigation" hidden>
+      <a href="index.html#packs" data-nav-packs>Packs</a>
+      <button type="button" data-nav-dialog="collection">Collection</button>
+      <button type="button" data-nav-dialog="how">How it works</button>
+      <a href="auth.html?mode=login">Log in</a>
+    </nav>
+    <dialog id="nav-dialog" class="nav-dialog" aria-labelledby="nav-dialog-title"><button class="nav-dialog-close" type="button" aria-label="Close dialog">×</button><div id="nav-dialog-content"></div></dialog>
   </header>
   <main class="auth-layout">
     <section class="auth-visual" aria-labelledby="visual-title">
