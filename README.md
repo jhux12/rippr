@@ -29,7 +29,7 @@ No installation or build is required. Visit the server in your browser. All font
 ## Files
 
 - `index.html`, `style.css`, `app.js`: homepage layout and interactions.
-- `navigation.css`, `navigation.js`: shared header styling, mobile-menu behavior, and navigation dialogs. Header markup is present in each HTML page, and exports inline the shared resources.
+- `navigation.css`, `navigation.js`: shared header styling, mobile-menu behavior, and navigation dialogs. Typography and font rendering are explicit here; the opening page no longer has legacy header/nav overrides. Header markup is present in each HTML page, and exports inline the shared resources.
 - `packs.js`: shared five-pack catalog.
 - `auth.html`, `auth.css`, `auth.js`: sign-up/login UI; authentication service not connected.
 - The account page reuses the same Plus, Premium, and Ultimate pack files as the homepage and opening flow.
@@ -47,4 +47,4 @@ This creates three self-contained HTML files and `rippr-site.zip`. Keep the thre
 
 ## Validation
 
-Validated in Chromium at desktop, tablet, and mobile sizes: artwork loading, no horizontal overflow, carousel navigation, rotation, swipes, dialogs and keyboard focus, all five pack links, one-card openings, five-pack openings, restart, and reduced-motion behavior. Account-page checks cover signup/login deep links and history, keyboard tabs, validation, password visibility, policy-dialog focus, honest preview submissions, and offline operation without external requests. Navigation checks cover all three pages at 320–1536px, account links, keyboard navigation and focus restoration across resize, mobile menu dismissal, carousel pausing, and standalone exports with no external requests. The reusable export script verifies the ZIP archive's integrity.
+Validated in Chromium at desktop, tablet, and mobile sizes: artwork loading, no horizontal overflow, carousel navigation, rotation, swipes, dialogs and keyboard focus, all five pack links, one-card openings, five-pack openings, restart, and reduced-motion behavior. Account-page checks cover signup/login deep links and history, keyboard tabs, validation, password visibility, policy-dialog focus, honest preview submissions, and offline operation without external requests. Header checks compare computed styles and rendered images across all pages at 320–1440px with matching active state. Navigation checks cover all three pages at 320–1536px, account links, keyboard navigation and focus restoration across resize, mobile menu dismissal, carousel pausing, and standalone exports with no external requests. The reusable export script verifies the ZIP archive's integrity.

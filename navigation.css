@@ -6,7 +6,8 @@
   width:100%;max-width:none;height:auto;
   margin:0;padding:0;border:0;border-bottom:1px solid #506a80;border-radius:0;
   background:linear-gradient(115deg,#0a1420,#080f18 65%);color:#f5f7fc;
-  font-family:Manrope,Arial,sans-serif;font-size:13px;letter-spacing:normal;
+  font:400 13px/1.4 Manrope,Arial,sans-serif;font-synthesis:none;
+  -webkit-font-smoothing:antialiased;letter-spacing:normal;text-align:left;text-transform:none;
 }
 .site-navigation,.site-navigation *{box-sizing:border-box}
 .site-navigation [hidden]{display:none!important}
@@ -17,7 +18,7 @@
 .nav-shell{height:64px;display:flex;align-items:center;gap:40px;padding:0 25px}
 .site-navigation .nav-brand{display:inline-flex;align-items:center;gap:8px;flex:none;font-size:28px;font-weight:800;line-height:1;letter-spacing:-1.3px}
 .nav-brand svg{display:block;position:static;width:18px;height:22px;fill:var(--nav-cyan);flex:none}
-.site-navigation .nav-links{display:flex;align-items:stretch;gap:30px;height:100%;margin:0;padding:0}
+.site-navigation .nav-links{font:inherit;color:inherit;display:flex;align-items:stretch;gap:30px;height:100%;margin:0;padding:0}
 .site-navigation .nav-link{display:flex;align-items:center;justify-content:center;position:relative;margin:0;padding:0;min-height:44px;white-space:nowrap;font-size:13px;font-weight:600;line-height:1.4;color:#e6edf5}
 .site-navigation .nav-link[aria-current]{color:#fff}
 .site-navigation .nav-link[aria-current]::after{content:"";position:absolute;left:0;right:0;bottom:12px;height:2px;background:var(--nav-cyan)}
@@ -31,7 +32,7 @@
 .nav-toggle .nav-close-icon{display:none}
 .nav-toggle[aria-expanded="true"] .nav-hamburger{display:none}
 .nav-toggle[aria-expanded="true"] .nav-close-icon{display:block}
-.site-navigation .mobile-navigation{display:none;margin:0;padding:0}
+.site-navigation .mobile-navigation{font:inherit;color:inherit;display:none;margin:0;padding:0}
 .site-navigation .nav-dialog{width:min(430px,calc(100% - 36px));max-width:none;max-height:calc(100% - 48px);overflow:auto;padding:30px;background:#101d2c;border:1px solid #476e88;border-radius:14px;color:#eff6fc;box-shadow:0 25px 80px #0007;font-family:Manrope,Arial,sans-serif}
 .nav-dialog::backdrop{background:#03080fd9;backdrop-filter:blur(6px)}
 .nav-dialog h2{font-size:25px;line-height:1.25;font-weight:750;letter-spacing:-.6px;margin:0;padding:0 18px 0 0}
