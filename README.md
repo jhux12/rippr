@@ -22,7 +22,7 @@ No installation or build is required. Visit the server in your browser. All font
 - Shimmer and foil layers use the selected artwork's intrinsic ratio and alpha mask.
 - Demo rarity odds are 10% rare, 20% uncommon, and 70% common.
 - Grail previews, Collection, and How it works open accessible dialogs. Log in and Get started link to the matching account form.
-- `auth.html?mode=signup` and `auth.html?mode=login` implement the approved split-screen account concept, with mobile layouts, keyboard tabs, validation, and a password visibility toggle.
+- `auth.html?mode=signup` and `auth.html?mode=login` implement the approved split-screen account concept, with a compact split panel (maximum 940px), an 80px mobile artwork strip, keyboard tabs, validation, and a password visibility toggle. Google buttons switch between Sign up and Sign in; OAuth is not connected and clicks show an explicit preview notice.
 - Authentication is a frontend preview. Valid form submissions explicitly say no account was created or login performed. Email/password values are never sent, stored, or logged. Connecting an authentication provider and publishing real Terms/Privacy documents are required before production account use. Saved collections remain placeholders. No payments, real items, or card values are involved.
 
 ## Files
@@ -30,7 +30,7 @@ No installation or build is required. Visit the server in your browser. All font
 - `index.html`, `style.css`, `app.js`: homepage layout and interactions.
 - `packs.js`: shared five-pack catalog.
 - `auth.html`, `auth.css`, `auth.js`: sign-up/login UI; authentication service not connected.
-- `assets/auth-showcase.svg`: presentation viewport of the pack artwork from the approved account-page mockup.
+- The account page reuses the same Plus, Premium, and Ultimate pack files as the homepage and opening flow.
 - `opening.html`: animated opening flow, odds, and grail previews.
 - `assets/pack-basic.svg` through `assets/pack-ultimate.svg`: SVG presentation viewports of the approved Pokémon-themed tier artwork, with Poké Ball icons and one-card labels. These contain raster illustrations, not editable vector masters. Earlier concept assets are retained. Grail assets also contain raster artwork.
 - `assets/fonts/`: bundled Manrope variable font and its OFL license.

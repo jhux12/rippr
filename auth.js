@@ -46,6 +46,7 @@
     $('#auth-title').textContent = signup ? 'Create your account' : 'Welcome back';
     $('#auth-intro').textContent = signup ? 'A little closer to your next discovery.' : 'Your next great pull is waiting.';
     $('#auth-submit').textContent = signup ? 'Create account' : 'Log in';
+    $('#google-label').textContent = signup ? 'Sign up with Google' : 'Sign in with Google';
     $('#switch-intro').textContent = signup ? 'Already have an account?' : 'New to rippr?';
     $('#switch-mode').textContent = signup ? 'Log in' : 'Create an account';
     document.title = signup ? 'Create your account — rippr' : 'Log in — rippr';
@@ -111,6 +112,13 @@
     status.hidden = false;
     status.focus();
   });
+  $('#google-auth').addEventListener('click', () => {
+    password.value = '';
+    passwordVisibility(false);
+    status.textContent = 'Google ' + (mode === 'signup' ? 'sign-up' : 'sign-in') + ' is not connected yet. This is a preview; no Google sign-in was started and no account was created.';
+    status.hidden = false;
+    status.focus();
+  });
   const dialog = $('#policy-dialog');
   document.querySelectorAll('[data-policy]').forEach(button => button.addEventListener('click', () => {
     policyTrigger = button;
@@ -130,4 +138,5 @@
   });
   setMode(readMode());
   $('#auth-submit').disabled = false;
+  $('#google-auth').disabled = false;
 })();

@@ -21,7 +21,7 @@ def uri(path, mime):
 rasters = []
 recipes = {}
 for asset in sorted((ROOT / 'assets').glob('*.svg')):
-    if not asset.name.startswith(('pack-', 'grail-')) and asset.name != 'auth-showcase.svg':
+    if not asset.name.startswith(('pack-', 'grail-')):
         continue
     text = asset.read_text()
     for raster in re.findall(r'data:image/png;base64,[A-Za-z0-9+/=]+', text):
