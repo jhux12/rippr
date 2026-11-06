@@ -26,7 +26,7 @@ No installation or build is required. Visit the server in your browser. All font
 - `index.html`, `style.css`, `app.js`: homepage layout and interactions.
 - `packs.js`: shared five-pack catalog.
 - `opening.html`: animated opening flow, odds, and grail previews.
-- `assets/pack-basic.svg` through `assets/pack-ultimate.svg`: editable vector tier pack designs. Earlier concept assets are retained. Grail assets are SVG presentation viewports containing raster artwork.
+- `assets/pack-basic.svg` through `assets/pack-ultimate.svg`: SVG presentation viewports of the approved Pokémon-themed tier artwork, with Poké Ball icons and one-card labels. These contain raster illustrations, not editable vector masters. Earlier concept assets are retained. Grail assets also contain raster artwork.
 - `assets/fonts/`: bundled Manrope variable font and its OFL license.
 
 ## Export offline previews
