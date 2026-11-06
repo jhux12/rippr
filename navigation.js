@@ -88,3 +88,19 @@
   updateAccountLinks();
   setMenu(false);
 })();
+
+(() => {
+  const actions=document.querySelector('.nav-actions');if(!actions)return;
+  const trigger=document.createElement('button');trigger.type='button';trigger.className='topup-trigger';trigger.textContent='Top up';actions.prepend(trigger);
+  const dialog=document.createElement('dialog');dialog.className='topup-dialog';dialog.setAttribute('aria-labelledby','topup-title');
+  dialog.innerHTML=`<div class="topup-heading"><span><b>✦</b> rippr</span><button type="button" class="topup-close" aria-label="Close top up">×</button></div><h2 id="topup-title">Top up your balance</h2><p class="topup-muted">Choose an amount to add.</p><div class="topup-balance"><span>Current balance</span><strong>$0.00</strong></div><div class="topup-presets" role="group" aria-label="Choose amount">${[5,10,25,50,100,250].map(n=>`<button type="button" data-amount="${n}" aria-pressed="${n===25}">$${n}</button>`).join('')}</div><form novalidate><label for="topup-amount">Custom amount</label><div class="topup-input"><span>$</span><input id="topup-amount" inputmode="decimal" type="text" value="25.00" aria-describedby="topup-error"><span>USD</span></div><p id="topup-error" class="topup-error" role="alert" hidden></p><label>Payment method</label><div class="topup-method"><span aria-hidden="true">▤</span> Credit or debit card <span class="topup-chevron" aria-hidden="true">›</span></div><div class="topup-total"><span>You add</span><strong id="topup-total">$25.00</strong></div><button class="topup-continue" type="submit">Continue to payment <span aria-hidden="true">→</span></button><p class="topup-review">Review the total before paying.</p><p class="topup-notice" role="status" tabindex="-1">DESIGN PREVIEW · NO PAYMENT PROCESSED</p></form>`;
+  document.body.append(dialog);
+  const input=dialog.querySelector('input'),error=dialog.querySelector('#topup-error'),notice=dialog.querySelector('.topup-notice');
+  function amount(){const v=input.value.trim();return /^\d+(\.\d{1,2})?$/.test(v)?Math.round(Number(v)*100):NaN}
+  function update(){const cents=amount(),valid=Number.isSafeInteger(cents)&&cents>=100&&cents<=100000;dialog.querySelector('#topup-total').textContent=valid?'$'+(cents/100).toFixed(2):'—';dialog.querySelectorAll('[data-amount]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.amount)*100===cents)));error.hidden=true;input.removeAttribute('aria-invalid');return valid}
+  dialog.querySelectorAll('[data-amount]').forEach(b=>b.addEventListener('click',()=>{input.value=Number(b.dataset.amount).toFixed(2);update()}));input.addEventListener('input',update);
+  trigger.addEventListener('click',()=>{notice.textContent='DESIGN PREVIEW · NO PAYMENT PROCESSED';update();dialog.showModal();document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{dialogOpen:true}}))});
+  dialog.querySelector('.topup-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>{trigger.focus({preventScroll:true});document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{dialogOpen:false}}))});
+  dialog.addEventListener('click',e=>{if(e.target!==dialog)return;const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()});
+  dialog.querySelector('form').addEventListener('submit',e=>{e.preventDefault();if(!update()){error.textContent='Enter an amount from $1 to $1,000 with up to two decimal places.';error.hidden=false;input.setAttribute('aria-invalid','true');input.focus();return}notice.textContent='Payments are not connected yet. No charge was made and no funds were added.';notice.focus()});
+})();
