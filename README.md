@@ -13,7 +13,7 @@ No installation or build is required. Visit the server in your browser. All font
 
 ## Use
 
-- The shared header matches the desktop/mobile navigation concept across home, opening, and account pages. The mobile disclosure supports Escape, outside taps, responsive reset, and focus return; home carousels pause while navigation is open.
+- The shared header spans the full viewport width across home, opening, and account pages, with the matching desktop/mobile navigation design. The mobile disclosure supports Escape, outside taps, responsive reset, and focus return; home carousels pause while navigation is open.
 - The hero preserves the original style, rotates through four banners, and uses a compact 220px mobile height. Banner controls support pause and manual selection, and reduced motion disables autoplay by default.
 - Pack artwork uses transparent-background cutouts throughout the hero, carousel, and opening pages.
 - Browse five tiers using arrows, tier buttons, keyboard arrows, or swipes.
