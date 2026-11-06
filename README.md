@@ -18,7 +18,8 @@ No installation or build is required. Visit the server in your browser. All font
 - Browse five tiers using arrows, tier buttons, keyboard arrows, or swipes.
 - Rotation pauses on hover; keyboard/manual navigation pauses it until Play. Reduced motion defaults to paused.
 - Each pack links to `opening.html?pack=<id>` and uses its matching artwork.
-- Open 1–5 demo packs; each pack reveals exactly one concept card.
+- Open 1–5 demo packs; each pack reveals exactly one concept card. The pack zooms into a centered stage, then users drag across the foil before revealing it. Enter/Space also rips the foil; arrow keys advance the tear. Each pack in a batch has its own rip step.
+- Shimmer and foil layers use the selected artwork's intrinsic ratio and alpha mask.
 - Demo rarity odds are 10% rare, 20% uncommon, and 70% common.
 - Grail previews, Collection, How it works, and Log in open accessible dialogs.
 - Accounts and saved collections are placeholders. No payments, real items, or card values are involved.
