@@ -78,6 +78,7 @@ Deployment has **not** been performed. It requires authenticated project access 
 ## Site behavior
 
 - The shared full-width navigation is consistent across home, opening, and account pages. Its mobile dropdown overlays content without moving it.
+- A compact wallet balance in the shared header opens the responsive top-up popup. Both show the same $0.00 demo balance; choosing or submitting a top-up does not charge a card or add funds. Payments and account wallets are not connected yet.
 - The compact hero rotates four banners. The five-tier carousel supports arrows, keyboard navigation, swipes, and pause. Reduced motion disables autoplay by default.
 - Each pack reveals one concept card. Pack artwork, shimmer, and foil use the same intrinsic ratio and alpha outline. Open zooms to a centered stage; drag across the foil or press Enter/Space to rip it. Batch openings include one rip per pack.
 - Demo card odds are 10% rare, 20% uncommon, and 70% common.
