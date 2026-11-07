@@ -79,6 +79,7 @@ home = home.replace('</body>', '<script>' + bootstrap + '</script><script>' + ap
 (OUT / 'rippr-homepage.html').write_text(common(home))
 
 opening = (ROOT / 'opening.html').read_text()
+opening = opening.replace('<link rel="stylesheet" href="opening-stage.css">', '<style>' + (ROOT / 'opening-stage.css').read_text() + '</style>')
 opening = opening.replace('<script src="packs.js"></script>', '<script>' + bootstrap + '</script>')
 opening = opening.replace('<script src="opening.js"></script>', '<script>' + (ROOT / 'opening.js').read_text() + '</script>')
 # The selected pack's inline style supplies its locally materialized image.
@@ -98,7 +99,7 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'index.html', 'opening.html', 'auth.html', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
                     'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
-                    'catalog.js', 'opening.js', 'firestore.rules', 'storage.rules']
+                    'catalog.js', 'opening.js', 'opening-stage.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
     for folder in ['scripts', 'src', 'assets', 'admin', 'tests']:

@@ -123,6 +123,7 @@ Deployment has **not** been performed. It requires authenticated project access 
 - A compact wallet balance in the shared header opens the responsive top-up popup. Both show the same $0.00 demo balance; choosing or submitting a top-up does not charge a card or add funds. Payments and account wallets are not connected yet.
 - The compact hero rotates four banners. The five-tier carousel supports arrows, keyboard navigation, swipes, and pause. Reduced motion disables autoplay by default.
 - Each pack reveals one concept card. Pack artwork, shimmer, and foil use the same intrinsic ratio and alpha outline. Open zooms to a centered stage; drag across the foil or press Enter/Space to rip it. Batch openings include one rip per pack.
+- The opening stage uses live cyan spotlighting, animated orbit glints, drifting particles, star-marked card backs, a glowing elliptical platform and a soft pack reflection. The top foil catches a moving glint. Rip instructions are accessible to screen readers without visible stage text. Ambient animation pauses offscreen, in background tabs, and while navigation is open; reduced motion keeps a static composition. Rarity colors tint the lighting during a reveal.
 - Demo draws use the selected pack's saved item chances. The odds table and grails use that same catalog.
 
 ## Offline previews
