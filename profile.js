@@ -37,7 +37,6 @@
     if(!user||!a.wallet)return;
     if(a.accountError)status(a.accountError);
     $('#profile-name').textContent=a.wallet.displayName;
-    $('#profile-handle').textContent='@'+a.wallet.handle;
     $('#profile-verified').hidden=!user.emailVerified;
     $('#stat-packs').textContent=a.wallet.packsOpened;
     $('#stat-cards').textContent=a.wallet.cardsCollected;
@@ -81,10 +80,10 @@
     dialog.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>{if(!busy)dialog.close()}));
     dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault()});
   });
-  $('#edit-profile').addEventListener('click',()=>{$('#edit-name').value=account().wallet.displayName;$('#edit-handle').value=account().wallet.handle;$('#edit-error').hidden=true;$('#edit-dialog').showModal()});
+  $('#edit-profile').addEventListener('click',()=>{$('#edit-name').value=account().wallet.displayName;$('#edit-error').hidden=true;$('#edit-dialog').showModal()});
   $('#edit-form').addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;busy=true;const submit=event.target.querySelector('[type="submit"]');submit.disabled=true;
-    try{await window.RipprAccount.act('profile',{displayName:$('#edit-name').value.trim(),handle:$('#edit-handle').value.trim().toLowerCase()});$('#edit-dialog').close();status('Profile updated.')}
+    try{await window.RipprAccount.act('profile',{displayName:$('#edit-name').value.trim(),handle:account().wallet.handle});$('#edit-dialog').close();status('Profile updated.')}
     catch(error){$('#edit-error').textContent=window.RipprAccount.errorMessage(error);$('#edit-error').hidden=false}
     finally{busy=false;submit.disabled=false}
   });

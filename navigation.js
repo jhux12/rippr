@@ -79,14 +79,22 @@
     login.hidden = Boolean(user);
     signup.classList.toggle('nav-profile',Boolean(user));
     signup.replaceChildren();
-    if(user){const img=document.createElement('img');img.src=window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png';img.alt='';img.width=32;img.height=32;signup.append(img);signup.setAttribute('aria-label','Your profile');}
-    else {signup.textContent='Sign up';signup.removeAttribute('aria-label');}
+    const displayName=window.RIPPR_ACCOUNT?.wallet?.displayName||user?.displayName||'Collector';
+    function identity(link){
+      const img=document.createElement('img');img.src=window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png';img.alt='';img.width=32;img.height=32;
+      const name=document.createElement('span');name.className='nav-display-name';name.textContent=displayName;
+      link.replaceChildren(img,name);link.setAttribute('aria-label',`${displayName} — Your profile`);link.title=displayName;
+    }
+    if(user){identity(signup);}
+    else {signup.textContent='Sign up';signup.removeAttribute('aria-label');signup.removeAttribute('title');}
     signup.href = user ? 'profile.html' : 'auth.html?mode=signup';
     const mobileAccount = menu.querySelector('a:last-child');
-    mobileAccount.textContent = user ? 'Your profile' : 'Log in';
+    mobileAccount.classList.toggle('mobile-profile',Boolean(user));
+    if(user)identity(mobileAccount);else{mobileAccount.textContent='Log in';mobileAccount.removeAttribute('aria-label');mobileAccount.removeAttribute('title');}
     mobileAccount.href = user ? 'profile.html' : 'auth.html?mode=login';
   }
   document.addEventListener('rippr:authchange', updateAccountLinks);
+  document.addEventListener('rippr:walletchange', updateAccountLinks);
   updateAccountLinks();
   setMenu(false);
 })();

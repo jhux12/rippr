@@ -79,3 +79,11 @@
 .site-navigation .nav-signup.nav-profile{width:36px;height:36px;min-height:36px;padding:2px;border:1px solid var(--nav-cyan);border-radius:50%;background:#092332;overflow:hidden}
 .nav-profile img{display:block;width:100%;height:100%;object-fit:contain}
 .topup-dialog button:disabled{opacity:.55;cursor:wait}
+/* Account identity uses the saved display name; the mobile bar stays compact. */
+.site-navigation .nav-signup.nav-profile{width:auto;max-width:190px;gap:8px;border:0;border-radius:8px;background:none;padding:0;color:#f5f7fc}
+.nav-profile img,.mobile-profile img{width:34px;height:34px;flex:none;border:1px solid var(--nav-cyan);border-radius:50%;background:#092332;padding:2px;object-fit:contain}
+.nav-display-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}
+.site-navigation .mobile-navigation>a.mobile-profile{gap:12px;padding:14px 2px;min-height:68px}
+.mobile-profile .nav-display-name{white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
+@media(max-width:1000px) and (min-width:761px){.site-navigation .nav-profile .nav-display-name{max-width:90px}}
+@media(max-width:760px){.site-navigation .nav-signup.nav-profile{width:36px;max-width:36px;padding:0}.nav-actions .nav-profile .nav-display-name{display:none}}
