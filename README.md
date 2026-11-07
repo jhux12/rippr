@@ -100,6 +100,12 @@ Catalog reads use Firestore Lite one-time REST requests. Before privileged write
 
 Public odds group obtainable items by rarity and show combined chance plus minimum/maximum item value. Grails, reveals, results and collection items all display rarity. Pack artwork, shimmer and foil share an intrinsic image ratio/alpha outline. Open zooms to the centered stage; drag across the foil or press Enter/Space. Each pack has one rip and one card. Cyan spotlighting, orbit glints, particles and foil glints pause offscreen/in background/navigation overlays; reduced motion uses a static composition. The hero rotates five product showcases: Signature, Daily Discovery, Grail Gallery, Find Your Level, and The First Rip. A single shared stage, subdued lighting, and a dedicated control row keep the compositions consistent. Pack slides use the actual site wrappers rather than generated composite pack illustrations. The grail gallery retains the composition based on the supplied Umbreon VMAX, Charizard Holo and first-edition Mewtwo slabs. Daily and gallery images use SVG presentation viewports around their existing transparent margins; source image pixels remain unchanged. Mobile stays 168px tall with short headlines and no secondary copy. The tier scene shows three legible pack previews on phones and all five on desktop. The wrapper, foil strip, and mystery-card elements on the rip slide share the normal Plus pack asset. Controls, artwork, and CTA have separate layout space; pause/reduced-motion behavior is preserved. Offline homepage exports embed the same assets. Pip's three poses are in `assets/mascot/`.
 
+## Shared footer
+
+All five customer pages share the desktop/mobile footer in `partials/footer.html`. `npm run build` synchronizes that partial into the pages; edit the partial rather than individual copies. `footer.css` controls the layout and `footer.js` provides accessible information dialogs and Back to top.
+
+Set `discordUrl`, `instagramUrl` and `supportEmail` in `footer-config.js` when the public destinations are available. Social buttons remain disabled until configured, and Contact explains that support details are coming soon. Help and Shipping describe the current test features; Terms and Privacy remain clearly marked as being prepared and need finalized policies before public launch. Offline previews include the same footer, images and interactions.
+
 ## Testing
 
 ```sh

@@ -61,6 +61,10 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     text = re.sub(r'\s+src="assets/mascot/pip-(?:hover|welcome|celebrate)\.png"', '', text)
     text = text.replace('<link rel="stylesheet" href="mascot.css">', '<style>' + (ROOT / 'mascot.css').read_text() + '</style>')
     text = text.replace('</head>', '<script>' + offline_auth + '</script></head>')
+    text = text.replace('<link rel="stylesheet" href="footer.css">', '<style>' + (ROOT / 'footer.css').read_text() + '</style>')
+    text = text.replace('<script src="footer-config.js" defer></script>', '<script>' + (ROOT / 'footer-config.js').read_text() + '</script>')
+    text = text.replace('<script src="footer.js" defer></script>', '')
+    text = text.replace('</body>', '<script>' + (ROOT / 'footer.js').read_text() + '</script></body>')
     navigation_css = (ROOT / 'navigation.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
     text = re.sub(r'<link rel="stylesheet" href="navigation\.css(?:\?[^"]*)?">', lambda match: '<style>' + navigation_css + '</style>', text)
     text = text.replace('<script src="navigation.js" defer></script>', '')
@@ -125,11 +129,11 @@ rewards = rewards.replace('</body>', '<script>' + bootstrap + '</script><script>
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'index.html', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
-                    'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
+                    'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'catalog.js', 'opening.js', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
-    for folder in ['scripts', 'src', 'assets', 'admin', 'tests', 'functions']:
+    for folder in ['scripts', 'src', 'assets', 'admin', 'tests', 'functions', 'partials']:
         for path in sorted((ROOT / folder).rglob('*')):
             if path.is_file() and not any(part in path.parts for part in ['__pycache__', 'node_modules']) and not path.name.startswith('.env'):
                 archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))

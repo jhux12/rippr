@@ -1,0 +1,49 @@
+/* Shared footer, scoped to keep page-specific brand/dialog styles contained. */
+.rippr-footer{display:block;flex:none;width:100%;max-width:none;margin:0;padding:0;border:0;border-top:1px solid #48687d;border-radius:0;background:#091621;color:#f3f7fc;font:400 13px/1.5 Manrope,Arial,sans-serif;letter-spacing:normal;text-align:left;font-synthesis:none}
+.rippr-footer,.rippr-footer *{box-sizing:border-box}
+.rippr-footer [hidden]{display:none!important}
+.rippr-footer a{color:inherit;text-decoration:none}
+.rippr-footer button{appearance:none;border:0;border-radius:0;padding:0;background:none;font:inherit;line-height:inherit;color:inherit;text-align:left;cursor:pointer;box-shadow:none;text-transform:none;letter-spacing:normal}
+.rippr-footer a,.rippr-footer button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.rippr-footer a:focus-visible,.rippr-footer button:focus-visible{outline:2px solid #00e2ed;outline-offset:4px;border-radius:4px}
+.rippr-footer .rippr-footer-inner{max-width:1196px;width:calc(100% - 64px);margin:0 auto;padding:0}
+.rippr-footer .footer-main-grid{display:grid;grid-template-columns:2.4fr 1fr 1fr .75fr;gap:44px;align-items:start;padding:40px 0 34px}
+.rippr-footer .footer-brand-block{display:grid;grid-template-columns:minmax(0,1fr) 106px;gap:12px;align-items:center;max-width:385px;min-width:0}
+.rippr-footer .footer-brand-copy{min-width:0}
+.rippr-footer .footer-brand{display:inline-flex;align-items:center;gap:10px;position:static;padding:0;font-size:36px;font-weight:800;letter-spacing:-1.6px;line-height:1.1;white-space:nowrap}
+.rippr-footer .footer-brand svg{display:block;position:static;width:25px;height:30px;fill:#00e2ed;flex:none}
+.rippr-footer .footer-tagline{margin:14px 0 0;padding:0;color:#aec7d9;font-size:13px;line-height:1.5;letter-spacing:normal;white-space:nowrap}
+.rippr-footer .footer-pip{display:block;position:static;width:106px;height:116px;max-width:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;filter:none;transform:none;animation:none}
+.rippr-footer .footer-socials{display:flex;gap:10px;margin-top:20px}
+.rippr-footer .footer-social{display:inline-flex;align-items:center;justify-content:center;flex:none;width:35px;height:35px;min-height:35px;padding:8px;border:1px solid #4b6e85;border-radius:8px;background:#0b1b29;color:#f0f6fc}
+.rippr-footer .footer-social svg{display:block;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.rippr-footer .footer-social:disabled{cursor:default;opacity:.55}
+.rippr-footer a.footer-social:hover{color:#00e2ed;border-color:#00c6d5}
+.rippr-footer .footer-link-group{display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0;padding:0;min-width:0}
+.rippr-footer .footer-link-group h2{font:750 14px/1.4 Manrope,Arial,sans-serif;letter-spacing:-.15px;color:#f4f7fc;margin:1px 0 12px;padding:0}
+.rippr-footer .footer-link-group>a,.rippr-footer .footer-link-group>button{display:inline-flex;align-items:center;min-height:32px;width:fit-content;max-width:100%;margin:0;padding:3px 0;color:#aec4d5;font-size:13px;font-weight:400;line-height:1.5;white-space:normal}
+.rippr-footer .footer-link-group>a:hover,.rippr-footer .footer-link-group>button:hover,.rippr-footer .footer-mobile-legal button:hover,.rippr-footer .footer-back-top:hover{color:#00e2ed}
+.rippr-footer .footer-bottom-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:20px;border-top:1px solid #405e72;padding:17px 0 22px;min-height:62px}
+.rippr-footer .footer-copyright{margin:0;padding:0;font-size:11px;line-height:1.5;color:#a4bed1;letter-spacing:normal}
+.rippr-footer .footer-back-top{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:32px;white-space:nowrap;font-size:11px;color:#bed2e1;line-height:1.4}
+.rippr-footer .footer-back-top svg{display:block;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.rippr-footer .footer-mobile-legal{display:none}
+.rippr-footer .footer-info-dialog{position:fixed;width:min(460px,calc(100% - 32px));max-width:none;max-height:calc(100dvh - 40px);overflow:auto;padding:28px;border:1px solid #557d95;border-radius:14px;background:#0c1d2c;color:#edf6ff;box-shadow:0 20px 70px #0008;font:400 13px/1.65 Manrope,Arial,sans-serif;text-align:left}
+.rippr-footer .footer-info-dialog::backdrop{background:#020811cd;backdrop-filter:blur(5px)}
+.rippr-footer .footer-info-dialog h2{margin:0 0 16px;padding:0 20px 0 0;font:750 24px/1.3 Manrope,Arial,sans-serif;letter-spacing:-.6px}
+.rippr-footer .footer-info-dialog h3{font:700 14px/1.5 Manrope,Arial,sans-serif;margin:18px 0 5px;color:#e8f5fc;letter-spacing:normal}
+.rippr-footer .footer-info-dialog p{margin:0 0 12px;color:#b5cddd;font-size:13px;line-height:1.7;letter-spacing:normal}
+.rippr-footer .footer-info-dialog p:last-child{margin-bottom:0}
+.rippr-footer .footer-info-dialog a{display:inline-block;margin-top:5px;color:#78e7f1;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.rippr-footer .footer-dialog-close{position:absolute;right:10px;top:7px;display:flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;font-size:27px;color:#bed2df;line-height:1}
+@media(max-width:1000px){.rippr-footer .footer-main-grid{grid-template-columns:2.2fr 1fr 1fr .8fr;gap:25px}.rippr-footer .footer-brand-block{grid-template-columns:minmax(0,1fr) 74px;gap:5px}.rippr-footer .footer-pip{width:74px;height:96px}.rippr-footer .footer-brand{font-size:32px}.rippr-footer .footer-tagline{font-size:11px}}
+@media(max-width:700px){.rippr-footer .rippr-footer-inner{width:calc(100% - 40px)}.rippr-footer .footer-main-grid{grid-template-columns:1fr 1fr;gap:27px 30px;padding:26px 0 23px}.rippr-footer .footer-brand-block{grid-column:1/-1;grid-template-columns:minmax(0,1fr) 84px;gap:20px;max-width:none}.rippr-footer .footer-brand{font-size:32px;gap:8px;letter-spacing:-1.4px}.rippr-footer .footer-brand svg{width:22px;height:27px}.rippr-footer .footer-tagline{font-size:12px;margin-top:11px}.rippr-footer .footer-pip{width:84px;height:100px;justify-self:end}.rippr-footer .footer-socials{margin-top:15px;gap:10px}.rippr-footer .footer-social{width:35px;height:35px}.rippr-footer .footer-link-group h2{font-size:13px;margin:0 0 10px}.rippr-footer .footer-link-group>a,.rippr-footer .footer-link-group>button{font-size:12px;min-height:32px;padding:3px 0}.rippr-footer .footer-legal-column{display:none}.rippr-footer .footer-bottom-row{grid-template-columns:minmax(0,1fr) auto;row-gap:12px;padding:15px 0 23px;min-height:0;column-gap:10px}.rippr-footer .footer-mobile-legal{display:flex;align-items:center;gap:22px;grid-column:1;grid-row:1}.rippr-footer .footer-mobile-legal button{display:inline-flex;align-items:center;min-height:32px;color:#adc7d9;font-size:11px}.rippr-footer .footer-back-top{grid-column:2;grid-row:1;gap:5px;font-size:10px;min-height:32px}.rippr-footer .footer-back-top svg{width:15px;height:15px}.rippr-footer .footer-copyright{grid-column:1/-1;grid-row:2;font-size:10px}.rippr-footer .footer-info-dialog{padding:24px}.rippr-footer .footer-info-dialog h2{font-size:23px}}
+@media(max-width:350px){.rippr-footer .rippr-footer-inner{width:calc(100% - 32px)}.rippr-footer .footer-brand-block{gap:8px;grid-template-columns:minmax(0,1fr) 68px}.rippr-footer .footer-pip{width:68px;height:88px}.rippr-footer .footer-brand{font-size:30px}.rippr-footer .footer-tagline{font-size:11px}.rippr-footer .footer-mobile-legal{gap:18px}.rippr-footer .footer-back-top{font-size:9px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rippr-footer *{animation:none!important;transition:none!important}}
+body.has-site-footer{min-height:100vh;min-height:100svh;display:flex;flex-direction:column}
+body.has-site-footer>.site-navigation,body.has-site-footer>main{flex:none}
+body.has-site-footer>.page-shell{width:100%;padding-bottom:28px}
+body.has-site-footer>main:not([class]){width:100%}
+body.has-site-footer>.auth-layout{margin-bottom:28px}
+body.has-site-footer>.rippr-footer{margin-top:auto}
+.rippr-footer .footer-info-dialog [data-footer-dialog]{display:inline-flex;align-items:center;min-height:34px;color:#78e7f1;text-decoration:underline;text-underline-offset:3px}
