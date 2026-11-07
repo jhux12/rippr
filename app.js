@@ -91,10 +91,10 @@
   const heroStatus = document.querySelector('#hero-status');
   const banners = [
     {title:'Your next great pull.',copy:'One pack. One card. Something unexpected.',cta:'Explore packs',href:'#packs',scene:'signature'},
-    {title:'A little surprise awaits.',copy:'Discover your daily case.',cta:'View rewards',href:'rewards.html',scene:'daily-discovery'},
+    {title:'Your daily discovery.',copy:'Discover your daily case.',cta:'View rewards',href:'rewards.html',scene:'daily-discovery'},
     {title:'Find your next favorite.',copy:'A collection worth discovering.',cta:'View packs',href:'#packs',scene:'grail-gallery'},
-    {title:'Five tiers. Your next discovery.',copy:'From Basic to Ultimate.',cta:'Choose your pack',href:'#packs',scene:'find-your-level'},
-    {title:'The thrill starts here.',copy:'Choose a pack. Reveal the unexpected.',cta:'Open a pack',href:'opening.html?pack=plus',scene:'first-rip'}
+    {title:'Find your level.',copy:'From Basic to Ultimate.',cta:'Choose your pack',href:'#packs',scene:'find-your-level'},
+    {title:'Make the first rip.',copy:'Choose a pack. Reveal the unexpected.',cta:'Open a pack',href:'opening.html?pack=plus',scene:'first-rip'}
   ];
   let heroIndex=0, heroPaused=motion.matches, heroHovered=false, heroTimer;
   banners.forEach((banner,i)=>{
@@ -116,10 +116,10 @@
     hero.querySelector('.hero-copy p').textContent=banner.copy;
     const cta=document.querySelector('#hero-cta');cta.textContent=banner.cta;cta.setAttribute('href',banner.href);
     hero.dataset.hero=banner.scene;
-    hero.querySelectorAll('.hero-scene').forEach(image=>{const active=image.dataset.scene===banner.scene;image.hidden=!active;if(active)image.loading='eager'});
+    hero.querySelectorAll('.hero-scene').forEach(scene=>{const active=scene.dataset.scene===banner.scene;scene.hidden=!active;if(active)scene.querySelectorAll('img').forEach(image=>image.loading='eager')});
     // Warm the next image after first interaction without eagerly loading all five.
     const nextScene=banners[(heroIndex+1)%banners.length].scene;
-    if(manual)hero.querySelector(`[data-scene="${nextScene}"]`).loading='eager';
+    if(manual)hero.querySelector(`[data-scene="${nextScene}"]`).querySelectorAll('img').forEach(image=>image.loading='eager');
     [...heroDots.children].forEach((button,i)=>button.setAttribute('aria-pressed',String(i===heroIndex)));
     heroStatus.textContent=`Banner ${heroIndex+1} of ${banners.length}: ${banner.title}`;
     hero.classList.remove('hero-enter');void hero.offsetWidth;hero.classList.add('hero-enter');
