@@ -76,3 +76,33 @@
 .hero{background:#0c1823}
 .hero-scenes::before{display:none}
 @media(min-width:701px){.scene-signature .scene-pip{left:max(0px,calc(50% - 180px));width:82px;height:82px}.scene-rip .scene-pip{left:calc(50% - 130px)}}
+
+/* Fulfillment preview, below the grails, using the site's existing visual language. */
+.fulfillment{margin-top:42px;padding-top:30px;border-top:1px solid #2c455744;min-width:0}
+.fulfillment>h2{font-size:28px;font-weight:750;letter-spacing:-.8px;line-height:1.25;margin:0 0 20px}
+.fulfillment-card{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);min-height:400px;border:1px solid #547485;border-radius:14px;background:radial-gradient(ellipse at 100% 80%,#102a3944,transparent 65%),#08131d;overflow:hidden}
+.fulfillment-visual{position:relative;min-width:0;min-height:100%;margin:0;overflow:hidden;background:#15242d}
+.fulfillment-visual>img{display:block;width:100%;height:100%;max-width:100%;object-fit:cover;object-position:50% 40%;position:absolute;inset:0}
+.fulfillment-concept{position:absolute;top:15px;left:15px;max-width:calc(100% - 30px);padding:6px 12px;border:1px solid #8bb0c3;border-radius:999px;background:#102b3ce8;color:#edf8ff;font-size:11px;font-weight:650;line-height:1.5;box-shadow:0 2px 10px #0002}
+.fulfillment-copy{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-width:0;padding:34px 32px 36px}
+.fulfillment-eyebrow{color:#00e2ed;font-size:11px;font-weight:750;letter-spacing:1.5px;line-height:1.5;text-transform:uppercase;margin:0 0 18px}
+.fulfillment-copy>h3{color:#f5f8fc;font-size:clamp(29px,2.65vw,36px);font-weight:800;letter-spacing:-1.1px;line-height:1.15;margin:0;max-width:100%;overflow-wrap:normal;text-wrap:balance}
+.fulfillment-description{color:#a3c0d2;font-size:13px;line-height:1.75;margin:17px 0 0;max-width:300px}
+.fulfillment-status{display:inline-flex;align-items:center;gap:10px;max-width:100%;border:1px solid #b3cedc;border-radius:9px;padding:10px 12px;margin:23px 0 0;color:#e1f1fb;font-size:11px;font-weight:650;line-height:1.5}
+.fulfillment-status>svg{display:block;flex:none;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.fulfillment-trust{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,.95fr);align-items:stretch;list-style:none;padding:0;margin:26px 0 3px}
+.fulfillment-trust>li{display:flex;align-items:center;min-width:0;min-height:88px;padding:0 19px;border-left:1px solid #476174}
+.fulfillment-trust>li:first-child{border-left:0;padding-left:0}
+.fulfillment-trust>li>a{display:flex;align-items:center;gap:12px;min-height:64px;color:#e5f1f9;font-size:12px;font-weight:650;line-height:1.6;max-width:100%;padding:4px 0}
+.fulfillment-trust>li>a:hover{color:#00e2ed}
+.fulfillment-trust>li>a:focus-visible{outline-offset:5px;border-radius:4px}
+.trust-feature-icon{display:block;flex:none;width:31px;height:33px;fill:none;stroke:#00e2ed;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fulfillment-trust>.trustpilot-placeholder{flex-direction:column;align-items:center;justify-content:center;gap:6px;padding-right:0;text-align:center}
+.trustpilot-brand{display:flex;align-items:center;justify-content:center;gap:7px;font-size:20px;font-weight:750;line-height:1.3;letter-spacing:-.6px;color:#f3f8fc}
+.trustpilot-brand>svg{display:block;width:25px;height:25px;fill:#00b67a;flex:none}
+.trustpilot-placeholder-stars{display:flex;gap:3px;align-items:center;justify-content:center}
+.trustpilot-placeholder-stars>span{display:grid;place-items:center;width:21px;height:21px;border:1px solid #496272;background:#1d3443;color:#9ab0bf;font:16px/1 Arial,sans-serif}
+.trustpilot-placeholder>p{color:#a5bfd1;font-size:10px;line-height:1.5;margin:0}
+@media(max-width:1000px){.fulfillment-card{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}.fulfillment-copy{padding:30px 25px}.fulfillment-copy>h3{font-size:31px}.fulfillment-trust{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:22px}.fulfillment-trust>li{padding:14px 18px;min-height:90px}.fulfillment-trust>li:nth-child(odd){border-left:0;padding-left:0}.fulfillment-trust>li:nth-child(even){padding-right:0}.fulfillment-trust>li:nth-child(n+3){border-top:1px solid #476174}.fulfillment-trust>li>a{min-height:52px}.fulfillment-trust>.trustpilot-placeholder{padding:14px 18px;gap:6px}}
+@media(max-width:900px){.fulfillment-card{grid-template-columns:1fr;min-height:0}.fulfillment-visual{aspect-ratio:16/9;min-height:0}.fulfillment-copy{padding:28px 30px 30px}.fulfillment-copy>h3{font-size:32px}.fulfillment-copy>h3>br{display:none}.fulfillment-eyebrow{margin-bottom:12px}.fulfillment-description{max-width:none;margin-top:12px}.fulfillment-status{margin-top:19px}}
+@media(max-width:700px){.fulfillment{margin-top:30px;padding-top:25px}.fulfillment>h2{font-size:23px;letter-spacing:-.6px;margin-bottom:16px}.fulfillment-card{border-radius:11px}.fulfillment-visual{aspect-ratio:3/2}.fulfillment-concept{top:11px;left:11px;max-width:calc(100% - 22px);font-size:10px;padding:5px 10px}.fulfillment-copy{padding:23px 21px 25px}.fulfillment-eyebrow{font-size:10px;letter-spacing:1.25px;margin-bottom:12px}.fulfillment-copy>h3{font-size:29px;line-height:1.16;letter-spacing:-.8px}.fulfillment-copy>h3>br{display:initial}.fulfillment-description{font-size:12px;line-height:1.75;margin-top:13px}.fulfillment-status{padding:9px 10px;font-size:10px;gap:8px;margin-top:18px;line-height:1.6}.fulfillment-status>svg{width:22px;height:22px}.fulfillment-trust{margin-top:18px}.fulfillment-trust>li{padding:13px 12px;min-height:86px}.fulfillment-trust>li>a{gap:9px;font-size:11px;min-height:48px}.trust-feature-icon{width:25px;height:28px}.fulfillment-trust>.trustpilot-placeholder{padding:13px 10px}.trustpilot-brand{font-size:17px;gap:5px}.trustpilot-brand>svg{width:22px;height:22px}.trustpilot-placeholder-stars>span{width:18px;height:18px;font-size:14px}.trustpilot-placeholder>p{font-size:10px}}

@@ -139,6 +139,12 @@ The opening stage uses a flowing layout for full card artwork, a wrapping name, 
 
 **Add to inventory** replaces View card and continues to the next pack or the result summary. Cards are already persisted by the purchase transaction, so keeping a card never creates another item. **Sell for** confirms the saved item value, calls the existing authenticated sale action with that item's ID, refreshes the account balance and shows the sold result. Mixed batch results distinguish kept and sold cards. Unknown-outcome retries reuse the existing operation ID, and changing accounts resets the reveal and ignores pending responses for the previous account. Offline previews retain the design and keep action, with selling disabled. No backend schema, rules or Function update is required for these controls.
 
+## Homepage shipping preview
+
+The shipping section sits immediately below **Grails worth discovering**. Its standalone artwork is in `assets/fulfillment/warehouse-concept.png`; it is generated concept imagery, labeled **Fulfillment concept**, and the copy states that shipping is currently in testing. The desktop image/copy layout stacks on mobile. The photo has fixed intrinsic dimensions, lazy loading and asynchronous decoding, and the offline homepage embeds it.
+
+The trust row links to phone sign-in, actual pack odds and the account collection. The Trustpilot area is an inactive, unscored placeholder with neutral stars and a visible label, as requested; it makes no rating/review-count claim and loads no third-party widget. Replace it with verified profile/rating data when available. The existing hero, carousels, grails and shared footer remain intact.
+
 ## Shared footer
 
 All five customer pages share the desktop/mobile footer in `partials/footer.html`. `npm run build` synchronizes that partial into the pages; edit the partial rather than individual copies. `footer.css` controls the layout and `footer.js` provides accessible information dialogs and Back to top.
