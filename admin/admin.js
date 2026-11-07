@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = selector => document.querySelector(selector);
-  const client = window.RipprFirebase, model = window.RipprCatalog;
+  const client = window.RipprFirebase, model = window.RipprCatalog, odds = window.RipprOdds;
   const tiers = window.RIPPR_PACKS;
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const percent = value => (value / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -10,6 +10,7 @@
   const packs = new Map(tiers.map(tier => [tier.id, model.defaultPack(tier.id)]));
   const loaded = new Set(), dirty = new Set();
   const priceInputs = new Map();
+  let oddsPreview = null, oddsUndo = null;
   let selectedPack = 'basic', selectedItem = 'first-light', currentImage, editorDirty = false;
   let newItem = false, busy = false, ownerUid = null, generation = 0, statusTimer;
   const mobile = matchMedia('(max-width:760px)');
@@ -40,9 +41,24 @@
     $('#save-pack').disabled = busy || !loaded.has(selectedPack) || (!dirty.has(selectedPack) && !editorDirty && pack().version > 0);
     $('#save-pack').textContent = busy ? 'Working…' : 'Save changes';
     $('#dirty-indicator').hidden = !dirty.size && !editorDirty;
+    $('#generate-odds').disabled = busy || !loaded.has(selectedPack);
+    $('#apply-odds').disabled = busy || !oddsPreview;
+    $('#undo-odds').disabled = busy || !oddsUndo;
   }
-  function markDirty() { dirty.add(selectedPack); renderTiers(); refreshSave(); }
-  function changedEditor(event) { if (event?.target?.id === 'image-file') return; editorDirty = true; refreshSave(); }
+  function clearOddsPreview() { oddsPreview = null; $('#odds-preview').hidden = true; $('#odds-error').hidden = true; }
+  function markDirty() { clearOddsPreview(); oddsUndo = null; $('#undo-odds').hidden = true; dirty.add(selectedPack); renderTiers(); refreshSave(); }
+  function changedEditor(event) { if (event?.target?.id === 'image-file') return; clearOddsPreview(); editorDirty = true; refreshSave(); }
+  function effectivePrice() {
+    const raw = $('#pack-price').value.trim();
+    const price = raw ? model.decimalToUnits(raw) : model.DEFAULT_PRICES[selectedPack];
+    return model.validPackPrice(price) ? price : null;
+  }
+  function renderEV() {
+    const ev = odds.expectedValue(pack().items), price = effectivePrice();
+    $('#current-pack-ev').textContent = ev == null ? 'EV —' : `EV ${money.format(ev / 100)}${price > 0 ? ` · ${(ev / price * 100).toFixed(2)}%` : ''}`;
+  }
+  function oddsFingerprint() { return JSON.stringify([selectedPack, pack().items, $('#pack-price').value]); }
+  function oddsError(message) { $('#odds-error').textContent = message; $('#odds-error').hidden = false; }
   function setSidebar(open) {
     const visible = open && mobile.matches && owner();
     document.body.classList.toggle('sidebar-open', visible);
@@ -77,6 +93,7 @@
     const total = pack().items.reduce((sum, item) => sum + item.chanceBps, 0);
     $('#odds-total').textContent = `Total odds: ${percent(total)}%`;
     $('#odds-total').classList.toggle('is-invalid', total !== 10000);
+    renderEV();
   }
   function editor(item, isNew = false) {
     editorDirty = false; newItem = isNew;
@@ -99,6 +116,7 @@
     refreshSave();
   }
   function renderPack() {
+    clearOddsPreview(); oddsUndo = null; $('#undo-odds').hidden = true;
     $('#selected-pack-title').firstChild.textContent = `${tiers.find(tier => tier.id === selectedPack).name} pack `;
     $('#pack-enabled').checked = pack().enabled;
     $('#pack-price').value = priceInputs.get(selectedPack) ?? (pack().priceCents == null ? '' : (pack().priceCents / 100).toFixed(2));
@@ -276,6 +294,7 @@
       priceInputs.delete(id);
       $('#pack-price').value = pack().priceCents == null ? '' : (pack().priceCents / 100).toFixed(2);
       status(`${tiers.find(tier => tier.id === id).name} pack saved. Its contents are now available on the site.`);
+      oddsUndo = null; $('#undo-odds').hidden = true;
     } catch (error) { status(errorText(error), true); }
     finally { setBusy(false); renderTiers(); }
   });
@@ -283,7 +302,54 @@
   $('#pack-enabled').addEventListener('change', event => { pack().enabled = event.target.checked; markDirty(); });
   $('#pack-price').addEventListener('input', event => {
     priceInputs.set(selectedPack, event.target.value);
-    $('#pack-price-error').hidden = true; event.target.removeAttribute('aria-invalid'); markDirty();
+    $('#pack-price-error').hidden = true; event.target.removeAttribute('aria-invalid'); markDirty(); renderEV();
+  });
+  for (const id of ['odds-target','odds-include-zero']) $('#' + id).addEventListener('input', () => { clearOddsPreview(); refreshSave(); });
+  $('#odds-target-mode').addEventListener('change', () => {
+    const price = effectivePrice(), value = model.decimalToUnits($('#odds-target').value);
+    if (price > 0 && Number.isFinite(value)) $('#odds-target').value = ($('#odds-target-mode').value === 'value' ? price * value / 10000 / 100 : value / price * 100).toFixed(2);
+    clearOddsPreview(); refreshSave();
+  });
+  document.querySelectorAll('[data-odds-preset]').forEach(button => button.addEventListener('click', () => {
+    $('#odds-target-mode').value = 'return'; $('#odds-target').value = button.dataset.oddsPreset;
+    clearOddsPreview(); refreshSave();
+  }));
+  $('#generate-odds').addEventListener('click', () => {
+    if (busy || !owner() || !loaded.has(selectedPack)) return;
+    clearOddsPreview();
+    if (editorDirty) { oddsError('Update the item first so its edits are included in the calculation.'); refreshSave(); return; }
+    const input = model.decimalToUnits($('#odds-target').value), price = effectivePrice();
+    if (!Number.isFinite(input)) { oddsError('Enter a target with up to two decimal places.'); refreshSave(); return; }
+    if ($('#odds-target-mode').value === 'return' && !(price > 0)) { oddsError('Set a valid pack price greater than $0, or enter an EV in USD.'); refreshSave(); return; }
+    const target = $('#odds-target-mode').value === 'return' ? price * input / 10000 : input;
+    try {
+      const result = odds.generateOdds(pack().items, target, { includeZero:$('#odds-include-zero').checked });
+      oddsPreview = { ...result, fingerprint:oddsFingerprint() };
+      $('#odds-preview-stats').textContent = `Calculated EV ${money.format(result.actualCents / 100)}${price > 0 ? ` · ${(result.actualCents / price * 100).toFixed(2)}% of pack price` : ''}`;
+      const difference = (result.actualCents - target) / 100;
+      const delta = Math.abs(difference) < .00005 ? '$0.00' : `${difference < 0 ? '−' : '+'}$${Math.abs(difference).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4})}`;
+      $('#odds-preview-note').textContent = `Total: 100%. Rounded to 0.01% odds. Target EV ${money.format(target / 100)}; difference ${delta}.`;
+      $('#odds-preview-rows').innerHTML = result.items.map((item, i) => `<tr><th scope="row">${escape(item.name)}</th><td>${percent(pack().items[i].chanceBps)}%</td><td>${percent(item.chanceBps)}%</td></tr>`).join('');
+      $('#odds-preview').hidden = false;
+    } catch (error) { oddsError(error.message); }
+    refreshSave();
+  });
+  $('#apply-odds').addEventListener('click', () => {
+    if (busy || !owner() || !oddsPreview) return;
+    if (editorDirty || oddsPreview.fingerprint !== oddsFingerprint()) { clearOddsPreview(); oddsError('The draft changed. Preview odds again.'); refreshSave(); return; }
+    const before = structuredClone(pack().items), next = oddsPreview.items;
+    pack().items = next; markDirty();
+    oddsUndo = { pack:selectedPack, items:before, fingerprint:oddsFingerprint() }; $('#undo-odds').hidden = false;
+    editor(pack().items.find(item => item.id === selectedItem)); renderRows(); refreshSave();
+    $('#undo-odds').focus(); status('Generated odds applied to the draft. Save changes to publish them.');
+  });
+  $('#undo-odds').addEventListener('click', () => {
+    if (busy || !owner() || !oddsUndo) return;
+    if (editorDirty) { oddsError('Update or discard the item edits before undoing.'); return; }
+    if (oddsUndo.pack !== selectedPack || oddsUndo.fingerprint !== oddsFingerprint()) return;
+    pack().items = oddsUndo.items; markDirty();
+    editor(pack().items.find(item => item.id === selectedItem)); renderRows();
+    $('#generate-odds').focus(); status('Previous draft odds restored.');
   });
   function chooseTab(settings) {
     for (const [id, selected] of [['contents-tab',!settings],['pack-settings-tab',settings]]) { $('#' + id).setAttribute('aria-selected', String(selected)); $('#' + id).tabIndex = selected ? 0 : -1; }

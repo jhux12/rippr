@@ -13,7 +13,7 @@
   <script src="/firebase-client.js" defer></script>
   <script src="/account-state.js" defer></script>
   <script src="/packs.js" defer></script>
-  <script src="/reward-model.js" defer></script><script src="/admin/admin.js" defer></script><script src="/admin/rewards-admin.js" defer></script>
+  <script src="/reward-model.js" defer></script><script src="/admin/odds-calculator.js" defer></script><script src="/admin/admin.js" defer></script><script src="/admin/rewards-admin.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -63,6 +63,23 @@
             <div class="table-scroll"><table class="items-table"><thead><tr><th scope="col">Card</th><th scope="col">Rarity</th><th scope="col">Value</th><th scope="col">Chance</th><th scope="col"><span class="sr-only">Edit item</span></th></tr></thead><tbody id="item-rows"></tbody></table></div>
             <p class="empty-state" id="no-items" hidden>No cards found.</p>
             <div class="contents-footer"><span class="count-pill">1 card per pack</span><span class="odds-total" id="odds-total"></span></div>
+            <details class="odds-calculator" id="odds-calculator">
+              <summary><span>Auto odds <span aria-hidden="true">⌄</span></span><span id="current-pack-ev">EV —</span></summary>
+              <div class="odds-calculator-body">
+                <p class="odds-help">Set the average item value per opening. Preview odds before applying them.</p>
+                <div class="odds-target-row"><label for="odds-target">Target <input id="odds-target" type="text" inputmode="decimal" value="90" autocomplete="off"></label><label for="odds-target-mode"><span class="sr-only">Target unit</span><select id="odds-target-mode"><option value="return">% of pack price</option><option value="value">EV in USD</option></select></label><button type="button" class="button secondary" id="generate-odds">Preview odds</button></div>
+                <div class="odds-presets" aria-label="Target return presets"><button type="button" data-odds-preset="80">80%</button><button type="button" data-odds-preset="90">90%</button><button type="button" data-odds-preset="95">95%</button><span>of pack price</span></div>
+                <label class="odds-include"><input type="checkbox" id="odds-include-zero"> Include items currently at 0%</label>
+                <p class="odds-help">Based on item values, with at least 0.01% per included item. EV is an average over many openings.</p>
+                <p id="odds-error" class="form-error" role="alert" hidden></p>
+                <div id="odds-preview" hidden>
+                  <p id="odds-preview-stats" role="status"></p><p id="odds-preview-note" class="odds-help"></p>
+                  <div class="odds-preview-scroll" tabindex="0" role="region" aria-label="Suggested item odds"><table class="odds-preview-table"><thead><tr><th scope="col">Item</th><th scope="col">Current</th><th scope="col">Suggested</th></tr></thead><tbody id="odds-preview-rows"></tbody></table></div>
+                  <button type="button" id="apply-odds" class="button primary">Apply to draft</button>
+                </div>
+                <button type="button" id="undo-odds" class="button secondary" hidden>Undo generated odds</button>
+              </div>
+            </details>
           </section>
           <section class="panel editor-panel" id="editor-panel" aria-labelledby="editor-title">
             <div class="editor-heading"><h2 id="editor-title">Edit item</h2><button class="icon-button" id="close-editor" type="button" aria-label="Close item editor"><span aria-hidden="true">×</span></button></div>

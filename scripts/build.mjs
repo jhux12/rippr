@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 await import('./sync-footer.mjs');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+await build({ entryPoints:[resolve(root,'src/odds-calculator.js')],bundle:true,minify:true,format:'iife',globalName:'RipprOdds',target:['es2020'],outfile:resolve(root,'admin/odds-calculator.js') });
 await build({ entryPoints: [resolve(root, 'src/catalog-model.js')], bundle: true, minify: true,
   format: 'iife', globalName: 'RipprCatalog', target: ['es2020'], outfile: resolve(root, 'catalog.js') });
 await build({ entryPoints: [resolve(root, 'src/firebase-client.js')], bundle: true, minify: true,
