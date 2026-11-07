@@ -150,19 +150,19 @@
 .quantities[hidden]{display:none}
 
 /* Rarity charge and flip: one stage, with live card art and account actions. */
-.showcase.opening-focus .arena.is-revealing{display:block;height:auto;min-height:744px;padding:24px 28px 34px;--stage-light:var(--reveal-tone);background:radial-gradient(ellipse at 50% 47%,color-mix(in srgb,var(--reveal-tone) 6%,transparent),transparent 54%),#030b15;border:1px solid #344e6b;border-radius:24px}
+.showcase.opening-focus .arena.is-revealing{--stage-light:var(--reveal-tone);background:radial-gradient(ellipse at 50% 47%,color-mix(in srgb,var(--reveal-tone) 6%,transparent),transparent 54%),#030b15;border-color:#344e6b}
 .arena.is-revealing .stage-effects{display:none}
-.arena.is-revealing .reveal-stage{position:relative;inset:auto;display:flex;flex-direction:column;align-items:center;width:100%;gap:0;perspective:1200px;padding:0;text-align:center;justify-content:flex-start;--card-height:400px;--card-width:286px}
+.arena.is-revealing .reveal-stage{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1fr);grid-template-areas:"art badge" "art info" "art actions";grid-template-rows:auto auto auto;align-content:center;align-items:center;justify-items:center;gap:12px 22px;width:100%;height:100%;perspective:1200px;padding:48px 22px 32px;text-align:center}
 .arena.is-revealing .reveal-stage[hidden]{display:none}
-.reveal-stage-brand{position:absolute;top:0;left:0;display:flex;align-items:flex-start;gap:3px;line-height:1;color:white;pointer-events:none}
-.reveal-stage-brand span{font:800 italic 29px/1 Manrope,Arial,sans-serif;letter-spacing:-1.5px}
-.reveal-stage-brand svg{fill:#00dfe9;width:18px;height:22px;margin-top:-5px}
-.reveal-stage .reveal-meta{margin:0 0 38px;color:#b0b8c9;font-size:13px;line-height:29px;letter-spacing:0}
-.reveal-rarity{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:33px;min-width:124px;max-width:100%;margin:0 0 24px;padding:5px 18px;border:1px solid var(--rarity-color);border-radius:999px;background:color-mix(in srgb,var(--rarity-color) 7%,#080d19);box-shadow:inset 0 0 8px color-mix(in srgb,var(--rarity-color) 10%,transparent);color:var(--rarity-color);font-size:15px;font-weight:800;line-height:1.4;letter-spacing:1.6px;text-transform:uppercase}
-.reveal-rarity svg{width:16px;height:18px;fill:currentColor;flex:none}
-.reveal-art-stage{position:relative;width:var(--card-width);max-width:100%;height:var(--card-height);flex:none;margin:0 auto 43px;isolation:isolate;perspective:1200px}
+.reveal-stage-brand{position:absolute;top:17px;left:18px;display:flex;align-items:flex-start;gap:3px;line-height:1;color:white;pointer-events:none}
+.reveal-stage-brand span{font:800 italic 23px/1 Manrope,Arial,sans-serif;letter-spacing:-1.5px}
+.reveal-stage-brand svg{fill:#00dfe9;width:14px;height:18px;margin-top:-4px}
+.reveal-stage .reveal-meta{position:absolute;top:16px;right:18px;margin:0;color:#b0b8c9;font-size:10px;line-height:23px;letter-spacing:0}
+.reveal-rarity{grid-area:badge;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:27px;min-width:0;max-width:100%;margin:0;padding:4px 12px;border:1px solid var(--rarity-color);border-radius:999px;background:color-mix(in srgb,var(--rarity-color) 7%,#080d19);box-shadow:inset 0 0 8px color-mix(in srgb,var(--rarity-color) 10%,transparent);color:var(--rarity-color);font-size:12px;font-weight:800;line-height:1.4;letter-spacing:1.1px;text-transform:uppercase}
+.reveal-rarity svg{width:13px;height:15px;fill:currentColor;flex:none}
+.reveal-art-stage{grid-area:art;position:relative;width:min(196px,100%);max-width:100%;height:auto;aspect-ratio:5/7;margin:0 0 12px;isolation:isolate;perspective:1200px}
 .reveal-halo{position:absolute;inset:-20% -45%;z-index:-2;pointer-events:none;background:radial-gradient(ellipse,color-mix(in srgb,var(--reveal-tone) 22%,transparent),transparent 63%);filter:blur(18px);opacity:.7;transition:opacity .6s}
-.reveal-art-stage .spotlight-card{position:relative;display:block;width:100%;height:100%;max-width:100%;padding:0;border:0;border-radius:17px;background:none;overflow:visible;box-shadow:0 0 4px 1px color-mix(in srgb,var(--reveal-tone) 90%,white),0 0 18px color-mix(in srgb,var(--reveal-tone) 50%,transparent),0 0 44px color-mix(in srgb,var(--reveal-tone) 24%,transparent);animation:none!important}
+.reveal-art-stage .spotlight-card{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;padding:0;border:0;border-radius:17px;background:none;overflow:visible;box-shadow:0 0 4px 1px color-mix(in srgb,var(--reveal-tone) 90%,white),0 0 18px color-mix(in srgb,var(--reveal-tone) 50%,transparent),0 0 44px color-mix(in srgb,var(--reveal-tone) 24%,transparent);animation:none!important}
 .reveal-art-stage .spotlight-card::after{content:none}
 .reveal-card-turn{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateY(180deg);transition:transform .65s cubic-bezier(.4,0,.2,1)}
 .reveal-face{position:absolute;inset:0;border-radius:17px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#081326;border:2px solid #dbe6fa}
@@ -177,17 +177,17 @@
 .reveal-plinth{position:absolute;bottom:-23px;left:50%;width:154%;max-width:72vw;height:15px;transform:translateX(-50%);border:1px solid color-mix(in srgb,var(--reveal-tone) 65%,transparent);border-radius:50%;background:radial-gradient(ellipse,var(--reveal-tone),color-mix(in srgb,var(--reveal-tone) 12%,transparent) 40%,transparent 73%);box-shadow:0 0 14px color-mix(in srgb,var(--reveal-tone) 30%,transparent),inset 0 0 12px color-mix(in srgb,var(--reveal-tone) 20%,transparent);z-index:-1;pointer-events:none}
 .reveal-information,.reveal-actions{visibility:hidden}
 .is-card-revealed .reveal-information,.is-card-revealed .reveal-actions{visibility:visible}
-.reveal-information{width:100%;max-width:660px;min-width:0;flex:none}
-.reveal-information h2{margin:0;color:#f5f5fc;font:800 clamp(23px,2.25vw,31px)/1.3 Manrope,Arial,sans-serif;letter-spacing:-.7px;overflow-wrap:anywhere;text-wrap:balance}
-.reveal-value{margin:8px 0 0;color:#b8bccb;font-size:22px;font-weight:650;line-height:1.4;font-variant-numeric:tabular-nums}
-.reveal-stage .reveal-actions{display:grid;grid-template-columns:1fr 1fr;gap:22px;width:100%;max-width:580px;margin-top:24px;flex:none}
-.reveal-stage .reveal-actions button{display:flex;align-items:center;justify-content:center;min-width:0;min-height:52px;padding:12px 16px;border:1px solid #d0d9e8;border-radius:12px;background:transparent;color:#f2f5fc;font:750 15px/1.45 Manrope,Arial,sans-serif;text-align:center;overflow-wrap:anywhere}
+.reveal-information{grid-area:info;width:100%;max-width:660px;min-width:0;flex:none}
+.reveal-information h2{margin:0;color:#f5f5fc;font:800 20px/1.35 Manrope,Arial,sans-serif;letter-spacing:-.4px;overflow-wrap:anywhere;text-wrap:balance;max-height:81px;overflow:auto;scrollbar-width:thin}
+.reveal-value{margin:8px 0 0;color:#b8bccb;font-size:18px;font-weight:650;line-height:1.4;font-variant-numeric:tabular-nums}
+.reveal-stage .reveal-actions{grid-area:actions;display:grid;grid-template-columns:1fr;gap:9px;width:100%;max-width:230px;margin-top:0;flex:none}
+.reveal-stage .reveal-actions button{display:flex;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #d0d9e8;border-radius:9px;background:transparent;color:#f2f5fc;font:750 12px/1.45 Manrope,Arial,sans-serif;text-align:center;overflow-wrap:anywhere}
 .reveal-stage .reveal-actions .keep-card{border-color:#00e1ed;background:#00e1ed;color:#00131e}
 .reveal-stage .reveal-actions button:hover:not(:disabled){border-color:#80eff7;background:#102737}
 .reveal-stage .reveal-actions .keep-card:hover:not(:disabled){background:#6ceaf2;color:#03222d}
 .reveal-stage .reveal-actions button:focus-visible{outline:2px solid #80eff7;outline-offset:4px}
 .reveal-stage .reveal-actions button:disabled{cursor:default;opacity:.55}
-.arena.is-revealing .skip-opening{left:50%;right:auto;bottom:30px;transform:translateX(-50%);border:0;background:transparent;color:#e8e9f2;font-size:12px;min-height:40px;white-space:nowrap}
+.arena.is-revealing .skip-opening{left:auto;right:16px;bottom:14px;transform:none;border:0;background:transparent;color:#e8e9f2;font-size:11px;min-height:34px;white-space:nowrap}
 .arena.is-revealing .skip-opening::after{content:' ▸▸';margin-left:6px;color:#b9bdd0;letter-spacing:-3px}
 .is-charging .reveal-edge rect{animation:rarity-edge-charge var(--charge-duration) ease-in-out both}
 .is-charging .reveal-halo{animation:rarity-halo-charge var(--charge-duration) ease-in-out both}
@@ -205,21 +205,33 @@
 @keyframes rarity-badge-arrive{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes rarity-details-arrive{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes rarity-mote-in{0%{opacity:0;transform:translateY(12px)}55%{opacity:.7}100%{opacity:.1;transform:translateY(-25px)}}
-@media(max-width:760px){
- .showcase.opening-focus .arena.is-revealing{min-height:658px;padding:20px 18px 28px;border-radius:17px}
- .arena.is-revealing .reveal-stage{--card-height:clamp(260px,36svh,320px);--card-width:calc(var(--card-height)*.7)}
- .reveal-stage-brand span{font-size:23px}.reveal-stage-brand svg{width:14px;height:18px;margin-top:-4px}
- .reveal-stage .reveal-meta{font-size:11px;line-height:23px;margin-bottom:29px;align-self:flex-end}
- .reveal-rarity{font-size:12px;min-height:29px;min-width:107px;padding:4px 14px;margin-bottom:22px;gap:8px}
- .reveal-rarity svg{width:13px;height:15px}
- .reveal-art-stage{margin-bottom:37px}
- .reveal-information h2{font-size:23px;line-height:1.35;letter-spacing:-.45px}
- .reveal-value{font-size:19px;margin-top:7px}
- .reveal-stage .reveal-actions{gap:10px;max-width:480px;margin-top:23px}
- .reveal-stage .reveal-actions button{min-height:48px;font-size:12px;padding:11px 9px;border-radius:9px}
- .arena.is-revealing .skip-opening{bottom:25px}
+/* The stage keeps the same footprint as the unopened pack at every breakpoint. */
+.showcase.opening-focus .arena.zoomed{--pack-height:clamp(280px,25vw,310px)}
+.showcase.opening-focus .arena.zoomed .pack-shell{top:52%;transform:translate(-50%,-50%)}
+.showcase.opening-focus .arena .side-card{display:none}
+@media(max-width:1000px) and (min-width:761px){
+ .arena.is-revealing .reveal-stage{padding:46px 16px 28px;gap:10px 15px}
+ .reveal-information h2{font-size:17px;max-height:69px}
+ .reveal-stage .reveal-actions button{font-size:11px;padding:10px 8px}
+ .reveal-rarity{font-size:10px;padding:4px 8px;gap:7px;letter-spacing:.7px}
 }
-@media(max-width:480px){.reveal-stage .reveal-actions{grid-template-columns:1fr;max-width:340px}}
+@media(max-width:760px){
+ .showcase.opening-focus .arena.zoomed{--pack-height:245px}
+ .arena.is-revealing .reveal-stage{padding:45px 16px 26px;gap:10px 16px}
+ .reveal-art-stage{width:min(166px,100%);margin-bottom:9px}
+ .reveal-stage-brand{top:14px;left:15px}.reveal-stage-brand span{font-size:21px}
+ .reveal-stage .reveal-meta{top:13px;right:15px;font-size:9px}
+ .reveal-rarity{font-size:10px;padding:4px 8px;gap:7px;min-height:25px;letter-spacing:.7px}
+ .reveal-rarity svg{width:11px;height:13px}
+ .reveal-information h2{font-size:16px;line-height:1.35;max-height:65px;letter-spacing:-.3px}
+ .reveal-value{font-size:16px;margin-top:6px}
+ .reveal-stage .reveal-actions{gap:8px;max-width:230px;margin:0}
+ .reveal-stage .reveal-actions button{min-height:44px;font-size:11px;padding:9px 7px}
+ .reveal-plinth{bottom:-17px;width:125%;height:10px}
+ .reveal-face,.reveal-art-stage .spotlight-card{border-radius:11px}.reveal-back{padding:3px}.reveal-back img{border-radius:7px}
+ .arena.is-revealing .skip-opening{right:12px;bottom:10px;font-size:10px}
+}
+@media(max-width:360px){.arena.is-revealing .reveal-stage{padding-left:12px;padding-right:12px;gap:10px 12px}.reveal-information h2{font-size:15px;max-height:61px}.reveal-stage .reveal-actions button{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.reveal-card-turn{transition:none}.reveal-stage *{animation:none!important}}
 .result-card strong{overflow-wrap:anywhere;line-height:1.5}
 .result-card .result-disposition{font-size:10px;line-height:1.5;color:#b3d5e2;letter-spacing:0;margin:12px 0 0}

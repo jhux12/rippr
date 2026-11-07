@@ -18,8 +18,7 @@ let quantity=1,state='idle',deck=[],cursor=0,openingTimer,openingSession=0,selli
 const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 const catalog=window.RipprCatalog;
 let contents=catalog.defaultPack(selectedPack.id),contentsReady=false,artReady=false,loadError=false;
-const oddsPanel=$('.odds-table-panel'),oddsSlot=$('#opening-odds-slot'),purchasePanel=$('.purchase-panel');
-function placeOdds(below){(below?oddsSlot:purchasePanel).append(oddsPanel);oddsSlot.hidden=!below}
+const oddsPanel=$('.odds-table-panel');
 const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const cardImage=card=>window.RIPPR_ASSET_URLS?.[card.image]||card.image;
 const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDigits:2})+'%';
@@ -48,6 +47,7 @@ async function loadContents(){
 }
 document.addEventListener('DOMContentLoaded',loadContents,{once:true});
 function label(){
+ if(state!=='idle')return;
  $('#pack-price').textContent=inventoryPackId?'Owned pack':contentsReady?money.format(contents.priceCents/100):'—';$('#price-suffix').hidden=Boolean(inventoryPackId);
  if(!contentsReady){openButton.textContent=loadError?'Pack unavailable':'Loading pack…';return}
  if(!contents.enabled){openButton.textContent='Pack unavailable';return}
@@ -82,7 +82,7 @@ function renderCard(instant=false){
  arena.dataset.revealRarity=c.rarity;
  state='charging';arena.style.setProperty('--reveal-tone',c.tone);arena.style.setProperty('--charge-duration',duration+'ms');
  arena.classList.remove('is-flipping','is-card-revealed');arena.classList.add('is-charging');
- stage.innerHTML=`<div class="reveal-stage-brand" aria-hidden="true"><span>rippr</span>${revealSpark}</div><p class="reveal-meta">Pack ${cursor+1} of ${deck.length}</p><div class="reveal-rarity" style="--rarity-color:${c.tone}">${revealSpark}<span>${escape(c.rarity)}</span></div><div class="reveal-art-stage"><div class="reveal-halo" aria-hidden="true"></div><div class="reveal-motes" aria-hidden="true">${Array.from({length:Math.min(8,2+catalog.RARITIES.findIndex(r=>r.name===c.rarity))},(_,i)=>`<i style="--i:${i};--mote-top:${8+(i*29)%85}%"></i>`).join('')}</div><div class="spotlight-card" style="--tone:${c.tone}"><div class="reveal-card-turn"><div class="reveal-face reveal-front" aria-hidden="true"><img class="revealed-art" src="${escape(cardImage(c))}" alt="${escape(c.name)}"><span class="reveal-art-fallback" hidden>Artwork unavailable</span></div><div class="reveal-face reveal-back" role="img" aria-label="Face-down rippr card"><img src="${escape(cardBackImage)}" alt="" draggable="false"></div></div><svg class="reveal-edge" viewBox="0 0 300 420" preserveAspectRatio="none" aria-hidden="true"><rect x="2" y="2" width="296" height="416" rx="17" pathLength="100"/></svg></div><span class="reveal-plinth" aria-hidden="true"></span></div><div class="reveal-information" inert aria-hidden="true"><h2 id="reveal-name">${escape(c.name)}</h2><p class="reveal-value">${money.format(c.valueCents/100)}</p></div><div class="reveal-actions" inert aria-hidden="true"><button type="button" id="next" class="keep-card">Add to inventory</button><button type="button" id="sell-card" class="sell-card" ${window.RIPPR_AUTH_OFFLINE?'disabled title="Selling is unavailable in offline previews."':''}>Sell for ${money.format(c.valueCents/100)}</button></div>`;
+ stage.innerHTML=`<div class="reveal-stage-brand" aria-hidden="true"><span>rippr</span>${revealSpark}</div><p class="reveal-meta">Pack ${cursor+1} of ${deck.length}</p><div class="reveal-rarity" style="--rarity-color:${c.tone}">${revealSpark}<span>${escape(c.rarity)}</span></div><div class="reveal-art-stage"><div class="reveal-halo" aria-hidden="true"></div><div class="reveal-motes" aria-hidden="true">${Array.from({length:Math.min(8,2+catalog.RARITIES.findIndex(r=>r.name===c.rarity))},(_,i)=>`<i style="--i:${i};--mote-top:${8+(i*29)%85}%"></i>`).join('')}</div><div class="spotlight-card" style="--tone:${c.tone}"><div class="reveal-card-turn"><div class="reveal-face reveal-front" aria-hidden="true"><img class="revealed-art" src="${escape(cardImage(c))}" alt="${escape(c.name)}"><span class="reveal-art-fallback" hidden>Artwork unavailable</span></div><div class="reveal-face reveal-back" role="img" aria-label="Face-down rippr card"><img src="${escape(cardBackImage)}" alt="" draggable="false"></div></div><svg class="reveal-edge" viewBox="0 0 300 420" preserveAspectRatio="none" aria-hidden="true"><rect x="2" y="2" width="296" height="416" rx="17" pathLength="100"/></svg></div><span class="reveal-plinth" aria-hidden="true"></span></div><div class="reveal-information" inert aria-hidden="true"><h2 id="reveal-name" title="${escape(c.name)}">${escape(c.name)}</h2><p class="reveal-value">${money.format(c.valueCents/100)}</p></div><div class="reveal-actions" inert aria-hidden="true"><button type="button" id="next" class="keep-card">Add to inventory</button><button type="button" id="sell-card" class="sell-card" ${window.RIPPR_AUTH_OFFLINE?'disabled title="Selling is unavailable in offline previews."':''}>Sell for ${money.format(c.valueCents/100)}</button></div>`;
  const art=$('.reveal-front .revealed-art');
  art.addEventListener('error',()=>{art.hidden=true;art.nextElementSibling.hidden=false},{once:true});
  $('.reveal-back img').addEventListener('error',event=>{event.currentTarget.hidden=true},{once:true});
@@ -106,6 +106,7 @@ function completeCardReveal(instant){
  $('.reveal-front').removeAttribute('aria-hidden');$('.reveal-back').setAttribute('aria-hidden','true');
  for(const element of stage.querySelectorAll('.reveal-information,.reveal-actions')){element.removeAttribute('inert');element.removeAttribute('aria-hidden')}
  const c=deck[cursor];announcement.textContent=`Card ${cursor+1} of ${deck.length}: ${c.rarity}, ${c.name}, ${money.format(c.valueCents/100)}.`;
+ const name=$('#reveal-name');if(name.scrollHeight>name.clientHeight)name.tabIndex=0;
  syncRevealActions();$('#next').focus({preventScroll:true});
 }
 function advanceReveal(){if(cursor<deck.length-1){cursor++;prepareRip()}else finish()}
@@ -154,12 +155,10 @@ packImage.src=selectedPack.image;
 function setRip(value){progress=Math.max(0,Math.min(1,value));shell.style.setProperty('--rip',progress);ripButton.setAttribute('aria-label',`Rip top foil: ${Math.round(progress*100)} percent. Drag across, or press Enter`)}
 function prepareRip(){
  const previousBounds=shell.getBoundingClientRect();
- placeOdds(true);
  clearTimeout(openingTimer);state='zooming';stage.hidden=true;skipOpening.hidden=false;arena.classList.remove('is-revealing','skip-reveal-motion','is-charging','is-flipping','is-card-revealed');display.style.visibility='';
  shell.classList.remove('ripping','unsealed');setRip(0);ripButton.hidden=true;
  $('.showcase').classList.add('opening-focus');arena.classList.add('zoomed');
  if(!reduced()){const now=shell.getBoundingClientRect();shell.animate([{translate:`${previousBounds.x+previousBounds.width/2-now.x-now.width/2}px ${previousBounds.y+previousBounds.height/2-now.y-now.height/2}px`},{translate:'0 0'}],{duration:500,easing:'cubic-bezier(.2,.8,.2,1)'})}phase.textContent='';announcement.textContent=`Pack ${cursor+1} of ${deck.length}. Zooming in.`;
- arena.scrollIntoView({behavior:reduced()?'instant':'smooth',block:'nearest'});
  openingTimer=setTimeout(()=>{state='ripping';shell.classList.add('ripping');ripButton.hidden=false;phase.textContent='';announcement.textContent=`Pack ${cursor+1} of ${deck.length}. Drag across the foil, or press Enter to rip.`;ripButton.focus({preventScroll:true})},reduced()?0:500);
 }
 function completeRip(){
@@ -201,7 +200,7 @@ openButton.addEventListener('click',async()=>{
   if(error.code==='functions/resource-exhausted')document.querySelector('.topup-trigger')?.click();
  }
 });
-function resetOpening(){openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);placeOdds(false);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing','is-charging','is-flipping','is-card-revealed');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
+function resetOpening(){openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing','is-charging','is-flipping','is-card-revealed');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
 $('#again').addEventListener('click',()=>{if(inventoryPackId){location.href='profile.html';return}resetOpening();openButton.focus({preventScroll:true});$('.heading').scrollIntoView({behavior:reduced()?'instant':'smooth'})});
 
 // Ambient animation runs only while the stage is visible and navigation is clear.
