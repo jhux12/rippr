@@ -20,7 +20,6 @@
     'auth/too-many-requests':'Too many attempts. Please wait before trying again.',
     'auth/quota-exceeded':'Text sign-in is temporarily unavailable. Please try again later.',
     'auth/unauthorized-domain':'Sign-in is not enabled for this site address yet.',
-    'auth/operation-not-allowed':'Phone sign-in is not enabled for this project yet.',
     'auth/configuration-not-found':'Sign-in setup needs attention. Please contact support.',
     'auth/invalid-api-key':'Sign-in configuration needs attention. Please contact support.',
     'auth/user-disabled':'This account cannot sign in. Please contact support.',
@@ -39,7 +38,12 @@
     'auth/invalid-email':'Enter a valid email address.',
     'auth/offline-preview':'Phone sign-in is available on the hosted site. Offline previews do not send texts.'
   };
-  const errorMessage = error => errors[error?.code] || 'That did not work. Please try again.';
+  function errorMessage(error) {
+    const setup = phoneModel.phoneSetupMessage(error), reference = phoneModel.authErrorReference(error);
+    if(setup)return setup + (reference ? ` Reference: ${reference}.` : '');
+    if(errors[error?.code])return errors[error.code];
+    return 'That did not work. Please try again.' + (reference ? ` Reference: ${reference}.` : '');
+  }
   function clearError(input) { input.removeAttribute('aria-invalid'); const error=$('#'+input.id+'-error'); error.hidden=true; error.textContent=''; }
   function fieldError(input,text) { input.setAttribute('aria-invalid','true'); const error=$('#'+input.id+'-error'); error.textContent=text; error.hidden=false; input.focus(); }
   function message(text,account=false) { const target=$(account?'#account-status':'#auth-status'); target.textContent=text; target.hidden=false; target.focus(); }

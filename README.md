@@ -90,6 +90,8 @@ Both Log in and Sign up open the same **phone → SMS verification code** form. 
 
 The SDK only disables application verification after connecting to a validated localhost Auth Emulator. Production uses Firebase's real reCAPTCHA and SMS checks. No Firebase users, phone numbers or SMS messages are provisioned/sent by repository setup.
 
+If Send code returns `auth/operation-not-allowed`, check both **Authentication → Sign-in method → Phone** and **Authentication → Settings → SMS region policy** in the same Firebase project. The code can represent a regional SMS block even when Phone is enabled; allow United States (+1) for US numbers without removing other intended regions. A billing error needs the project's SMS billing setup checked. The form distinguishes these causes when Firebase supplies a reason and shows safe SDK error references. It never prints raw error messages, phone numbers, verification codes or session data in diagnostics. A bare HTTP 400 stack trace does not identify which setting rejected the request.
+
 **Phone admin migration requires the updated backend and both rules files**, in addition to the frontend:
 
 ```sh
