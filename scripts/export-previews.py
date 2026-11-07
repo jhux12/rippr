@@ -56,6 +56,8 @@ signInGoogle:()=>Promise.reject({code:'auth/offline-preview'}),resetPassword:()=
 signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'}),startPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),confirmPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),cancelPhoneSignIn:()=>{}};"""
     mascot_poses = ['hover', 'welcome'] + [pose for pose in ['celebrate'] if 'data-pip="' + pose + '"' in text]
     mascot_urls = {pose: uri(ROOT / ('assets/mascot/pip-' + pose + '.png'), 'image/png') for pose in mascot_poses}
+    if 'id="reveal-stage"' in text:
+        offline_auth += 'window.RIPPR_REVEAL_BACK_URL=' + json.dumps(uri(ROOT / 'assets/reveal/rippr-card-back.png', 'image/png')) + ';'
     offline_auth += 'window.RIPPR_MASCOT_URLS=' + json.dumps(mascot_urls) + ';'
     offline_auth += "document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('img[data-pip]').forEach(img=>{img.src=window.RIPPR_MASCOT_URLS[img.dataset.pip];}));"
     text = re.sub(r'\s+src="assets/mascot/pip-(?:hover|welcome|celebrate)\.png"', '', text)

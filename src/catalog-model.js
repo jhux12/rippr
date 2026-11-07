@@ -3,11 +3,11 @@ export const PACK_IDS = ['basic', 'plus', 'premium', 'elite', 'ultimate'];
 export const DEFAULT_PRICES = { basic:199, plus:499, premium:1499, elite:2999, ultimate:9999 };
 export const RARITIES = [
   { name: 'Common', color: '#adbdcf' },
-  { name: 'Uncommon', color: '#00e2ed' },
-  { name: 'Rare', color: '#c19af2' },
-  { name: 'Ultra rare', color: '#8dbeff' },
+  { name: 'Uncommon', color: '#63dcad' },
+  { name: 'Rare', color: '#69b9ff' },
+  { name: 'Ultra rare', color: '#8298ff' },
   { name: 'Special rare', color: '#ecb6df' },
-  { name: 'Epic', color: '#ff9e98' },
+  { name: 'Epic', color: '#cf83ff' },
   { name: 'Legendary', color: '#ffcf70' }
 ];
 const seeds = [

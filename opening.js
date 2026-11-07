@@ -25,7 +25,6 @@ const cardImage=card=>window.RIPPR_ASSET_URLS?.[card.image]||card.image;
 const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDigits:2})+'%';
 const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 const rarityBadge=name=>`<span class="rarity-badge" style="--rarity-color:${catalog.RARITIES.find(rarity=>rarity.name===name).color}"><span class="rarity-dot" aria-hidden="true"></span>${escape(name)}</span>`;
-const rare=card=>!['Common','Uncommon'].includes(card.rarity);
 function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||state!=='idle';label()}
 function renderContents(note){
  const table=$('.odds-table-panel table');
@@ -61,7 +60,10 @@ if(inventoryPackId){$('.quantities').hidden=true;$('#quantity-control').hidden=t
 quantityButtons.forEach(button=>button.addEventListener('click',()=>{if(state!=='idle')return;quantity=Number(button.dataset.qty);quantityButtons.forEach(b=>{b.classList.toggle('selected',b===button);b.setAttribute('aria-pressed',String(b===button))});label()}));
 function randomUnit(){const v=new Uint32Array(1);crypto.getRandomValues(v);return v[0]/4294967296}
 function makeDeck(){return Array.from({length:quantity},(_,p)=>{const card=catalog.drawItem(contents.items,randomUnit());return {...card,pack:p+1,tone:catalog.RARITIES.find(r=>r.name===card.rarity).color}})}
-const inventoryIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4zM8 8V4h8v4m-7 5 3 3 3-3"/></svg>';
+const revealTimings={'Common':850,'Uncommon':1150,'Rare':1550,'Ultra rare':1800,'Special rare':2000,'Epic':2300,'Legendary':2850};
+const revealSpark='<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg>';
+const cardBackImage=window.RIPPR_REVEAL_BACK_URL||'assets/reveal/rippr-card-back.png';
+const preloadBack=new Image();preloadBack.src=cardBackImage;
 const saleDialog=$('#reveal-sale-dialog');
 function revealNavigation(){document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:!document.querySelector('#mobile-navigation')?.hidden,dialogOpen:Boolean(document.querySelector('dialog[open]'))}}))}
 function savedCardStatus(c){return window.RIPPR_ACCOUNT?.items?.find(item=>item.id===c.id)?.status||c.status||'available'}
@@ -69,17 +71,41 @@ function syncRevealActions(){
  if(state!=='revealing'||!deck[cursor])return;
  const c=deck[cursor],status=savedCardStatus(c),unavailable=status!=='available';
  $('#next').disabled=selling;
- $('#next').innerHTML=unavailable?'Continue':inventoryIcon+'Add to inventory';
+ $('#next').textContent=unavailable?'Continue':'Add to inventory';
  $('#sell-card').disabled=selling||Boolean(window.RIPPR_AUTH_OFFLINE)||unavailable;
  $('#sell-card').textContent=selling?'Selling…':status==='sold'?'Sold':status==='shipping'?'Shipping requested':`Sell for ${money.format(c.valueCents/100)}`;
  if(unavailable)c.status=status;
 }
-function renderCard(){
- const c=deck[cursor];arena.style.setProperty('--reveal-tone',c.tone);
- stage.innerHTML=`<p class="reveal-meta" ${deck.length===1?'hidden':''}>Pack ${cursor+1} of ${deck.length}</p><div class="reveal-art-stage"><div class="spotlight-card ${rare(c)?'rare':''}" style="--tone:${c.tone}"><img class="revealed-art" src="${escape(cardImage(c))}" alt="${escape(c.name)}"></div><span class="reveal-plinth" aria-hidden="true"></span></div><div class="reveal-information"><h2 id="reveal-name">${escape(c.name)}</h2>${rarityBadge(c.rarity)}</div><div class="reveal-actions"><button type="button" id="next" class="keep-card">${inventoryIcon}Add to inventory</button><button type="button" id="sell-card" class="sell-card" ${window.RIPPR_AUTH_OFFLINE?'disabled title="Selling is unavailable in offline previews."':''}>Sell for ${money.format(c.valueCents/100)}</button></div>`;
- announcement.textContent=`Card ${cursor+1} of ${deck.length}: ${c.rarity}, ${c.name}.`;
+function renderCard(instant=false){
+ clearTimeout(openingTimer);
+ const c=deck[cursor],duration=revealTimings[c.rarity]||1550;
+ arena.dataset.revealRarity=c.rarity;
+ state='charging';arena.style.setProperty('--reveal-tone',c.tone);arena.style.setProperty('--charge-duration',duration+'ms');
+ arena.classList.remove('is-flipping','is-card-revealed');arena.classList.add('is-charging');
+ stage.innerHTML=`<div class="reveal-stage-brand" aria-hidden="true"><span>rippr</span>${revealSpark}</div><p class="reveal-meta">Pack ${cursor+1} of ${deck.length}</p><div class="reveal-rarity" style="--rarity-color:${c.tone}">${revealSpark}<span>${escape(c.rarity)}</span></div><div class="reveal-art-stage"><div class="reveal-halo" aria-hidden="true"></div><div class="reveal-motes" aria-hidden="true">${Array.from({length:Math.min(8,2+catalog.RARITIES.findIndex(r=>r.name===c.rarity))},(_,i)=>`<i style="--i:${i};--mote-top:${8+(i*29)%85}%"></i>`).join('')}</div><div class="spotlight-card" style="--tone:${c.tone}"><div class="reveal-card-turn"><div class="reveal-face reveal-front" aria-hidden="true"><img class="revealed-art" src="${escape(cardImage(c))}" alt="${escape(c.name)}"><span class="reveal-art-fallback" hidden>Artwork unavailable</span></div><div class="reveal-face reveal-back" role="img" aria-label="Face-down rippr card"><img src="${escape(cardBackImage)}" alt="" draggable="false"></div></div><svg class="reveal-edge" viewBox="0 0 300 420" preserveAspectRatio="none" aria-hidden="true"><rect x="2" y="2" width="296" height="416" rx="17" pathLength="100"/></svg></div><span class="reveal-plinth" aria-hidden="true"></span></div><div class="reveal-information" inert aria-hidden="true"><h2 id="reveal-name">${escape(c.name)}</h2><p class="reveal-value">${money.format(c.valueCents/100)}</p></div><div class="reveal-actions" inert aria-hidden="true"><button type="button" id="next" class="keep-card">Add to inventory</button><button type="button" id="sell-card" class="sell-card" ${window.RIPPR_AUTH_OFFLINE?'disabled title="Selling is unavailable in offline previews."':''}>Sell for ${money.format(c.valueCents/100)}</button></div>`;
+ const art=$('.reveal-front .revealed-art');
+ art.addEventListener('error',()=>{art.hidden=true;art.nextElementSibling.hidden=false},{once:true});
+ $('.reveal-back img').addEventListener('error',event=>{event.currentTarget.hidden=true},{once:true});
  $('#next').addEventListener('click',()=>{if(state!=='revealing'||selling)return;c.status=savedCardStatus(c);advanceReveal()});
  $('#sell-card').addEventListener('click',confirmRevealSale);
+ announcement.textContent=`Pack ${cursor+1} of ${deck.length}. ${c.rarity} card charging.`;
+ skipOpening.hidden=false;skipOpening.focus({preventScroll:true});
+ if(instant||reduced())completeCardReveal(true);
+ else openingTimer=setTimeout(flipCard,duration);
+}
+function flipCard(){
+ if(state!=='charging')return;
+ state='flipping';arena.classList.remove('is-charging');arena.classList.add('is-flipping');
+ openingTimer=setTimeout(()=>completeCardReveal(false),650);
+}
+function completeCardReveal(instant){
+ if(!['charging','flipping'].includes(state))return;
+ clearTimeout(openingTimer);state='revealing';
+ arena.classList.remove('is-charging','is-flipping');arena.classList.add('is-card-revealed');
+ arena.classList.toggle('skip-reveal-motion',instant);skipOpening.hidden=true;
+ $('.reveal-front').removeAttribute('aria-hidden');$('.reveal-back').setAttribute('aria-hidden','true');
+ for(const element of stage.querySelectorAll('.reveal-information,.reveal-actions')){element.removeAttribute('inert');element.removeAttribute('aria-hidden')}
+ const c=deck[cursor];announcement.textContent=`Card ${cursor+1} of ${deck.length}: ${c.rarity}, ${c.name}, ${money.format(c.valueCents/100)}.`;
  syncRevealActions();$('#next').focus({preventScroll:true});
 }
 function advanceReveal(){if(cursor<deck.length-1){cursor++;prepareRip()}else finish()}
@@ -129,7 +155,7 @@ function setRip(value){progress=Math.max(0,Math.min(1,value));shell.style.setPro
 function prepareRip(){
  const previousBounds=shell.getBoundingClientRect();
  placeOdds(true);
- clearTimeout(openingTimer);state='zooming';stage.hidden=true;skipOpening.hidden=false;arena.classList.remove('is-revealing','skip-reveal-motion');display.style.visibility='';
+ clearTimeout(openingTimer);state='zooming';stage.hidden=true;skipOpening.hidden=false;arena.classList.remove('is-revealing','skip-reveal-motion','is-charging','is-flipping','is-card-revealed');display.style.visibility='';
  shell.classList.remove('ripping','unsealed');setRip(0);ripButton.hidden=true;
  $('.showcase').classList.add('opening-focus');arena.classList.add('zoomed');
  if(!reduced()){const now=shell.getBoundingClientRect();shell.animate([{translate:`${previousBounds.x+previousBounds.width/2-now.x-now.width/2}px ${previousBounds.y+previousBounds.height/2-now.y-now.height/2}px`},{translate:'0 0'}],{duration:500,easing:'cubic-bezier(.2,.8,.2,1)'})}phase.textContent='';announcement.textContent=`Pack ${cursor+1} of ${deck.length}. Zooming in.`;
@@ -145,9 +171,9 @@ function showReveal(instant){
  if(!['zooming','ripping','unsealing'].includes(state))return;
  clearTimeout(openingTimer);drag=null;setRip(1);ripButton.hidden=true;skipOpening.hidden=true;
  shell.getAnimations().forEach(animation=>animation.cancel());
- state='revealing';arena.classList.add('is-revealing');arena.classList.toggle('skip-reveal-motion',instant);stage.hidden=false;renderCard();
+ arena.classList.add('is-revealing');arena.classList.toggle('skip-reveal-motion',instant);stage.hidden=false;renderCard(instant);
 }
-skipOpening.addEventListener('click',()=>showReveal(true));
+skipOpening.addEventListener('click',()=>{if(['charging','flipping'].includes(state))completeCardReveal(true);else showReveal(true)});
 ripButton.addEventListener('pointerdown',event=>{if(state!=='ripping'||(event.pointerType==='mouse'&&event.button!==0))return;event.preventDefault();drag={x:event.clientX,id:event.pointerId};ripButton.setPointerCapture(event.pointerId);setRip(0)});
 ripButton.addEventListener('pointermove',event=>{if(!drag||event.pointerId!==drag.id)return;setRip(Math.abs(event.clientX-drag.x)/(ripButton.getBoundingClientRect().width*.75))});
 ripButton.addEventListener('pointerup',event=>{if(!drag||event.pointerId!==drag.id)return;drag=null;if(progress>=.8)completeRip();else setRip(0)});
@@ -175,7 +201,7 @@ openButton.addEventListener('click',async()=>{
   if(error.code==='functions/resource-exhausted')document.querySelector('.topup-trigger')?.click();
  }
 });
-function resetOpening(){openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);placeOdds(false);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
+function resetOpening(){openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);placeOdds(false);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing','is-charging','is-flipping','is-card-revealed');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
 $('#again').addEventListener('click',()=>{if(inventoryPackId){location.href='profile.html';return}resetOpening();openButton.focus({preventScroll:true});$('.heading').scrollIntoView({behavior:reduced()?'instant':'smooth'})});
 
 // Ambient animation runs only while the stage is visible and navigation is clear.
