@@ -53,7 +53,7 @@ def common(text):
 window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>null,observe:cb=>{queueMicrotask(()=>cb(null));return()=>{}},
 createAccount:()=>Promise.reject({code:'auth/offline-preview'}),signInEmail:()=>Promise.reject({code:'auth/offline-preview'}),
 signInGoogle:()=>Promise.reject({code:'auth/offline-preview'}),resetPassword:()=>Promise.reject({code:'auth/offline-preview'}),
-signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'})};"""
+signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'}),startPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),confirmPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),cancelPhoneSignIn:()=>{}};"""
     mascot_poses = ['hover', 'welcome'] + [pose for pose in ['celebrate'] if 'data-pip="' + pose + '"' in text]
     mascot_urls = {pose: uri(ROOT / ('assets/mascot/pip-' + pose + '.png'), 'image/png') for pose in mascot_poses}
     offline_auth += 'window.RIPPR_MASCOT_URLS=' + json.dumps(mascot_urls) + ';'
@@ -62,6 +62,7 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     text = text.replace('<link rel="stylesheet" href="mascot.css">', '<style>' + (ROOT / 'mascot.css').read_text() + '</style>')
     text = text.replace('</head>', '<script>' + offline_auth + '</script></head>')
     text = text.replace('<link rel="stylesheet" href="footer.css">', '<style>' + (ROOT / 'footer.css').read_text() + '</style>')
+    text = text.replace('<script src="phone-auth.js" defer></script>', '<script>' + (ROOT / 'phone-auth.js').read_text() + '</script>')
     text = text.replace('<script src="footer-config.js" defer></script>', '<script>' + (ROOT / 'footer-config.js').read_text() + '</script>')
     text = text.replace('<script src="footer.js" defer></script>', '')
     text = text.replace('</body>', '<script>' + (ROOT / 'footer.js').read_text() + '</script></body>')
@@ -128,7 +129,7 @@ rewards = rewards.replace('</body>', '<script>' + bootstrap + '</script><script>
 
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
-                    'index.html', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
+                    'index.html', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'catalog.js', 'opening.js', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:

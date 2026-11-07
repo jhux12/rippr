@@ -3,8 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function owner() {
       return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() == 'jhuxf12@outlook.com';
+        && request.auth.token.get('phone_number', '') == '+17654794230';
     }
     function validPackId(packId) {
       return packId in ['basic', 'plus', 'premium', 'elite', 'ultimate'];

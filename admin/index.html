@@ -30,8 +30,7 @@
     <p id="gate-copy" role="status">Connecting to your account…</p>
     <div class="gate-actions">
       <a id="gate-login" class="button primary" href="/auth.html?mode=login&amp;next=%2Fadmin" hidden>Log in</a>
-      <button id="gate-resend" class="button secondary" type="button" hidden>Resend verification</button>
-      <button id="gate-check" class="button primary" type="button" hidden>I've verified my email</button>
+      <button id="gate-check" class="button primary" type="button" hidden>Refresh sign-in</button>
       <button id="gate-signout" class="button secondary" type="button" hidden>Switch account</button>
       <button id="gate-retry" class="button secondary" type="button" hidden>Retry</button>
     </div>
@@ -116,7 +115,7 @@
         <label class="toggle-label reward-test-toggle"><input id="rewards-no-cooldown" type="checkbox" role="switch"><span class="toggle-track" aria-hidden="true"></span><span>Testing: no cooldown</span></label><p class="reward-admin-note">Credit prizes go to test balance. Pack prizes go to unopened inventory.</p>
         <form id="rewards-form"><div id="reward-prize-rows"></div><div class="reward-admin-footer"><button class="button secondary" type="button" id="add-reward">＋ Add prize</button><strong id="reward-odds-total"></strong></div><p id="reward-settings-error" class="form-error" role="alert" hidden></p><p id="reward-settings-status" role="status"></p><div class="reward-admin-footer"><button class="button secondary" type="button" id="reload-rewards">Reload saved</button><button class="button primary" type="submit" id="save-rewards" disabled>Save rewards</button></div></form>
       </section>
-      <section id="settings-view" class="panel simple-view" hidden><h2>Owner account</h2><p id="settings-owner"></p><div class="setting-row"><span>Email verification</span><span class="verified-label">Verified</span></div><div class="setting-row"><span>Catalog</span><span id="catalog-connection">Connecting…</span></div><button id="settings-signout" class="button secondary" type="button">Sign out</button></section>
+      <section id="settings-view" class="panel simple-view" hidden><h2>Owner account</h2><p id="settings-owner"></p><div class="setting-row"><span>Phone verification</span><span class="verified-label">Verified</span></div><div class="setting-row"><span>Catalog</span><span id="catalog-connection">Connecting…</span></div><button id="settings-signout" class="button secondary" type="button">Sign out</button></section>
       <p id="admin-status" class="admin-status" role="status" aria-live="polite" hidden></p>
     </main>
   </div>

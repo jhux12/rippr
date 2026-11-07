@@ -42,7 +42,7 @@ The server parameter `FREE_TEST_TOPUPS` defaults to `true`, enabling the tempora
 - The profile matches the approved navy/cyan concept: compact Pip identity banner, three account statistics, Collection/Activity/Settings tabs, search, Available/Shipping/Sold filters, complete card artwork, rarity badges, individual actions and a sticky bulk-action bar. It loads real account records, with an empty state rather than fabricated winnings. It displays the latest 200 items and 50 activity records.
 - Selling available items credits their **saved server value** to test balance. Confirmation is required. Items cannot be sold twice, sold by another account, or sold after a shipping request. Bulk actions support up to 50 items.
 - Ship creates an explicitly labeled **test shipping request**, moving items into Shipping. No physical dispatch, shipping charge, address collection or fulfillment integration occurs. Test items never automatically become redeemable goods. Actual fulfillment needs a separate production inventory/operations system.
-- Profile editing exposes only the display name. Each account adopts its previously assigned handle as its display name on the next account load, using an idempotent migration through the existing backend. Later display-name edits are preserved. The legacy handle remains internal for compatibility. Desktop navigation and the mobile menu show the account’s Pip picture and display name; the signed-in profile shortcut is hidden in the mobile header. Pip is the initial profile picture. Verification badges reflect Firebase's email verification state.
+- Profile editing exposes only the display name. Each account adopts its previously assigned handle as its display name on the next account load, using an idempotent migration through the existing backend. Later display-name edits are preserved. The legacy handle remains internal for compatibility. Desktop navigation and the mobile menu show the account’s Pip picture and display name; the signed-in profile shortcut is hidden in the mobile header. Pip is the initial profile picture. Verification badges reflect a verified Firebase phone or the existing email verification state.
 - Unique operation IDs make successful requests idempotent. Pending IDs persist in sessionStorage across reloads/timeouts; retrying the same action returns its first result instead of charging/awarding twice. Browser balances, values and odds never authorize writes.
 - All account state lives under `testAccounts/{uid}` with `items`, `activity`, `operations` and `shipments` subcollections. Clients can read only their own test records and **cannot write balances, winnings or statuses directly**. The authenticated callable Function performs all writes. Test data is intentionally separate from any future real-money ledger.
 
@@ -79,16 +79,31 @@ This suite checks weighted boundaries, admin permissions, configuration conflict
 
 ## Firebase Authentication
 
-1. Enable Email/Password in Firebase Authentication. **Google remains paused at the owner's request.** Its button stays disabled until the owner enables the provider and sets `RIPPR_AUTH_FEATURES.google` to `true`.
-2. Add the serving hostname under Authentication → Settings → Authorized domains. Add localhost if testing locally.
-3. Configure Firebase's password policy if the UI's 12-character requirement should also be enforced by the provider.
-4. Replace placeholder Terms and Privacy copy before a public account launch.
+1. Enable **Phone** in Firebase Authentication → Sign-in method (the owner has confirmed this is enabled). Allow the intended countries, including United States (+1), in the SMS region policy. Real SMS uses Firebase's billing/quota and reCAPTCHA requirements.
+2. Add each serving hostname under Authentication → Settings → Authorized domains. Add localhost for development as needed. The hosted browser must be able to load Google's reCAPTCHA resources.
+3. Keep **Email/Password** enabled for the one-time existing-account linking path. Google remains paused and is not shown in the phone form.
+4. Replace placeholder Terms and Privacy copy before a public account launch. The form explains SMS rates and links to the phone-number processing disclosure.
 
-Email/password signup, sign-in, password reset, verification/resend/refresh and sign-out use the official Firebase SDK. Auth maintains the browser session; plaintext passwords are not stored by the app. The signed-in authentication panel links to the profile and provides verification controls. Member sign-out clears the wallet/items immediately. No Firebase users are provisioned by repository setup.
+Both Log in and Sign up open the same **phone → SMS verification code** form. Firebase creates an account only after a correct code, or returns the account already linked to that phone. US local numbers default to +1; international numbers require an explicit calling code. Codes stay in memory, never localStorage/sessionStorage. Resends have a 60-second UI cooldown plus Firebase's server-side limits. Errors, expired codes, number changes and reCAPTCHA retries are handled without fake sign-ins. Authentication persists the browser session as before, and sign-out immediately clears the wallet/items.
+
+**Existing accounts:** open **Link phone to an existing account**, sign in once with the existing email/password, then verify a phone. Already-signed-in email users can link directly on the account page. Firebase linking keeps the original UID, balances, winnings, profile and history. If a phone already belongs to a different account, linking stops with an error; there is no automatic merge or reassignment. Use the linking path before signing in with a new phone if you want to retain the old account's data.
+
+The SDK only disables application verification after connecting to a validated localhost Auth Emulator. Production uses Firebase's real reCAPTCHA and SMS checks. No Firebase users, phone numbers or SMS messages are provisioned/sent by repository setup.
+
+**Phone admin migration requires the updated backend and both rules files**, in addition to the frontend:
+
+```sh
+git pull origin main
+npm ci
+npm ci --prefix functions
+npx firebase deploy --only functions:ripprAccount,firestore:rules,storage --project rippr-2b01c
+```
+
+Deploy the latest static build through the normal hosting flow. Link the owner's phone to the existing owner account on the updated account page to preserve its UID. This workspace has no production Firebase administrator credentials, so the backend/rules must be deployed from the owner's authenticated terminal. Enabling Phone alone does not change those access rules.
 
 ## Owner admin
 
-Open `/admin` (also `/admin/`). **jhuxf12@outlook.com** is the sole owner, independently enforced by Firestore and Storage rules through the verified email claim. Register/sign in normally and verify the email first. The account screen provides an owner-only admin link. No browser role/profile field grants admin rights.
+Open `/admin` (also `/admin/`). The sole owner is the Firebase account verified with **+1 765-479-4230**. Firestore, Storage and reward-setting writes independently require Firebase's trusted `phone_number` claim; the backend also binds that token to the request UID. The previous email alone grants no admin access. The account screen provides an owner-only admin link. No browser role/profile field grants admin rights.
 
 The editor manages five catalogs, prices, cards, names, rarities, values, image uploads, grails, per-card odds, enablement and stale-version conflicts. Each pack needs 1–100 cards with chances totaling exactly 100%, stored in basis points. Zero-chance cards are not drawn. JPG/PNG/WebP uploads are public, immutable and limited to 5 MB. Uploads need the repository's `storage.rules` published:
 
@@ -131,7 +146,9 @@ npm run test:accounts:emulator
 npm run test:rules
 ```
 
-Catalog tests cover validation, prices, odds ranges and draw boundaries. Account-service tests exercise the actual server domain logic with a strict in-memory transactional fixture (rollback and read-before-write enforcement), including authentication, top-up limits/disablement, duplicate retries, concurrent purchase attempts, insufficient funds, tampered prices, persistence, cross-account sales/shipping, double sale rejection and display-only profile changes. This fixture does **not** validate Firestore Security Rules, SDK retry behavior or production infrastructure.
+Catalog tests cover validation, phone-bound owner claims, prices, odds ranges and draw boundaries. Phone helper tests cover E.164 normalization, invalid formats and six-digit codes with leading zeros. Account-service tests exercise the actual server domain logic with a strict in-memory transactional fixture (rollback and read-before-write enforcement), including authentication, top-up limits/disablement, duplicate retries, concurrent purchase attempts, insufficient funds, tampered prices, persistence, cross-account sales/shipping, double sale rejection and display-only profile changes. This fixture does **not** validate Firestore Security Rules, SDK retry behavior or production infrastructure.
+
+Phone browser validation used the real Firebase SDK and local Auth Emulator for new/returning users, legacy-account linking, UID/data preservation, admin token refresh, phone collisions, resend/change-number controls, expired codes and quota/captcha recovery. Account/reward actions used the actual service with the strict transactional fixture; catalog REST used an explicit authorization fixture. No real SMS messages or production requests were sent.
 
 The emulator variant runs the same account suite against official Firestore. The Rules suite checks owner/member/visitor permissions, account read isolation, forbidden balance/item writes, catalog constraints and uploads. **The official Firestore/Storage emulator download is blocked in this cloud environment**, so those suites must run where `storage.googleapis.com` downloads are available. No production traffic is used in the local tests.
 

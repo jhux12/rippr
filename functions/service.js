@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS } from './reward-model.js';
-import { OWNER_EMAIL, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem } from './catalog-model.js';
+import { isAdminToken, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem } from './catalog-model.js';
 
 const fail = (code, message) => { throw new HttpsError(code, message); };
 const stamp = () => FieldValue.serverTimestamp();
@@ -43,7 +43,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         return {config,nextClaimAtMs:wallet.data()?.nextRewardAtMs||0,serverTimeMs:now()};
       });
     }
-    if(action==='saveRewards' && !(claims.email_verified===true&&claims.email?.toLowerCase()===OWNER_EMAIL))fail('permission-denied','Only the verified owner can save reward settings.');
+    if(action==='saveRewards' && !isAdminToken(claims,uid))fail('permission-denied','Only the verified owner phone account can save reward settings.');
     if (!/^[a-zA-Z0-9-]{16,80}$/.test(operationId || '')) fail('invalid-argument','A valid operation ID is required.');
     const operation = account.collection('operations').doc(operationId);
     return db.runTransaction(async tx => {

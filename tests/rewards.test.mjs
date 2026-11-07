@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {accountService} from '../functions/service.js';
 import {defaultRewards,validateRewards,drawReward,REWARD_COOLDOWN_MS} from '../src/reward-model.js';
-import {OWNER_EMAIL,defaultPack} from '../src/catalog-model.js';
+import {OWNER_PHONE,defaultPack} from '../src/catalog-model.js';
 import {memoryDatabase} from './helpers/memory-database.mjs';
 const code=c=>e=>e.code===c;
-function fixture(){const db=memoryDatabase();let time=10000000;const run=accountService(db,{now:()=>time});const call=(uid,action,data={},operationId=randomUUID(),claims={})=>run(uid,{action,...data,operationId},claims);return {db,run,call,advance:n=>time+=n,config:async prizes=>{const current=await call('owner','rewardState');return call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:false,prizes},expectedVersion:current.config.version},randomUUID(),{email:OWNER_EMAIL,email_verified:true})}}}
+function fixture(){const db=memoryDatabase();let time=10000000;const run=accountService(db,{now:()=>time});const call=(uid,action,data={},operationId=randomUUID(),claims={})=>run(uid,{action,...data,operationId},claims);return {db,run,call,advance:n=>time+=n,config:async prizes=>{const current=await call('owner','rewardState');return call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:false,prizes},expectedVersion:current.config.version},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE})}}}
 const credit={id:'credit',kind:'credit',amountCents:125,chanceBps:10000};
 const pack={id:'pack',kind:'pack',packId:'basic',chanceBps:10000};
 test('reward odds are exact basis points with valid prize types and safe values',()=>{
@@ -16,10 +16,10 @@ test('reward odds are exact basis points with valid prize types and safe values'
  assert.throws(()=>drawReward(c,10000));
 });
 test('only verified owner claims may edit rewards, and stale versions cannot overwrite',async()=>{
- const f=fixture(),data={config:{enabled:true,prizes:[credit]},expectedVersion:0};
- for(const claims of [{},{email:OWNER_EMAIL,email_verified:false},{email:'member@example.com',email_verified:true}])await assert.rejects(()=>f.call('other','saveRewards',data,randomUUID(),claims),code('permission-denied'));
+ const f=fixture(),data={config:{enabled:true,prizes:[credit]},expectedVersion:0,phone_number:OWNER_PHONE,isAdmin:true};
+ for(const claims of [{},{sub:'other',email:'jhuxf12@outlook.com',email_verified:true},{sub:'other',phone_number:'+12025550123'},{sub:'owner',phone_number:OWNER_PHONE}])await assert.rejects(()=>f.call('other','saveRewards',data,randomUUID(),claims),code('permission-denied'));
  await f.config([credit]);assert.equal((await f.call('user','rewardState')).config.prizes[0].amountCents,125);
- await assert.rejects(()=>f.call('owner','saveRewards',data,randomUUID(),{email:OWNER_EMAIL,email_verified:true}),code('failed-precondition'));
+ await assert.rejects(()=>f.call('owner','saveRewards',data,randomUUID(),{sub:'owner',phone_number:OWNER_PHONE}),code('failed-precondition'));
 });
 test('credit awards and cooldown are atomic, persist across requests, and ignore supplied prizes/times',async()=>{
  const f=fixture();await f.config([credit]);const op=randomUUID(),data={expectedVersion:1,amountCents:999999,now:0};
@@ -54,18 +54,18 @@ test('inventory packs cannot be swapped, batched or consumed from disabled/stale
 test('paused rewards, stale odds and unauthenticated claims fail without awarding',async()=>{
  const f=fixture();await assert.rejects(()=>f.call(null,'claimReward',{expectedVersion:0}),code('unauthenticated'));await f.config([credit]);
  await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:0}),code('failed-precondition'));
- await f.call('owner','saveRewards',{config:{enabled:false,prizes:[credit]},expectedVersion:1},randomUUID(),{email:OWNER_EMAIL,email_verified:true});
+ await f.call('owner','saveRewards',{config:{enabled:false,prizes:[credit]},expectedVersion:1},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE});
  await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:2}),code('failed-precondition'));
  assert.equal((await f.call('member','snapshot')).account.balanceCents,0);
 });
 
 test('admin testing bypass allows repeat claims without waiting and can be turned off',async()=>{
  const f=fixture();await f.config([credit]);
- await f.call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:true,prizes:[credit]},expectedVersion:1},randomUUID(),{email:OWNER_EMAIL,email_verified:true});
+ await f.call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:true,prizes:[credit]},expectedVersion:1},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE});
  await f.call('member','claimReward',{expectedVersion:2});await f.call('member','claimReward',{expectedVersion:2});
  assert.equal((await f.call('member','snapshot')).account.balanceCents,250);
  assert.equal((await f.call('member','rewardState')).nextClaimAtMs,0);
- await f.call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:false,prizes:[credit]},expectedVersion:2},randomUUID(),{email:OWNER_EMAIL,email_verified:true});
+ await f.call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:false,prizes:[credit]},expectedVersion:2},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE});
  await f.call('member','claimReward',{expectedVersion:3});
  await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:3}),code('failed-precondition'));
 });

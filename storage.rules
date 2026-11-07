@@ -3,8 +3,7 @@ service firebase.storage {
   match /b/{bucket}/o {
     function owner() {
       return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() == 'jhuxf12@outlook.com';
+        && request.auth.token.get('phone_number', '') == '+17654794230';
     }
     match /card-images/{filename} {
       allow read: if true;

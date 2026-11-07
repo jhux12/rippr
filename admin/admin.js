@@ -26,7 +26,6 @@
   }
   function errorText(error) {
     if (error?.code === 'catalog/conflict') return 'This pack changed in another session. Reload the saved contents before saving again.';
-    if (error?.code === 'catalog/verification-required') return 'Firebase has not confirmed your email verification. Open the verification link in your inbox, then check verification on your account page.';
     if (error?.code === 'catalog/invalid-data' || error?.code === 'catalog/invalid-image') return error.message;
     if (/permission-denied|unauthorized/.test(error?.code || '')) return 'Access was denied. Check your verified owner sign-in and Firebase access rules.';
     return 'Could not connect to Firebase. Your edits are still here. Check the connection and setup guide, then retry.';
@@ -207,10 +206,10 @@
     $('#access-gate').hidden = allowed;
     $('#admin-layout').hidden = !allowed;
     $('#sidebar-toggle').hidden = !allowed;
-    for (const id of ['gate-login','gate-resend','gate-check','gate-signout','gate-retry']) $('#' + id).hidden = true;
+    for (const id of ['gate-login','gate-check','gate-signout','gate-retry']) $('#' + id).hidden = true;
     if (allowed) {
-      $('#settings-owner').textContent = user.email;
-      $('#owner-avatar').title = user.email;
+      $('#settings-owner').textContent = user.phoneNumber;
+      $('#owner-avatar').title = user.phoneNumber;
       if (ownerUid !== user.uid) {
         ownerUid = user.uid; dirty.clear(); loaded.clear(); priceInputs.clear(); editorDirty = false;
         tiers.forEach(tier => packs.set(tier.id, model.defaultPack(tier.id)));
@@ -223,10 +222,10 @@
         $('#gate-title').textContent = 'Admin sign-in';
         $('#gate-copy').textContent = 'Log in with your owner account to manage rippr.';
         $('#gate-login').hidden = false;
-      } else if (user.email?.toLowerCase() === model.OWNER_EMAIL) {
-        $('#gate-title').textContent = 'Verify your email';
-        $('#gate-copy').textContent = 'Open the verification link sent to your owner email, then check again.';
-        $('#gate-resend').hidden = false; $('#gate-check').hidden = false; $('#gate-signout').hidden = false;
+      } else if (!user.phoneNumber) {
+        $('#gate-title').textContent = 'Link your phone';
+        $('#gate-copy').textContent = 'Link a verified phone number to your existing account. Your balance and items stay on the same account.';
+        $('#gate-login').hidden = false; $('#gate-signout').hidden = false;
       } else {
         $('#gate-title').textContent = 'Admin access only';
         $('#gate-copy').textContent = 'This account does not have permission to manage rippr.';
@@ -370,7 +369,6 @@
   $('#confirm-ok').addEventListener('click', () => $('#confirm-dialog').close('ok'));
   $('#confirm-cancel').addEventListener('click', () => $('#confirm-dialog').close('cancel'));
   for (const id of ['sign-out','settings-signout','gate-signout']) $('#' + id).addEventListener('click', signOut);
-  $('#gate-resend').addEventListener('click', async () => { try { await client.resendVerification(); $('#gate-copy').textContent = 'Verification email sent. Open the link in your inbox.'; } catch { $('#gate-copy').textContent = 'Could not send the verification email. Please try again.'; } });
   $('#gate-check').addEventListener('click', async () => { try { await client.refreshUser(); renderAccess(); } catch { $('#gate-copy').textContent = 'Could not check verification. Please try again.'; } });
   $('#gate-retry').addEventListener('click', () => location.reload());
   document.addEventListener('rippr:authchange', renderAccess);

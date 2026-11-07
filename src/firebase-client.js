@@ -3,13 +3,15 @@ import {
   initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver,
   connectAuthEmulator, onAuthStateChanged, createUserWithEmailAndPassword,
   signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut,
-  sendEmailVerification, sendPasswordResetEmail, reload, getIdTokenResult
+  sendEmailVerification, sendPasswordResetEmail, reload, getIdTokenResult,
+  RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { defaultRewards, readRewards } from './reward-model.js';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
-import { OWNER_EMAIL, DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack } from './catalog-model.js';
+import { DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack } from './catalog-model.js';
+import { normalizePhoneNumber, validVerificationCode } from './phone-auth.js';
 
 const app = initializeApp(window.RIPPR_FIREBASE_CONFIG);
 const auth = initializeAuth(app, {
@@ -23,16 +25,23 @@ if (window.RIPPR_FIREBASE_EMULATOR_URL) {
     throw new Error('The Auth Emulator is only supported on local development hosts.');
   }
   connectAuthEmulator(auth, target.origin);
+  // Only a validated localhost emulator connection may bypass real reCAPTCHA.
+  auth.settings.appVerificationDisabledForTesting = true;
 }
 
 function userInfo(user) {
-  return user ? { uid: user.uid, email: user.email, displayName: user.displayName, photoURL:user.photoURL, emailVerified: user.emailVerified, isAdmin: isAdminUser(user) } : null;
+  return user ? { uid: user.uid, email: user.email, phoneNumber:user.phoneNumber, displayName: user.displayName, photoURL:user.photoURL, emailVerified: user.emailVerified, isAdmin: isAdminUser(user) } : null;
 }
 export const ready = auth.authStateReady();
 // Pages observing auth state may not await readiness; keep load errors handled.
 ready.catch(() => {});
 export const currentUser = () => userInfo(auth.currentUser);
-export const observe = (listener, onError) => onAuthStateChanged(auth, user => listener(userInfo(user)), onError);
+const authObservers = new Set();
+export const observe = (listener, onError) => {
+  authObservers.add(listener);
+  const unsubscribe = onAuthStateChanged(auth, user => listener(userInfo(user)), onError);
+  return () => { authObservers.delete(listener); unsubscribe(); };
+};
 export async function createAccount(email, password) {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
   let verificationSent = false;
@@ -50,7 +59,46 @@ export function signInGoogle() {
   // Invoke directly from the click handler to retain popup user activation.
   return signInWithPopup(auth, provider, browserPopupRedirectResolver).then(result => userInfo(result.user));
 }
-export const signOut = () => firebaseSignOut(auth);
+export const signOut = () => { cancelPhoneSignIn(); return firebaseSignOut(auth); };
+
+let phoneVerifier = null, phoneAttempt = null, phoneGeneration = 0;
+const phoneError = (code, message) => Object.assign(new Error(message), { code });
+function clearPhoneVerifier() { phoneVerifier?.clear(); phoneVerifier = null; }
+export function cancelPhoneSignIn() { phoneGeneration++; phoneAttempt = null; clearPhoneVerifier(); }
+export async function startPhoneSignIn(value, { link = false } = {}) {
+  await ready;
+  const phoneNumber = normalizePhoneNumber(value);
+  if (!phoneNumber) throw phoneError('auth/invalid-phone-number', 'Enter a valid phone number.');
+  const user = auth.currentUser;
+  if (link && (!user || user.phoneNumber)) throw phoneError('auth/invalid-link-session', 'Sign in to the existing account before linking a phone.');
+  if (!link && user) throw phoneError('auth/already-signed-in', 'Sign out before using another account.');
+  cancelPhoneSignIn();
+  const generation = phoneGeneration;
+  const verifier = phoneVerifier = new RecaptchaVerifier(auth, 'phone-recaptcha', { size:'invisible' });
+  try {
+    const confirmation = link ? await linkWithPhoneNumber(user, phoneNumber, verifier) : await signInWithPhoneNumber(auth, phoneNumber, verifier);
+    if (generation !== phoneGeneration || (link && auth.currentUser?.uid !== user.uid)) throw phoneError('auth/cancelled-phone-request', 'The sign-in request changed. Send a new code.');
+    phoneAttempt = { confirmation, generation, uid:link ? user.uid : null, phoneNumber };
+    return { phoneNumber };
+  } finally { if (phoneVerifier === verifier) clearPhoneVerifier(); }
+}
+export async function confirmPhoneSignIn(value) {
+  if (!validVerificationCode(value)) throw phoneError('auth/invalid-verification-code', 'Enter the six-digit code.');
+  const attempt = phoneAttempt;
+  if (!attempt || attempt.generation !== phoneGeneration) throw phoneError('auth/code-expired', 'Send a new code.');
+  if (attempt.uid && auth.currentUser?.uid !== attempt.uid) throw phoneError('auth/invalid-link-session', 'Your sign-in changed. Start again.');
+  const result = await attempt.confirmation.confirm(value);
+  if (attempt.generation !== phoneGeneration || auth.currentUser?.uid !== result.user.uid) throw phoneError('auth/cancelled-phone-request', 'Your sign-in changed.');
+  // Linking preserves the UID; a fresh ID token carries the verified phone claim.
+  await result.user.getIdToken(true);
+  if (attempt.generation !== phoneGeneration || auth.currentUser?.uid !== result.user.uid
+    || auth.currentUser.phoneNumber !== attempt.phoneNumber || (attempt.uid && result.user.uid !== attempt.uid)) {
+    throw phoneError('auth/cancelled-phone-request', 'Your sign-in changed.');
+  }
+  phoneAttempt = null;
+  if (attempt.uid) for (const listener of authObservers) listener(userInfo(result.user));
+  return userInfo(result.user);
+}
 export async function resetPassword(email) {
   try { await sendPasswordResetEmail(auth, email); }
   catch (error) { if (error.code !== 'auth/user-not-found') throw error; }
@@ -89,12 +137,12 @@ function getImageStorage() {
 async function requireAdmin() {
   await ready;
   const user = auth.currentUser;
-  if (!user || user.email?.toLowerCase() !== OWNER_EMAIL) throw Object.assign(new Error('A verified owner sign-in is required.'), { code: 'catalog/permission-denied' });
+  if (!isAdminUser(user)) throw Object.assign(new Error('A verified owner phone sign-in is required.'), { code: 'catalog/permission-denied' });
   // Rules evaluate the token claims, which can lag behind the cached user profile.
-  // Refresh before a privileged request so a recently verified email reaches rules.
+  // Refresh before a privileged request so a newly linked phone reaches rules.
   const { claims } = await getIdTokenResult(user, true);
   if (auth.currentUser?.uid !== user.uid || !isAdminToken(claims, user.uid)) {
-    throw Object.assign(new Error('Firebase has not confirmed this owner sign-in.'), { code: claims.email_verified === false ? 'catalog/verification-required' : 'catalog/permission-denied' });
+    throw Object.assign(new Error('Firebase has not confirmed this owner phone sign-in.'), { code:'catalog/permission-denied' });
   }
   return user;
 }

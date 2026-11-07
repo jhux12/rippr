@@ -37,11 +37,11 @@
     if(!user||!a.wallet)return;
     if(a.accountError)status(a.accountError);
     $('#profile-name').textContent=a.wallet.displayName;
-    $('#profile-verified').hidden=!user.emailVerified;
+    $('#profile-verified').hidden=!(user.phoneNumber||user.emailVerified);
     $('#stat-packs').textContent=a.wallet.packsOpened;
     $('#stat-cards').textContent=a.wallet.cardsCollected;
     $('#stat-grails').textContent=a.wallet.grailsFound;
-    $('#settings-email').textContent=user.email;
+    $('#settings-email').textContent=user.phoneNumber||user.email||'';
     for(const id of selected){if(!a.items.some(item=>item.id===id&&item.status==='available'))selected.delete(id)}
     const packs=(a.packs||[]).filter(pack=>pack.status==='available');
     $('#unopened-packs').hidden=!packs.length;

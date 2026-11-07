@@ -1,20 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OWNER_EMAIL, PACK_IDS, defaultPack, isAdminUser, isAdminToken, safeImageURL, decimalToUnits, validPackPrice, summarizeRarities, validateItems, readStoredPack, drawItem } from '../src/catalog-model.js';
+import { OWNER_PHONE, PACK_IDS, defaultPack, isAdminUser, isAdminToken, safeImageURL, decimalToUnits, validPackPrice, summarizeRarities, validateItems, readStoredPack, drawItem } from '../src/catalog-model.js';
 
-test('only the verified designated email is an owner', () => {
+test('only the designated Firebase phone profile shows the owner UI', () => {
   assert.equal(isAdminUser(null), false);
-  assert.equal(isAdminUser({ email:OWNER_EMAIL, emailVerified:false }), false);
+  assert.equal(isAdminUser({ email:'jhuxf12@outlook.com', emailVerified:true }), false);
   assert.equal(isAdminUser({ email:'someone@example.com', emailVerified:true, isAdmin:true }), false);
-  assert.equal(isAdminUser({ email:OWNER_EMAIL.toUpperCase(), emailVerified:true }), true);
+  assert.equal(isAdminUser({ phoneNumber:'+12025550123', isAdmin:true }), false);
+  assert.equal(isAdminUser({ phoneNumber:OWNER_PHONE, emailVerified:false }), true);
+  assert.equal(isAdminUser({ phoneNumber:'765-479-4230' }), false);
 });
-test('privileged requests require verified owner claims for the current UID', () => {
-  const claims = {sub:'owner',email:OWNER_EMAIL,email_verified:true};
+test('privileged requests require Firebase phone claims bound to the current UID', () => {
+  const claims = {sub:'owner',phone_number:OWNER_PHONE};
   assert.equal(isAdminToken(claims,'owner'),true);
-  assert.equal(isAdminToken({...claims,email_verified:false},'owner'),false);
-  assert.equal(isAdminToken({...claims,email:'member@example.com'},'owner'),false);
+  assert.equal(isAdminToken({sub:'owner',email:'jhuxf12@outlook.com',email_verified:true},'owner'),false);
+  assert.equal(isAdminToken({...claims,phone_number:'+12025550123'},'owner'),false);
   assert.equal(isAdminToken({...claims,sub:'different-user'},'owner'),false);
-  assert.equal(isAdminToken({...claims,email_verified:'true'},'owner'),false);
+  assert.equal(isAdminToken({...claims,phone_number:'765-479-4230'},'owner'),false);
+  assert.equal(isAdminToken({sub:'owner',phoneNumber:OWNER_PHONE,isAdmin:true},'owner'),false);
+  assert.equal(isAdminToken(claims,''),false);
   assert.equal(isAdminToken(null,'owner'),false);
 });
 test('each fixed tier has independent valid defaults', () => {

@@ -1,4 +1,4 @@
-export const OWNER_EMAIL = 'jhuxf12@outlook.com';
+export const OWNER_PHONE = '+17654794230';
 export const PACK_IDS = ['basic', 'plus', 'premium', 'elite', 'ultimate'];
 export const DEFAULT_PRICES = { basic:199, plus:499, premium:1499, elite:2999, ultimate:9999 };
 export const RARITIES = [
@@ -19,11 +19,12 @@ const seeds = [
 ];
 
 export function isAdminUser(user) {
-  return Boolean(user?.emailVerified && user.email?.toLowerCase() === OWNER_EMAIL);
+  // Firebase sets phoneNumber only after SMS verification or verified linking.
+  // This is a UI hint; every write separately checks Firebase token claims.
+  return Boolean(user?.phoneNumber === OWNER_PHONE);
 }
 export function isAdminToken(claims, uid) {
-  return Boolean(uid && claims?.sub === uid && claims.email_verified === true
-    && claims.email?.toLowerCase() === OWNER_EMAIL);
+  return Boolean(uid && claims?.sub === uid && claims.phone_number === OWNER_PHONE);
 }
 export function assertPackId(id) {
   if (!PACK_IDS.includes(id)) throw Object.assign(new Error('Unknown pack tier.'), { code: 'catalog/invalid-pack' });
