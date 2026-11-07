@@ -36,18 +36,19 @@
   </header>
 
   <main id="main" class="page-shell">
-    <section class="hero" aria-labelledby="hero-title" aria-roledescription="carousel">
+    <section class="hero" data-hero="signature" aria-labelledby="hero-title" aria-roledescription="carousel">
       <div class="hero-copy">
         <h1 id="hero-title">Your next great pull.</h1>
         <p>One pack. One card. Something unexpected.</p>
         <a id="hero-cta" class="primary-button" href="#packs">Explore packs</a>
       </div>
-      <div class="hero-art" aria-hidden="true">
-        <img class="pip-mascot hero-pip" data-pip="hover" src="assets/mascot/pip-hover.png" alt="" width="1254" height="1254" draggable="false">
+      <div class="hero-art hero-scenes" aria-hidden="true">
         <div class="hero-plane plane-one"></div><div class="hero-plane plane-two"></div>
-        <img class="hero-pack hero-pack-left" src="assets/pack-plus.svg" alt="" width="141" height="242">
-        <img class="hero-pack hero-pack-right" src="assets/pack-ultimate.svg" alt="" width="141" height="242">
-        <img class="hero-pack hero-pack-center" src="assets/pack-premium.svg" alt="" width="141" height="242">
+        <img class="hero-scene" data-scene="signature" src="assets/hero/signature.png" alt="" width="1536" height="1024" loading="eager" decoding="async" fetchpriority="high" draggable="false">
+        <img class="hero-scene" data-scene="daily-discovery" src="assets/hero/daily-discovery.png" alt="" width="1752" height="897" loading="lazy" decoding="async" hidden draggable="false">
+        <img class="hero-scene" data-scene="grail-gallery" src="assets/hero/grail-gallery.png" alt="" width="1536" height="1024" loading="lazy" decoding="async" hidden draggable="false">
+        <img class="hero-scene" data-scene="find-your-level" src="assets/hero/find-your-level.png" alt="" width="1536" height="1024" loading="lazy" decoding="async" hidden draggable="false">
+        <img class="hero-scene" data-scene="first-rip" src="assets/hero/first-rip.png" alt="" width="1536" height="1024" loading="lazy" decoding="async" hidden draggable="false">
       </div>
       <div class="hero-controls" role="group" aria-label="Hero banners">
         <button id="hero-previous" type="button" aria-label="Previous banner"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></button>

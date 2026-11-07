@@ -79,6 +79,7 @@ css = (ROOT / 'style.css').read_text().replace('assets/fonts/manrope-latin-varia
 home = home.replace('<link rel="stylesheet" href="style.css">', '<style>' + css + '</style>')
 home = re.sub(r'\s*<script src="(?:packs|app)\.js" defer></script>', '', home)
 home = re.sub(r'src="(assets/(?:pack|grail)-[^"]+\.svg)"', lambda m: 'data-asset="' + m[1] + '"', home)
+home = re.sub(r'src="(assets/hero/[^"]+\.png)"', lambda m: 'src="' + uri(ROOT / m[1], 'image/png') + '"', home)
 app = (ROOT / 'app.js').read_text()
 app = re.sub(r"image: '(assets/grail-[^']+\.svg)'", lambda m: "image: window.RIPPR_ASSET_URLS['" + m[1] + "']", app)
 home = home.replace('</body>', '<script>' + bootstrap + '</script><script>' + app + '</script></body>')
