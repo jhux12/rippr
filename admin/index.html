@@ -85,7 +85,12 @@
             <div id="editor-empty" class="empty-state" hidden>Select a card to edit, or add an item.</div>
           </section>
         </section>
-        <section id="pack-settings-panel" class="panel pack-settings-panel" role="tabpanel" aria-labelledby="pack-settings-tab" hidden><h2>Pack settings</h2><div class="setting-row"><div><h3>Enable pack</h3><p>Allow demo openings for this tier.</p></div><label class="toggle-label"><input id="pack-enabled" type="checkbox" role="switch" aria-label="Enable pack"><span class="toggle-track" aria-hidden="true"></span></label></div><div class="setting-row"><h3>Cards per pack</h3><span class="count-pill">1</span></div></section>
+        <section id="pack-settings-panel" class="panel pack-settings-panel" role="tabpanel" aria-labelledby="pack-settings-tab" hidden>
+          <h2>Pack settings</h2>
+          <div class="setting-row setting-price-row"><div><label for="pack-price">Pack price</label><p>USD per pack. Leave blank to hide.</p></div><div class="pack-price-field"><div class="input-unit"><span>$</span><input id="pack-price" type="text" inputmode="decimal" placeholder="Not set" autocomplete="off" aria-describedby="pack-price-error"></div><p id="pack-price-error" class="form-error" role="alert" hidden></p></div></div>
+          <div class="setting-row"><div><h3>Enable pack</h3><p>Allow demo openings for this tier.</p></div><label class="toggle-label"><input id="pack-enabled" type="checkbox" role="switch" aria-label="Enable pack"><span class="toggle-track" aria-hidden="true"></span></label></div>
+          <div class="setting-row"><h3>Cards per pack</h3><span class="count-pill">1</span></div>
+        </section>
       </section>
       <section id="library-view" class="panel library-view" aria-label="Card library" hidden><div class="panel-heading"><h2>Card library</h2><label class="search-field"><input id="library-search" type="search" placeholder="Search cards…" aria-label="Search card library"></label></div><div id="library-grid" class="library-grid"></div></section>
       <section id="members-view" class="panel simple-view" hidden><h2>Members</h2><p>Manage your sign-in accounts in Firebase Authentication.</p><a class="button secondary" href="https://console.firebase.google.com/project/rippr-2b01c/authentication/users" target="_blank" rel="noopener noreferrer">Open Firebase Authentication ↗</a></section>

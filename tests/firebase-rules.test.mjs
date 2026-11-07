@@ -35,6 +35,13 @@ test('owner writes cannot add tiers, delete packs, roll back versions or add arb
   await assertFails(setDoc(doc(db,'packContents/plus'),{ ...payload(),totalChanceBps:9999 }));
   await assertFails(setDoc(doc(db,'packContents/plus'),{ ...payload(),role:'admin' }));
 });
+test('owner can set or clear a price, while invalid or unauthorized prices fail', async () => {
+  const db = context(OWNER_EMAIL).firestore();
+  await assertSucceeds(setDoc(doc(db,'packContents/elite'),{...payload(),priceCents:499}));
+  await assertSucceeds(setDoc(doc(db,'packContents/elite'),{...payload('owner',2),priceCents:null}));
+  for (const priceCents of [-1,1.5,'4.99',100000001]) await assertFails(setDoc(doc(db,'packContents/premium'),{...payload(),priceCents}));
+  await assertFails(setDoc(doc(context('member@example.com').firestore(),'packContents/ultimate'),{...payload('member'),priceCents:499}));
+});
 test('verified owner can upload card images and visitors can read them', async () => {
   const bytes = new Uint8Array([137,80,78,71]);
   await assertSucceeds(uploadBytes(ref(context(OWNER_EMAIL).storage(),'card-images/owner-test.png'),bytes,{contentType:'image/png'}));

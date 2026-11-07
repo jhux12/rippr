@@ -29,7 +29,24 @@ export function assertPackId(id) {
 }
 export function defaultPack(id) {
   assertPackId(id);
-  return { items: seeds.map(item => ({ ...item })), enabled: true, version: 0, source: 'default' };
+  return { items: seeds.map(item => ({ ...item })), enabled: true, priceCents: null, version: 0, source: 'default' };
+}
+export function validPackPrice(value) {
+  return value === null || (Number.isSafeInteger(value) && value >= 0 && value <= 100000000);
+}
+export function summarizeRarities(items) {
+  const groups = new Map();
+  for (const item of items) {
+    if (item.chanceBps <= 0) continue;
+    const group = groups.get(item.rarity);
+    if (!group) groups.set(item.rarity, { rarity:item.rarity, chanceBps:item.chanceBps, minValueCents:item.valueCents, maxValueCents:item.valueCents });
+    else {
+      group.chanceBps += item.chanceBps;
+      group.minValueCents = Math.min(group.minValueCents, item.valueCents);
+      group.maxValueCents = Math.max(group.maxValueCents, item.valueCents);
+    }
+  }
+  return RARITIES.filter(rarity => groups.has(rarity.name)).map(rarity => ({ ...groups.get(rarity.name), color:rarity.color }));
 }
 export function safeImageURL(value) {
   if (typeof value !== 'string' || value.length > 2048) return false;
@@ -71,10 +88,11 @@ export function validateItems(items) {
 }
 export function readStoredPack(data) {
   const issues = validateItems(data?.items);
-  if (issues.length || !Number.isInteger(data?.version) || data.version < 1 || typeof data.enabled !== 'boolean') {
+  const priceCents = data?.priceCents ?? null;
+  if (issues.length || !Number.isInteger(data?.version) || data.version < 1 || typeof data.enabled !== 'boolean' || !validPackPrice(priceCents)) {
     throw Object.assign(new Error('The saved pack contents are invalid.'), { code: 'catalog/invalid-data' });
   }
-  return { items: data.items.map(item => ({ ...item })), enabled: data.enabled, version: data.version, source: 'firebase' };
+  return { items: data.items.map(item => ({ ...item })), enabled: data.enabled, priceCents, version: data.version, source: 'firebase' };
 }
 export function drawItem(items, unit) {
   if (validateItems(items).length || !Number.isFinite(unit) || unit < 0 || unit >= 1) throw new Error('Cannot draw from invalid pack contents.');

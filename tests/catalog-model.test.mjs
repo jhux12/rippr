@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OWNER_EMAIL, PACK_IDS, defaultPack, isAdminUser, isAdminToken, safeImageURL, decimalToUnits, validateItems, readStoredPack, drawItem } from '../src/catalog-model.js';
+import { OWNER_EMAIL, PACK_IDS, defaultPack, isAdminUser, isAdminToken, safeImageURL, decimalToUnits, validPackPrice, summarizeRarities, validateItems, readStoredPack, drawItem } from '../src/catalog-model.js';
 
 test('only the verified designated email is an owner', () => {
   assert.equal(isAdminUser(null), false);
@@ -57,4 +57,42 @@ test('weighted draws honor every boundary and skip zero-chance cards', () => {
   const zero = defaultPack('basic').items; zero[0].chanceBps=0; zero[1].chanceBps=8500;
   assert.equal(drawItem(zero,0).id, 'ocean-spirit');
   assert.throws(() => drawItem(items, 1));
+});
+test('rarity summaries combine chances and calculate reachable minimum and maximum values', () => {
+  const sample = [
+    {rarity:'Common',chanceBps:3000,valueCents:100},
+    {rarity:'Common',chanceBps:2000,valueCents:1250},
+    {rarity:'Rare',chanceBps:5000,valueCents:5000},
+    {rarity:'Common',chanceBps:0,valueCents:0},
+    {rarity:'Rare',chanceBps:0,valueCents:100000000},
+    {rarity:'Legendary',chanceBps:0,valueCents:100000}
+  ];
+  const original = structuredClone(sample);
+  const rows = summarizeRarities(sample);
+  assert.deepEqual(rows.map(({color,...row})=>row),[
+    {rarity:'Common',chanceBps:5000,minValueCents:100,maxValueCents:1250},
+    {rarity:'Rare',chanceBps:5000,minValueCents:5000,maxValueCents:5000}
+  ]);
+  assert.deepEqual(sample,original);
+  assert.deepEqual(summarizeRarities([]),[]);
+});
+test('rarity summaries preserve fractional-percent odds and active zero-dollar values', () => {
+  const rows = summarizeRarities([
+    {rarity:'Common',chanceBps:3333,valueCents:0},
+    {rarity:'Common',chanceBps:1,valueCents:50},
+    {rarity:'Rare',chanceBps:6666,valueCents:199}
+  ]);
+  assert.equal(rows[0].chanceBps,3334);
+  assert.equal(rows[0].minValueCents,0);
+  assert.equal(rows.reduce((total,row)=>total+row.chanceBps,0),10000);
+});
+test('pack prices accept unset or integer cents and preserve legacy catalogs', () => {
+  for (const price of [null,0,499,100000000]) assert.equal(validPackPrice(price),true);
+  for (const price of [undefined,-1,1.5,'499',NaN,Infinity,100000001]) assert.equal(validPackPrice(price),false);
+  const legacy = {items:defaultPack('basic').items,enabled:true,version:1};
+  assert.equal(readStoredPack(legacy).priceCents,null);
+  assert.equal(readStoredPack({...legacy,priceCents:499}).priceCents,499);
+  assert.equal(readStoredPack({...legacy,priceCents:null}).priceCents,null);
+  assert.throws(()=>readStoredPack({...legacy,priceCents:-1}));
+  assert.throws(()=>readStoredPack({...legacy,priceCents:'4.99'}));
 });

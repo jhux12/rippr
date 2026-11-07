@@ -18,7 +18,7 @@
     card.setAttribute('role', 'group');
     card.setAttribute('aria-roledescription', 'slide');
     card.setAttribute('aria-label', `${i+1} of ${packs.length}: ${pack.name}`);
-    card.innerHTML = `<button type="button" class="tier-art" aria-label="Select ${pack.name}"><img src="${pack.image}" alt="Pokémon-themed ${pack.name} rippr pack" width="250" height="390"></button><div class="tier-info"><p class="tier-number">TIER 0${pack.tier}</p><h3>${pack.name}</h3><p class="tier-card-count">1 card</p><a class="view-pack" href="opening.html?pack=${pack.id}">View pack <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a></div>`;
+    card.innerHTML = `<button type="button" class="tier-art" aria-label="Select ${pack.name}"><img src="${pack.image}" alt="Pokémon-themed ${pack.name} rippr pack" width="250" height="390"></button><div class="tier-info"><p class="tier-number">TIER 0${pack.tier}</p><h3>${pack.name}</h3><p class="tier-card-count"><span class="tier-price" hidden></span><span>1 card</span></p><a class="view-pack" href="opening.html?pack=${pack.id}">View pack <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a></div>`;
     card.querySelector('button').addEventListener('click', () => move(i, true));
     grid.append(card);
     const button = document.createElement('button');
@@ -27,6 +27,17 @@
     selectors.append(button);
   });
   const slides = [...grid.children], tierButtons = [...selectors.children];
+  if (!window.RIPPR_AUTH_OFFLINE && window.RipprFirebase?.loadPackContents) {
+    const money = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' });
+    packs.forEach((pack, index) => {
+      window.RipprFirebase.loadPackContents(pack.id).then(saved => {
+        const price = slides[index].querySelector('.tier-price');
+        if (Number.isSafeInteger(saved.priceCents) && saved.priceCents >= 0) {
+          price.textContent = money.format(saved.priceCents / 100); price.hidden = false;
+        }
+      }).catch(() => {});
+    });
+  }
   function schedule() {
     clearInterval(timer);
     toggle.textContent = paused ? 'Play' : 'Pause';

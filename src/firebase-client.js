@@ -7,7 +7,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { OWNER_EMAIL, isAdminUser, isAdminToken, assertPackId, defaultPack, validateItems, readStoredPack } from './catalog-model.js';
+import { OWNER_EMAIL, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack } from './catalog-model.js';
 
 const app = initializeApp(window.RIPPR_FIREBASE_CONFIG);
 const auth = initializeAuth(app, {
@@ -106,6 +106,7 @@ export async function savePackContents(packId, pack, expectedVersion) {
   const owner = await requireAdmin();
   const issues = validateItems(pack.items);
   if (issues.length || typeof pack.enabled !== 'boolean') throw Object.assign(new Error(issues[0] || 'Choose whether the pack is enabled.'), { code: 'catalog/invalid-data' });
+  if (!validPackPrice(pack.priceCents ?? null)) throw Object.assign(new Error('Enter a pack price from $0 to $1,000,000 with up to two decimal places.'), { code:'catalog/invalid-data' });
   const items = pack.items.map(({ id, name, image, rarity, valueCents, chanceBps, grail }) => ({ id, name: name.trim(), image, rarity, valueCents, chanceBps, grail }));
   const target = doc(getDatabase(), 'packContents', packId);
   return runTransaction(getDatabase(), async transaction => {
@@ -113,7 +114,12 @@ export async function savePackContents(packId, pack, expectedVersion) {
     const version = previous.exists() ? previous.data().version : 0;
     if (version !== expectedVersion) throw Object.assign(new Error('This pack changed in another session. Reload its saved contents before saving.'), { code: 'catalog/conflict' });
     const next = version + 1;
-    transaction.set(target, { items, enabled: pack.enabled, version: next, totalChanceBps: 10000, updatedBy: owner.uid, updatedAt: serverTimestamp() });
+    const data = { items, enabled: pack.enabled, version: next, totalChanceBps: 10000, updatedBy: owner.uid, updatedAt: serverTimestamp() };
+    const previousPrice = previous.exists() ? previous.data().priceCents : undefined;
+    const priceCents = pack.priceCents === undefined ? previousPrice : pack.priceCents;
+    // Unpriced legacy catalogs keep their existing schema until a price is set.
+    if (priceCents !== undefined && (priceCents !== null || previousPrice !== undefined)) data.priceCents = priceCents;
+    transaction.set(target, data);
     return next;
   });
 }

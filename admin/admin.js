@@ -9,6 +9,7 @@
   const imageURL = value => model.safeImageURL(value) ? (value.startsWith('assets/') ? '/' + value : value) : '/assets/card-placeholder.svg';
   const packs = new Map(tiers.map(tier => [tier.id, model.defaultPack(tier.id)]));
   const loaded = new Set(), dirty = new Set();
+  const priceInputs = new Map();
   let selectedPack = 'basic', selectedItem = 'first-light', currentImage, editorDirty = false;
   let newItem = false, busy = false, ownerUid = null, generation = 0, statusTimer;
   const mobile = matchMedia('(max-width:760px)');
@@ -62,7 +63,7 @@
     if (focus) $('#workspace').focus({ preventScroll:true });
   }
   function renderTiers() {
-    $('#tier-grid').innerHTML = tiers.map(tier => `<button type="button" class="tier-tile" data-pack="${tier.id}" aria-pressed="${tier.id === selectedPack}" ${busy ? 'disabled' : ''}><img src="/${tier.image}" alt="" width="70" height="135"><strong>${tier.name}</strong>${dirty.has(tier.id) ? '<span class="tier-dirty" aria-label="Unsaved changes"></span>' : ''}</button>`).join('');
+    $('#tier-grid').innerHTML = tiers.map(tier => `<button type="button" class="tier-tile" data-pack="${tier.id}" aria-pressed="${tier.id === selectedPack}" ${busy ? 'disabled' : ''}><img src="/${tier.image}" alt="" width="70" height="135"><span class="tier-tile-copy"><strong>${tier.name}</strong>${packs.get(tier.id).priceCents == null ? '' : `<span class="tier-tile-price">${money.format(packs.get(tier.id).priceCents / 100)}</span>`}</span>${dirty.has(tier.id) ? '<span class="tier-dirty" aria-label="Unsaved changes"></span>' : ''}</button>`).join('');
   }
   function renderRows() {
     const query = $('#card-search').value.trim().toLowerCase();
@@ -99,6 +100,9 @@
   function renderPack() {
     $('#selected-pack-title').firstChild.textContent = `${tiers.find(tier => tier.id === selectedPack).name} pack `;
     $('#pack-enabled').checked = pack().enabled;
+    $('#pack-price').value = priceInputs.get(selectedPack) ?? (pack().priceCents == null ? '' : (pack().priceCents / 100).toFixed(2));
+    $('#pack-price-error').hidden = true;
+    $('#pack-price').removeAttribute('aria-invalid');
     renderTiers(); renderRows(); refreshSave();
   }
   function confirmAction(title, copy, label) {
@@ -123,6 +127,18 @@
     const issues = model.validateItems(next).filter(issue => issue !== 'Pull chances must total exactly 100%.');
     if (issues.length) { $('#item-error').textContent = issues[0]; $('#item-error').hidden = false; return false; }
     pack().items = next; markDirty(); editor(item); renderRows();
+    return true;
+  }
+  function stagePrice() {
+    const input = $('#pack-price');
+    const price = input.value.trim() ? model.decimalToUnits(input.value) : null;
+    if (!model.validPackPrice(price)) {
+      chooseTab(true);
+      $('#pack-price-error').textContent = 'Enter a price from $0 to $1,000,000 with up to two decimal places.';
+      $('#pack-price-error').hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus();
+      return false;
+    }
+    pack().priceCents = price;
     return true;
   }
   function showConnection() {
@@ -177,12 +193,12 @@
       $('#settings-owner').textContent = user.email;
       $('#owner-avatar').title = user.email;
       if (ownerUid !== user.uid) {
-        ownerUid = user.uid; dirty.clear(); loaded.clear(); editorDirty = false;
+        ownerUid = user.uid; dirty.clear(); loaded.clear(); priceInputs.clear(); editorDirty = false;
         tiers.forEach(tier => packs.set(tier.id, model.defaultPack(tier.id)));
         renderPack(); editor(pack().items.at(-1)); loadPacks();
       }
     } else {
-      if (ownerUid) { ownerUid = null; generation++; dirty.clear(); loaded.clear(); editorDirty = false; setBusy(false); }
+      if (ownerUid) { ownerUid = null; generation++; dirty.clear(); loaded.clear(); priceInputs.clear(); editorDirty = false; setBusy(false); }
       setSidebar(false);
       if (!user) {
         $('#gate-title').textContent = 'Admin sign-in';
@@ -246,6 +262,7 @@
   });
   $('#save-pack').addEventListener('click', async () => {
     if (busy || !owner() || !loaded.has(selectedPack)) return;
+    if (!stagePrice()) return;
     if (editorDirty && !stageItem()) return;
     const issues = model.validateItems(pack().items);
     if (issues.length) { status(issues[0], true); return; }
@@ -255,12 +272,18 @@
       const version = await client.savePackContents(id, draft, draft.version);
       if (!owner()) return;
       pack().version = version; pack().source = 'firebase'; dirty.delete(id);
+      priceInputs.delete(id);
+      $('#pack-price').value = pack().priceCents == null ? '' : (pack().priceCents / 100).toFixed(2);
       status(`${tiers.find(tier => tier.id === id).name} pack saved. Its contents are now available on the site.`);
     } catch (error) { status(errorText(error), true); }
     finally { setBusy(false); renderTiers(); }
   });
   $('#retry-connection').addEventListener('click', () => { if (!busy && owner()) loadPacks(); });
   $('#pack-enabled').addEventListener('change', event => { pack().enabled = event.target.checked; markDirty(); });
+  $('#pack-price').addEventListener('input', event => {
+    priceInputs.set(selectedPack, event.target.value);
+    $('#pack-price-error').hidden = true; event.target.removeAttribute('aria-invalid'); markDirty();
+  });
   function chooseTab(settings) {
     for (const [id, selected] of [['contents-tab',!settings],['pack-settings-tab',settings]]) { $('#' + id).setAttribute('aria-selected', String(selected)); $('#' + id).tabIndex = selected ? 0 : -1; }
     $('#contents-panel').hidden = settings; $('#pack-settings-panel').hidden = !settings;
