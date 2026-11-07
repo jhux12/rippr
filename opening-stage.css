@@ -165,7 +165,7 @@
 .reveal-stage .reveal-meta{position:absolute;top:16px;right:18px;margin:0;color:#b0b8c9;font-size:10px;line-height:23px;letter-spacing:0}
 .reveal-rarity{position:absolute;top:12px;left:50%;transform:translateX(-50%);visibility:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:27px;min-width:0;max-width:100%;margin:0;padding:4px 12px;border:1px solid var(--rarity-color);border-radius:999px;background:color-mix(in srgb,var(--rarity-color) 7%,#080d19);box-shadow:inset 0 0 8px color-mix(in srgb,var(--rarity-color) 10%,transparent);color:var(--rarity-color);font-size:12px;font-weight:800;line-height:1.4;letter-spacing:1.1px;text-transform:uppercase}
 .reveal-rarity svg{width:13px;height:15px;fill:currentColor;flex:none}
-.reveal-art-stage{position:absolute;top:44px;left:50%;transform:translateX(-50%);width:auto;max-width:64%;height:min(280px,calc(100% - 170px));aspect-ratio:5/7;margin:0;isolation:isolate;perspective:1200px}
+.reveal-art-stage{position:absolute;top:44px;left:50%;transform:translateX(-50%);width:auto;max-width:64%;height:min(280px,calc(100% - 170px));aspect-ratio:5/7;margin:0;isolation:isolate;perspective:1200px;transition:height .65s cubic-bezier(.4,0,.2,1),top .65s cubic-bezier(.4,0,.2,1)}
 .reveal-halo{position:absolute;inset:-20% -45%;z-index:-2;pointer-events:none;background:radial-gradient(ellipse,color-mix(in srgb,var(--reveal-tone) 22%,transparent),transparent 63%);filter:blur(18px);opacity:.7;transition:opacity .6s}
 .reveal-art-stage .spotlight-card{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;padding:0;border:0;border-radius:17px;background:none;overflow:visible;box-shadow:0 0 4px 1px color-mix(in srgb,var(--reveal-tone) 90%,white),0 0 18px color-mix(in srgb,var(--reveal-tone) 50%,transparent),0 0 44px color-mix(in srgb,var(--reveal-tone) 24%,transparent);animation:none!important}
 .reveal-art-stage .spotlight-card::after{content:none}
@@ -263,3 +263,13 @@
 .rip-perforation{position:absolute;top:50%;left:2%;right:2%;height:2px;transform:translateY(-50%);background:repeating-linear-gradient(90deg,#dcfbff 0 4px,transparent 4px 8px);filter:drop-shadow(0 1px 1px #001019);pointer-events:none}
 .rip-perforation::before{content:'';position:absolute;left:0;top:0;width:calc(var(--rip)*100%);height:2px;background:#00e2ed;box-shadow:0 0 5px #00e2ed}
 .rip-perforation::after{content:'›';position:absolute;right:-5px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:14px;height:14px;border:1px solid #b5f4fc;border-radius:50%;background:#062634;color:#d7fbff;font:700 13px/1 Arial,sans-serif}
+
+/* Enlarge only the suspense artwork; the stage and final reveal keep their size. */
+.arena:is(.is-extracting,.is-cycling,.is-settling) .reveal-art-stage{--suspense-height:min(max(var(--pack-height),calc(min(280px,calc(100% - 170px)) + 32px)),calc(100% - 96px));height:var(--suspense-height);top:max(44px,calc((100% - var(--suspense-height))/2))}
+.skip-reveal-motion .reveal-art-stage{transition:none;animation:none}
+.stage-mute{position:absolute;top:6px;left:6px;z-index:10;display:grid;place-items:center;width:44px;height:44px;padding:10px;border:0;border-radius:50%;background:#071824b8;color:#b5d4e2;cursor:pointer}
+.stage-mute:hover{background:#123246;color:#e0ffff}
+.stage-mute svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.stage-mute .sound-off,.stage-mute.is-muted .sound-on{display:none}.stage-mute.is-muted .sound-off{display:block}
+.stage-mute.is-muted{color:#859fad}
+@media(prefers-reduced-motion:reduce){.reveal-art-stage{transition:none}}

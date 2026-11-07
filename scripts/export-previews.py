@@ -57,6 +57,9 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     mascot_poses = ['hover', 'welcome'] + [pose for pose in ['celebrate'] if 'data-pip="' + pose + '"' in text]
     mascot_urls = {pose: uri(ROOT / ('assets/mascot/pip-' + pose + '.png'), 'image/png') for pose in mascot_poses}
     if 'id="reveal-stage"' in text:
+        audio_names=['click','rip','lift','build','flip','common','rare','epic','legendary','inventory']
+        audio_files=sorted((ROOT / 'assets/audio').glob('*.wav'))
+        offline_auth += 'window.RIPPR_OPENING_AUDIO_URLS=' + json.dumps({name:uri(path, 'audio/wav') for name,path in zip(audio_names,audio_files,strict=True)}) + ';'
         offline_auth += 'window.RIPPR_REVEAL_BACK_URL=' + json.dumps(uri(ROOT / 'assets/reveal/rippr-card-back.png', 'image/png')) + ';'
     offline_auth += 'window.RIPPR_MASCOT_URLS=' + json.dumps(mascot_urls) + ';'
     offline_auth += "document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('img[data-pip]').forEach(img=>{img.src=window.RIPPR_MASCOT_URLS[img.dataset.pip];}));"
@@ -99,6 +102,7 @@ opening_css = (ROOT / 'opening.css').read_text().replace('assets/fonts/manrope-l
 opening = opening.replace('<link rel="stylesheet" href="opening.css">', '<style>' + opening_css + '</style>')
 opening = opening.replace('<link rel="stylesheet" href="opening-stage.css">', '<style>' + (ROOT / 'opening-stage.css').read_text() + '</style>')
 opening = opening.replace('<script src="packs.js"></script>', '<script>' + bootstrap + '</script>')
+opening = opening.replace('<script src="opening-audio.js"></script>', '<script>' + (ROOT / 'opening-audio.js').read_text() + '</script>')
 opening = opening.replace('<script src="opening.js"></script>', '<script>' + (ROOT / 'opening.js').read_text() + '</script>')
 # The selected pack's inline style supplies its locally materialized image.
 opening = re.sub(r'url\("assets/pack-[^"]+\.svg"\)', 'none', opening)
@@ -136,7 +140,7 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'index.html', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
-                    'catalog.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
+                    'catalog.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
     for folder in ['scripts', 'src', 'assets', 'admin', 'tests', 'functions', 'partials']:
