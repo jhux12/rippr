@@ -3,13 +3,23 @@
   const state = window.RIPPR_ACCOUNT = { user:null, ready:false, error:null, wallet:null, items:[], activity:[], accountReady:false, accountError:null, freeTopups:false };
   let generation=0, request=0;
   const pendingOperations=new Map();
+  const migratedNames=new Set();
   const emit = type => document.dispatchEvent(new CustomEvent(type,{ detail:state }));
   window.RipprAccount = {
     async refresh() {
       const uid=state.user?.uid, version=generation, ticket=++request;
       if (!uid) return;
       try {
-        const snapshot=await client.accountAction('snapshot',{accountUid:uid});
+        let snapshot=await client.accountAction('snapshot',{accountUid:uid});
+        if(!migratedNames.has(uid)&&snapshot.account?.handle){
+          // Stable per-account operation: adopt the old handle once, then preserve
+          // any display-name edits made afterward, including on other devices.
+          try {
+            await client.accountAction('profile',{displayName:snapshot.account.handle.replace(/^@/,''),handle:snapshot.account.handle,accountUid:uid},'display-name-from-handle-v1');
+          } catch(error) { if(error.code!=='functions/already-exists')throw error; }
+          migratedNames.add(uid);
+          snapshot=await client.accountAction('snapshot',{accountUid:uid});
+        }
         if (version!==generation || ticket!==request) return;
         state.wallet=snapshot.account; state.items=snapshot.items; state.activity=snapshot.activity;
         state.freeTopups=snapshot.freeTopups; state.hasMore=snapshot.hasMore;

@@ -87,3 +87,5 @@
 .mobile-profile .nav-display-name{white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
 @media(max-width:1000px) and (min-width:761px){.site-navigation .nav-profile .nav-display-name{max-width:90px}}
 @media(max-width:760px){.site-navigation .nav-signup.nav-profile{width:36px;max-width:36px;padding:0}.nav-actions .nav-profile .nav-display-name{display:none}}
+
+@media(max-width:760px){.site-navigation .nav-actions .nav-signup.nav-profile{display:none}}
