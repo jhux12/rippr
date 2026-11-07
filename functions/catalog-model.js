@@ -103,3 +103,37 @@ export function drawItem(items, unit) {
   for (const item of items) { cumulative += item.chanceBps; if (roll < cumulative) return { ...item }; }
   throw new Error('The pack odds are incomplete.');
 }
+
+// Homepage grails are curated display data, independent of purchasable pack odds.
+export function defaultHomepageGrails() {
+  const order = ['first-light', 'ocean-spirit', 'moonstone'];
+  return { items:order.map(id => {
+    const { name, image, valueCents } = seeds.find(item => item.id === id);
+    return { id, name, image, valueCents };
+  }), version:0, source:'default' };
+}
+export function validateHomepageGrails(config) {
+  if (!Array.isArray(config?.items) || config.items.length > 6) return ['Choose up to 6 homepage grails.'];
+  const issues = [], ids = new Set();
+  for (const [index, item] of config.items.entries()) {
+    const label = `Grail ${index + 1}`;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) { issues.push(`${label} is invalid.`); continue; }
+    if (Object.keys(item).some(key => !['id','name','image','valueCents'].includes(key))) issues.push(`${label} contains unsupported fields.`);
+    if (typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(item.id) || ids.has(item.id)) issues.push(`${label} needs a unique ID.`);
+    ids.add(item.id);
+    if (typeof item.name !== 'string' || !item.name.trim() || item.name.length > 160) issues.push(`${label} needs a name of up to 160 characters.`);
+    if (!safeImageURL(item.image)) issues.push(`${label} needs a valid image.`);
+    if (!Number.isSafeInteger(item.valueCents) || item.valueCents < 0 || item.valueCents > 100000000) issues.push(`${label} needs a value from $0 to $1,000,000.`);
+  }
+  return issues;
+}
+export function cleanHomepageGrailsItems(items) {
+  return items.map(({ id, name, image, valueCents }) => ({ id, name:name.trim(), image, valueCents }));
+}
+export function readHomepageGrails(data) {
+  const issues = validateHomepageGrails(data);
+  if (issues.length || !Number.isSafeInteger(data?.version) || data.version < 1) {
+    throw Object.assign(new Error(issues[0] || 'The saved homepage grails are invalid.'), { code:'catalog/invalid-data' });
+  }
+  return { items:cleanHomepageGrailsItems(data.items), version:data.version, source:'firebase' };
+}

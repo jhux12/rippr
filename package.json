@@ -10,7 +10,7 @@
     "build": "node scripts/build.mjs",
     "serve": "python3 -m http.server 3000 --bind 127.0.0.1 --directory dist",
     "emulators": "firebase emulators:start --only auth,firestore,storage,functions --project demo-rippr",
-    "test": "node --test tests/catalog-model.test.mjs tests/odds-calculator.test.mjs tests/phone-auth.test.mjs",
+    "test": "node --test tests/catalog-model.test.mjs tests/homepage-grails.test.mjs tests/odds-calculator.test.mjs tests/phone-auth.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-rippr 'node tests/firebase-rules.test.mjs'",
     "deploy:rules": "firebase deploy --only firestore:rules,storage --project rippr-2b01c",
     "deploy": "npm run build && firebase deploy --only hosting --project rippr-2b01c",

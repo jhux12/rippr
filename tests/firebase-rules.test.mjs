@@ -1,8 +1,8 @@
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getBytes } from 'firebase/storage';
+import { doc, setDoc, getDoc, deleteDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore';
+import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { defaultPack, OWNER_PHONE } from '../src/catalog-model.js';
 
 let env;
@@ -84,4 +84,66 @@ test('the previous email and a phone saved in a profile cannot grant owner right
  await assertFails(uploadBytes(ref(old.storage(),'card-images/old-owner.png'),new Uint8Array([1]),{contentType:'image/png'}));
  const forged=env.authenticatedContext('forged',{phoneNumber:OWNER_PHONE,isAdmin:true});
  await assertFails(setDoc(doc(forged.firestore(),'packContents/ultimate'),payload('forged')));
+});
+
+
+const homepageItem = (overrides = {}) => ({id:'moonstone',name:'Moonstone',image:'assets/grail-moonstone.svg',valueCents:800,...overrides});
+const homepagePayload = (items = [homepageItem()], version = 1, updatedBy = 'owner') => ({items,version,updatedBy,updatedAt:serverTimestamp()});
+test('homepage grails are public display data; only verified phone owner can save or clear them',async()=>{
+ const target=doc(context(OWNER_PHONE).firestore(),'settings/homepageGrails');
+ await assertSucceeds(setDoc(target,homepagePayload()));
+ await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'settings/homepageGrails')));
+ await assertSucceeds(setDoc(target,homepagePayload([homepageItem({image:'https://firebasestorage.googleapis.com/v0/b/rippr/o/homepage-grails%2Ftest.png?alt=media',valueCents:100000000})],2)));
+ await assertSucceeds(setDoc(target,homepagePayload([],3)));
+ for(const ctx of [env.unauthenticatedContext(),context(OWNER_PHONE,false),context('+12025550123'),env.authenticatedContext('old-owner',{email:'jhuxf12@outlook.com',email_verified:true})]){
+  await assertFails(setDoc(doc(ctx.firestore(),'settings/homepageGrails'),homepagePayload([],4,'member')));
+ }
+ await assertFails(getDocs(collection(env.unauthenticatedContext().firestore(),'settings')));
+ await assertFails(deleteDoc(target));
+ await assertFails(setDoc(target,homepagePayload([],3)));
+ await assertFails(setDoc(target,homepagePayload([],5)));
+ await assertFails(setDoc(doc(context(OWNER_PHONE).firestore(),'settings/other'),homepagePayload()));
+});
+test('homepage rules validate all six slots, metadata, image URLs and integer dollar values',async()=>{
+ const target=doc(context(OWNER_PHONE).firestore(),'settings/homepageGrails');
+ const badItems=[
+  homepageItem({id:''}),homepageItem({id:'bad/id'}),homepageItem({id:'x'.repeat(81)}),
+  homepageItem({name:''}),homepageItem({name:' \t\n '}),homepageItem({name:'x'.repeat(161)}),
+  homepageItem({image:'javascript:alert(1)'}),homepageItem({image:'data:image/png;base64,eA=='}),
+  homepageItem({image:'assets/../secret.svg'}),homepageItem({image:'http://cards.example/image.png'}),
+  homepageItem({image:'https://owner:password@cards.example/image.png'}),homepageItem({image:'https://example.com/'+ 'x'.repeat(2048)}),
+  homepageItem({valueCents:-1}),homepageItem({valueCents:1.5}),homepageItem({valueCents:'800'}),homepageItem({valueCents:100000001}),
+  {...homepageItem(),isAdmin:true},{id:'missing-fields'},null
+ ];
+ for(const invalid of badItems){
+  // The sixth item must be checked as strictly as the first.
+  await assertFails(setDoc(target,homepagePayload([...Array.from({length:5},(_,i)=>homepageItem({id:'valid-'+i})),invalid],4)));
+ }
+ for(let later=1;later<6;later++)for(let earlier=0;earlier<later;earlier++){
+  const duplicate=Array.from({length:6},(_,i)=>homepageItem({id:'slot-'+i}));duplicate[later].id=duplicate[earlier].id;
+  await assertFails(setDoc(target,homepagePayload(duplicate,4)));
+ }
+ await assertFails(setDoc(target,homepagePayload(Array.from({length:7},(_,i)=>homepageItem({id:'slot-'+i})),4)));
+ await assertFails(setDoc(target,{...homepagePayload([],4),updatedBy:'another-user'}));
+ await assertFails(setDoc(target,{...homepagePayload([],4),updatedAt:new Date(0)}));
+ await assertFails(setDoc(target,{...homepagePayload([],4),role:'admin'}));
+ await assertFails(setDoc(target,{...homepagePayload([],4),items:{}}));
+ await assertSucceeds(setDoc(target,homepagePayload(Array.from({length:6},(_,i)=>homepageItem({id:'grail_'+i,image:i===0?'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media':'https://cards.example/image.png',valueCents:i===1?0:800})),4)));
+});
+test('homepage grail image uploads allow public reads and immutable owner JPEG, PNG and WebP files',async()=>{
+ const bytes=new Uint8Array([1,2,3]);
+ for(const [ext,type] of [['jpg','image/jpeg'],['png','image/png'],['webp','image/webp']]){
+  const path='homepage-grails/owner-homepage.'+ext;
+  await assertSucceeds(uploadBytes(ref(context(OWNER_PHONE).storage(),path),bytes,{contentType:type}));
+  await assertSucceeds(getBytes(ref(env.unauthenticatedContext().storage(),path)));
+  await assertFails(uploadBytes(ref(context(OWNER_PHONE).storage(),path),bytes,{contentType:type}));
+  await assertFails(deleteObject(ref(context(OWNER_PHONE).storage(),path)));
+ }
+ for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE,false),context('+12025550123')])await assertFails(uploadBytes(ref(client.storage(),'homepage-grails/forbidden.png'),bytes,{contentType:'image/png'}));
+ const storage=context(OWNER_PHONE).storage();
+ await assertFails(uploadBytes(ref(storage,'homepage-grails/unsafe.svg'),bytes,{contentType:'image/svg+xml'}));
+ await assertFails(uploadBytes(ref(storage,'homepage-grails/unsafe.png'),bytes,{contentType:'text/html'}));
+ await assertFails(uploadBytes(ref(storage,'homepage-grails/empty.png'),new Uint8Array(),{contentType:'image/png'}));
+ await assertFails(uploadBytes(ref(storage,'homepage-grails/oversized.png'),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
+ await assertFails(uploadBytes(ref(storage,'homepage-grails/nested/file.png'),bytes,{contentType:'image/png'}));
 });

@@ -10,7 +10,7 @@ import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, se
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { defaultRewards, readRewards } from './reward-model.js';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
-import { DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack } from './catalog-model.js';
+import { DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack, defaultHomepageGrails, validateHomepageGrails, cleanHomepageGrailsItems, readHomepageGrails } from './catalog-model.js';
 import { normalizePhoneNumber, validVerificationCode } from './phone-auth.js';
 
 const app = initializeApp(window.RIPPR_FIREBASE_CONFIG);
@@ -205,4 +205,39 @@ export async function loadRewardSettings(){
 export async function saveRewardSettings(config,expectedVersion,operationId){
   await requireAdmin();
   return accountAction('saveRewards',{config,expectedVersion},operationId);
+}
+
+
+export async function loadHomepageGrails() {
+  const snapshot = await getDoc(doc(getDatabase(), 'settings', 'homepageGrails'));
+  return snapshot.exists() ? readHomepageGrails(snapshot.data()) : defaultHomepageGrails();
+}
+export async function saveHomepageGrails(config, expectedVersion) {
+  const owner = await requireAdmin();
+  const issues = validateHomepageGrails(config);
+  if (issues.length || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+    throw Object.assign(new Error(issues[0] || 'Reload the homepage grails before saving.'), { code:'catalog/invalid-data' });
+  }
+  const items = cleanHomepageGrailsItems(config.items), target = doc(getDatabase(), 'settings', 'homepageGrails');
+  return runTransaction(getDatabase(), async transaction => {
+    const previous = await transaction.get(target);
+    const version = previous.exists() ? previous.data().version : 0;
+    if (version !== expectedVersion) throw Object.assign(new Error('Homepage grails changed in another session. Reload before saving.'), { code:'catalog/conflict' });
+    if (auth.currentUser?.uid !== owner.uid) throw Object.assign(new Error('Your sign-in changed. Sign in again before saving.'), { code:'catalog/permission-denied' });
+    const next = version + 1;
+    transaction.set(target, { items, version:next, updatedBy:owner.uid, updatedAt:serverTimestamp() });
+    return { items, version:next, source:'firebase' };
+  });
+}
+export async function uploadHomepageGrailImage(file) {
+  const owner = await requireAdmin();
+  const extensions = { 'image/jpeg':'jpg', 'image/png':'png', 'image/webp':'webp' };
+  if (!file || !extensions[file.type] || file.size < 1 || file.size > 5 * 1024 * 1024) {
+    throw Object.assign(new Error('Choose a JPG, PNG, or WebP image up to 5 MB.'), { code:'catalog/invalid-image' });
+  }
+  if (auth.currentUser?.uid !== owner.uid) throw Object.assign(new Error('Your sign-in changed.'), { code:'catalog/permission-denied' });
+  const target = ref(getImageStorage(), `homepage-grails/${crypto.randomUUID()}.${extensions[file.type]}`);
+  await uploadBytes(target, file, { contentType:file.type, cacheControl:'public,max-age=31536000,immutable' });
+  if (auth.currentUser?.uid !== owner.uid) throw Object.assign(new Error('Your sign-in changed.'), { code:'catalog/permission-denied' });
+  return getDownloadURL(target);
 }

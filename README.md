@@ -113,6 +113,14 @@ The editor manages five catalogs, prices, cards, names, rarities, values, image 
 npm run deploy:rules
 ```
 
+### Homepage grails
+
+Under **Admin → Settings → Homepage grails**, upload JPG/PNG/WebP card photos (up to 5 MB), set card names and USD values, and add, remove or reorder up to six cards. Click **Save homepage grails** to publish the selection. Uploading a photo alone does not publish the draft. Values are stored in integer cents, including $0; they are manually curated display values rather than a market-price feed. Clearing the list intentionally shows the empty gallery state. Pack odds, prizes and pricing remain independent.
+
+The public gallery reads `settings/homepageGrails`; photos are immutable public objects under `homepage-grails/`. Saves use version checks so another session's edits are not overwritten. Owner UID changes discard pending UI responses. The Firestore and Storage rules restrict writes to the verified owner phone, validate the bounded display data and reject overwrites of published photos. **Deploy both updated rules with `npm run deploy:rules` from an authenticated terminal before using the new settings.** No Function deployment is needed for this feature.
+
+The homepage shows each photo, card name and value and offers a full-image modal. Pack-opening grail previews show the existing pack item's saved value beneath its rarity. Loading failures show an unavailable state rather than substituted saved data. Offline design previews use the existing concept cards and their default values. Model, browser and actual SDK checks cover valid/invalid values, zero values, empty/six-card galleries, saves, conflicts, photo uploads and sign-in changes. The Rules emulator remains unverified here because the environment blocks downloading its uncached JAR from `storage.googleapis.com`.
+
 ### Auto odds by expected value
 
 Under **Admin → Packs → Contents → Auto odds**, enter a target average item value in USD or a percentage of the current pack price. The 80%/90%/95% buttons fill a return target. For example, a $10 pack at 90% targets $9 of average item value. The current EV/return is always shown in the collapsed summary when odds total 100%.
@@ -147,7 +155,7 @@ During extraction, cycling and rarity landing, only the card artwork grows to ne
 
 ## Homepage shipping preview
 
-The shipping section sits immediately below **Grails worth discovering**. Its standalone artwork is in `assets/fulfillment/warehouse-concept.png`; it is generated concept imagery, labeled **Fulfillment concept**, and the copy states that shipping is currently in testing. The desktop image/copy layout stacks on mobile. The photo has fixed intrinsic dimensions, lazy loading and asynchronous decoding, and the offline homepage embeds it.
+The shipping section sits immediately below **Grails worth discovering**. Its standalone artwork is in `assets/fulfillment/pip-packing.png`; it shows Pip packing a protected card in a branded mailer, labeled **Fulfillment concept**, and the copy states that shipping is currently in testing. The desktop image/copy layout stacks on mobile. The full illustration is contained within the existing frame with fixed intrinsic dimensions, lazy loading and asynchronous decoding, and the offline homepage embeds it.
 
 The trust row links to phone sign-in, actual pack odds and the account collection. The Trustpilot area is an inactive, unscored placeholder with neutral stars and a visible label, as requested; it makes no rating/review-count claim and loads no third-party widget. Replace it with verified profile/rating data when available. The existing hero, carousels, grails and shared footer remain intact.
 

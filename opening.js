@@ -33,7 +33,7 @@ function renderContents(note){
  table.querySelector('caption').textContent=note;
  table.setAttribute('aria-busy','false');
  $('.grails-panel h2>span').textContent='';
- $('.grail-grid').innerHTML=contents.items.filter(card=>card.grail&&card.chanceBps>0).slice(0,6).map(card=>{const color=catalog.RARITIES.find(r=>r.name===card.rarity).color;return `<article class="grail-card" style="--grail:${color}"><div class="grail-art"><img src="${escape(cardImage(card))}" alt="${escape(card.name)}" loading="lazy"></div><h3>${escape(card.name)}</h3>${rarityBadge(card.rarity)}</article>`}).join('')||'<p class="empty-grails">No grails in this pack.</p>';
+ $('.grail-grid').innerHTML=contents.items.filter(card=>card.grail&&card.chanceBps>0).slice(0,6).map(card=>{const color=catalog.RARITIES.find(r=>r.name===card.rarity).color;return `<article class="grail-card" style="--grail:${color}"><div class="grail-art"><img src="${escape(cardImage(card))}" alt="${escape(card.name)}" loading="lazy"></div><h3>${escape(card.name)}</h3>${rarityBadge(card.rarity)}<p class="grail-value">${money.format(card.valueCents/100)}</p></article>`}).join('')||'<p class="empty-grails">No grails in this pack.</p>';
  $('.grail-grid').setAttribute('aria-busy','false');
  label();
 }

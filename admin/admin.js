@@ -35,6 +35,7 @@
     $('#workspace').setAttribute('aria-busy', String(value));
     $('#workspace').querySelectorAll('button,input,select').forEach(control => { control.disabled = value; });
     refreshSave();
+    document.dispatchEvent(new CustomEvent('rippr:adminbusy',{detail:{busy:value}}));
   }
   function refreshSave() {
     $('#save-pack').disabled = busy || !loaded.has(selectedPack) || (!dirty.has(selectedPack) && !editorDirty && pack().version > 0);
@@ -196,8 +197,8 @@
     $('#library-grid').innerHTML = [...cards.values()].filter(item => item.name.toLowerCase().includes(query)).map(item => `<article class="library-card"><img src="${escape(imageURL(item.image))}" alt="${escape(item.name)}" loading="lazy"><h3>${escape(item.name)}</h3><span class="rarity-chip" style="--rarity:${model.RARITIES.find(rarity => rarity.name === item.rarity).color}">${escape(item.rarity)}</span><p>${item.packs.map(tier => tier.name).join(' · ')}</p><button type="button" class="button secondary" data-library-pack="${item.packs[0].id}" data-library-item="${escape(item.id)}">Edit in ${item.packs[0].name}</button></article>`).join('') || '<p class="empty-state">No cards found.</p>';
   }
   async function signOut() {
-    if (busy) return;
-    if ((dirty.size || editorDirty) && !await confirmAction('Sign out with unsaved changes?', 'Your unsaved edits will be discarded.', 'Sign out')) return;
+    if (busy || window.RipprHomepageAdmin?.busy) return;
+    if ((dirty.size || editorDirty || window.RipprHomepageAdmin?.dirty) && !await confirmAction('Sign out with unsaved changes?', 'Your unsaved edits will be discarded.', 'Sign out')) return;
     try { await client.signOut(); renderAccess(); } catch { status('Could not sign out. Please retry.', true); }
   }
   function renderAccess() {

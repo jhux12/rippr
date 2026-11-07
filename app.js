@@ -171,13 +171,46 @@
     });
   }));
 
-  const grails = {
-    'first-light': { name: 'First Light', image: 'assets/grail-first-light.svg' },
-    'ocean-spirit': { name: 'Ocean Spirit', image: 'assets/grail-ocean-spirit.svg' },
-    moonstone: { name: 'Moonstone', image: 'assets/grail-moonstone.svg' }
-  };
-  document.querySelectorAll('[data-grail]').forEach(button => button.addEventListener('click', () => {
-    const grail = grails[button.dataset.grail];
-    show(`<div class="modal-kicker">GRAIL PREVIEW</div><h2 id="modal-title">${grail.name}</h2><img class="modal-grail" src="${grail.image}" alt="${grail.name} concept card"><p>Original concept artwork. Demo preview only.</p>`, button);
-  }));
+  const grailGrid = document.querySelector('#homepage-grails');
+  const grailMoney = new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'});
+  const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const grailImage = image => window.RIPPR_ASSET_URLS?.[image] || image;
+  let homepageGrails = [], grailSource = 'default';
+  function grailStatus(message) {
+    homepageGrails = [];
+    const text = document.createElement('p'); text.className = 'homepage-grails-status'; text.setAttribute('role','status'); text.textContent = message;
+    grailGrid.replaceChildren(text); grailGrid.setAttribute('aria-busy','false');
+  }
+  function renderHomepageGrails(saved) {
+    const catalog = window.RipprCatalog;
+    if (catalog.validateHomepageGrails(saved).length) throw new Error('Invalid homepage grails');
+    homepageGrails = saved.items; grailSource = saved.source || 'firebase';
+    if (!homepageGrails.length) { grailStatus('Grails coming soon.'); return; }
+    const fragment = document.createDocumentFragment();
+    homepageGrails.forEach((grail,index) => {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'grail-preview'; button.dataset.grail = String(index);
+      button.setAttribute('aria-label',`Preview ${grail.name}, ${grailMoney.format(grail.valueCents / 100)}`);
+      const art = document.createElement('span'); art.className = 'homepage-grail-art';
+      const image = document.createElement('img'); image.src = grailImage(grail.image); image.alt = grail.name; image.loading = 'lazy'; image.decoding = 'async';
+      image.addEventListener('error', () => { image.hidden = true; const fallback = document.createElement('span'); fallback.className = 'homepage-grail-fallback'; fallback.textContent = 'Image unavailable'; art.append(fallback); }, {once:true});
+      art.append(image);
+      const name = document.createElement('span'); name.className = 'homepage-grail-name'; name.textContent = grail.name; name.title = grail.name;
+      const value = document.createElement('span'); value.className = 'homepage-grail-value'; value.textContent = grailMoney.format(grail.valueCents / 100);
+      button.append(art,name,value); fragment.append(button);
+    });
+    grailGrid.replaceChildren(fragment); grailGrid.setAttribute('aria-busy','false');
+  }
+  async function loadHomepageGrails() {
+    try {
+      const saved = window.RIPPR_AUTH_OFFLINE ? window.RipprCatalog.defaultHomepageGrails() : await Promise.race([window.RipprFirebase.loadHomepageGrails(),new Promise((_,reject) => setTimeout(() => reject(new Error('Grails timeout')),6000))]);
+      renderHomepageGrails(saved);
+    } catch { grailStatus('Grails couldn’t load. Please refresh.'); }
+  }
+  grailGrid.addEventListener('click', event => {
+    const button = event.target.closest('[data-grail]'); if (!button || !grailGrid.contains(button)) return;
+    const grail = homepageGrails[Number(button.dataset.grail)]; if (!grail) return;
+    show(`<div class="modal-kicker">GRAIL PREVIEW</div><h2 id="modal-title">${escapeHTML(grail.name)}</h2><img class="modal-grail" src="${escapeHTML(grailImage(grail.image))}" alt="${escapeHTML(grail.name)}"><p class="homepage-modal-value">${grailMoney.format(grail.valueCents / 100)}</p>${grailSource === 'default' ? '<p>Original concept artwork.</p>' : ''}`, button);
+    content.querySelector('.modal-grail').addEventListener('error', event => { event.currentTarget.hidden = true; const text = document.createElement('p'); text.textContent = 'Image unavailable.'; event.currentTarget.after(text); }, {once:true});
+  });
+  loadHomepageGrails();
 })();

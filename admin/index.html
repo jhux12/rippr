@@ -13,7 +13,7 @@
   <script src="/firebase-client.js" defer></script>
   <script src="/account-state.js" defer></script>
   <script src="/packs.js" defer></script>
-  <script src="/reward-model.js" defer></script><script src="/admin/odds-calculator.js" defer></script><script src="/admin/admin.js" defer></script><script src="/admin/rewards-admin.js" defer></script>
+  <script src="/reward-model.js" defer></script><script src="/admin/odds-calculator.js" defer></script><script src="/admin/admin.js" defer></script><script src="/admin/rewards-admin.js" defer></script><script src="/admin/homepage-grails-admin.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -115,7 +115,17 @@
         <label class="toggle-label reward-test-toggle"><input id="rewards-no-cooldown" type="checkbox" role="switch"><span class="toggle-track" aria-hidden="true"></span><span>Testing: no cooldown</span></label><p class="reward-admin-note">Credit prizes go to test balance. Pack prizes go to unopened inventory.</p>
         <form id="rewards-form"><div id="reward-prize-rows"></div><div class="reward-admin-footer"><button class="button secondary" type="button" id="add-reward">＋ Add prize</button><strong id="reward-odds-total"></strong></div><p id="reward-settings-error" class="form-error" role="alert" hidden></p><p id="reward-settings-status" role="status"></p><div class="reward-admin-footer"><button class="button secondary" type="button" id="reload-rewards">Reload saved</button><button class="button primary" type="submit" id="save-rewards" disabled>Save rewards</button></div></form>
       </section>
-      <section id="settings-view" class="panel simple-view" hidden><h2>Owner account</h2><p id="settings-owner"></p><div class="setting-row"><span>Phone verification</span><span class="verified-label">Verified</span></div><div class="setting-row"><span>Catalog</span><span id="catalog-connection">Connecting…</span></div><button id="settings-signout" class="button secondary" type="button">Sign out</button></section>
+      <section id="settings-view" class="panel simple-view" hidden><h2>Owner account</h2><p id="settings-owner"></p><div class="setting-row"><span>Phone verification</span><span class="verified-label">Verified</span></div><div class="setting-row"><span>Catalog</span><span id="catalog-connection">Connecting…</span></div><button id="settings-signout" class="button secondary" type="button">Sign out</button><section class="homepage-grails-settings" aria-labelledby="homepage-grails-title">
+        <div class="homepage-grails-heading"><div><h2 id="homepage-grails-title">Homepage grails</h2><p>Choose the card photos and values shown under Grails worth discovering.</p></div><span id="homepage-grails-dirty" class="dirty-indicator" hidden>Unsaved changes</span></div>
+        <p class="homepage-grails-note">Up to 6 cards · JPG, PNG or WebP · up to 5 MB each. Pack contents are managed separately.</p>
+        <form id="homepage-grails-form" novalidate>
+          <div id="homepage-grail-rows"></div><p id="homepage-grails-empty" class="empty-state" hidden>No homepage grails selected.</p>
+          <input id="homepage-grail-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+          <div class="homepage-grails-footer"><button id="add-homepage-grail" class="button secondary" type="button" disabled>＋ Add card</button><span id="homepage-grails-count">0 / 6 cards</span></div>
+          <p id="homepage-grails-error" class="form-error" role="alert" hidden></p><p id="homepage-grails-status" role="status" hidden></p>
+          <div class="homepage-grails-footer"><button id="reload-homepage-grails" class="button secondary" type="button">Reload saved</button><button id="save-homepage-grails" class="button primary" type="submit" disabled>Save homepage grails</button></div>
+        </form>
+      </section></section>
       <p id="admin-status" class="admin-status" role="status" aria-live="polite" hidden></p>
     </main>
   </div>

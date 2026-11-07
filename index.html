@@ -8,6 +8,7 @@
   <title>rippr — Your next great pull.</title>
   <link rel="stylesheet" href="style.css">
   <script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="account-state.js" defer></script><script src="packs.js" defer></script>
+  <script src="catalog.js" defer></script>
   <script src="app.js" defer></script>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="navigation.css?v=2"><script src="navigation.js" defer></script><link rel="stylesheet" href="mascot.css"><link rel="stylesheet" href="footer.css"><script src="footer-config.js" defer></script><script src="footer.js" defer></script></head>
 <body class="has-site-footer" id="top">
@@ -70,17 +71,13 @@
 
     <section class="grails" aria-labelledby="grails-title">
       <div class="grails-heading"><h2 id="grails-title">Grails worth<br> discovering</h2><span aria-hidden="true"></span></div>
-      <div class="grail-grid">
-        <button type="button" class="grail-preview" data-grail="first-light" aria-label="Preview First Light"><img src="assets/grail-first-light.svg" alt="First Light: a golden sunrise over lavender mountains" width="204" height="206"></button>
-        <button type="button" class="grail-preview" data-grail="ocean-spirit" aria-label="Preview Ocean Spirit"><img src="assets/grail-ocean-spirit.svg" alt="Ocean Spirit: luminous turquoise waves under the stars" width="204" height="206"></button>
-        <button type="button" class="grail-preview" data-grail="moonstone" aria-label="Preview Moonstone"><img src="assets/grail-moonstone.svg" alt="Moonstone: a lavender moon among clouds and orbiting stars" width="204" height="206"></button>
-      </div>
+      <div class="grail-grid" id="homepage-grails" aria-busy="true"><p class="homepage-grails-status" role="status">Loading grails…</p></div>
     </section>
     <section class="fulfillment" aria-labelledby="fulfillment-title">
       <h2 id="fulfillment-title">Made for collectors.</h2>
       <div class="fulfillment-card">
         <figure class="fulfillment-visual">
-          <img src="assets/fulfillment/warehouse-concept.png" alt="Illustrative rippr packing workspace: three people protecting collectible cards and packing kraft boxes." width="1536" height="1024" loading="lazy" decoding="async">
+          <img src="assets/fulfillment/pip-packing.png" alt="Pip carefully packing a protected collectible card into a rippr mailer." width="1536" height="1024" loading="lazy" decoding="async">
           <figcaption class="fulfillment-concept">Fulfillment concept</figcaption>
         </figure>
         <div class="fulfillment-copy">
