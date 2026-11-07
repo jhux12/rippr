@@ -89,3 +89,4 @@
 @media(max-width:760px){.site-navigation .nav-signup.nav-profile{width:36px;max-width:36px;padding:0}.nav-actions .nav-profile .nav-display-name{display:none}}
 
 @media(max-width:760px){.site-navigation .nav-actions .nav-signup.nav-profile{display:none}}
+.site-navigation .nav-balance[hidden]{display:none!important}

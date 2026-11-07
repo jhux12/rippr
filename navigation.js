@@ -111,6 +111,7 @@
   const trigger = document.createElement('button');
   trigger.type = 'button';
   trigger.className = 'topup-trigger nav-balance';
+  trigger.hidden = !window.RIPPR_ACCOUNT?.user;
   trigger.setAttribute('aria-label', `Test balance ${balance}. Open top up`);
   trigger.setAttribute('aria-haspopup', 'dialog');
   trigger.setAttribute('aria-controls', 'topup-dialog');
@@ -156,6 +157,7 @@
   }));
   input.addEventListener('input', update);
   trigger.addEventListener('click', () => {
+    if(!window.RIPPR_ACCOUNT?.user)return;
     if (menuToggle.getAttribute('aria-expanded') === 'true') menuToggle.click();
     notice.textContent = 'FREE TEST TOP-UP · NO CHARGE';
     update();
@@ -164,7 +166,7 @@
   });
   dialog.querySelector('.topup-close').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
-    trigger.focus({ preventScroll: true });
+    (trigger.hidden?header.querySelector('.nav-brand'):trigger).focus({ preventScroll: true });
     announceState();
   });
   dialog.addEventListener('click', event => {
@@ -174,6 +176,8 @@
   });
   function updateBalance(){
     const account=window.RIPPR_ACCOUNT;
+    trigger.hidden=!account?.user;
+    if(trigger.hidden&&dialog.open)dialog.close();
     const value=account?.user&&!account.wallet?'—':currency.format((account?.wallet?.balanceCents||0)/100);
     trigger.querySelector('.nav-balance-amount').textContent=value;
     trigger.setAttribute('aria-label',`Test balance ${value}. Open top up`);

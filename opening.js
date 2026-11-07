@@ -13,11 +13,13 @@ if(selectedPack){
  for(const part of document.querySelectorAll('.pack.artwork, .tear-strip, .foil-piece'))part.style.backgroundImage=`url("${selectedPack.image}")`;
 }
 
-const quantityButtons=[...document.querySelectorAll('[data-qty]')],openButton=$('#open'),display=$('#display'),arena=$('.arena'),stage=$('#reveal-stage'),controls=$('.controls'),results=$('#results'),cards=$('#cards'),announcement=$('#announcement'),phase=$('#phase');
+const quantityButtons=[...document.querySelectorAll('[data-qty]')],openButton=$('#open'),display=$('#display'),arena=$('.arena'),stage=$('#reveal-stage'),controls=$('.controls'),results=$('#results'),cards=$('#cards'),announcement=$('#announcement'),phase=$('#phase'),skipOpening=$('#skip-opening');
 let quantity=1,state='idle',deck=[],cursor=0,openingTimer,openingSession=0,selling=false,pendingSale=null;
 const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 const catalog=window.RipprCatalog;
-let contents=catalog.defaultPack(selectedPack.id),contentsReady=false,artReady=false;
+let contents=catalog.defaultPack(selectedPack.id),contentsReady=false,artReady=false,loadError=false;
+const oddsPanel=$('.odds-table-panel'),oddsSlot=$('#opening-odds-slot'),purchasePanel=$('.purchase-panel');
+function placeOdds(below){(below?oddsSlot:purchasePanel).append(oddsPanel);oddsSlot.hidden=!below}
 const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const cardImage=card=>window.RIPPR_ASSET_URLS?.[card.image]||card.image;
 const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDigits:2})+'%';
@@ -27,8 +29,8 @@ const rare=card=>!['Common','Uncommon'].includes(card.rarity);
 function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||state!=='idle';label()}
 function renderContents(note){
  const table=$('.odds-table-panel table');
- table.querySelector('thead').innerHTML='<tr><th scope="col">Rarity</th><th scope="col">Chance</th><th scope="col">Min value</th><th scope="col">Max value</th></tr>';
- table.querySelector('tbody').innerHTML=catalog.summarizeRarities(contents.items).map(group=>`<tr><th scope="row">${rarityBadge(group.rarity)}</th><td>${formatChance(group.chanceBps)}</td><td>${money.format(group.minValueCents/100)}</td><td>${money.format(group.maxValueCents/100)}</td></tr>`).join('');
+ table.querySelector('thead').innerHTML='<tr><th scope="col">Rarity</th><th scope="col">Chance</th><th scope="col" aria-label="Minimum to maximum item value">Value</th></tr>';
+ table.querySelector('tbody').innerHTML=catalog.summarizeRarities(contents.items).map(group=>{const min=money.format(group.minValueCents/100),max=money.format(group.maxValueCents/100);return `<tr><th scope="row">${rarityBadge(group.rarity)}</th><td>${formatChance(group.chanceBps)}</td><td class="odds-value-range" aria-label="Minimum ${min}, maximum ${max}">${min}${group.minValueCents===group.maxValueCents?'':`<span aria-hidden="true">–</span><wbr>${max}`}</td></tr>`}).join('');
  table.querySelector('caption').textContent=note;
  table.setAttribute('aria-busy','false');
  $('.grails-panel h2>span').textContent='';
@@ -42,13 +44,20 @@ async function loadContents(){
   contents=await Promise.race([window.RipprFirebase.loadPackContents(selectedPack.id),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Catalog timeout')),6000))]);
   renderContents('One card per pack · free test balance');
   contentsReady=true;
- }catch{phase.textContent='Pack contents could not load. Reload to try again.';renderContents('Contents unavailable')}
+ }catch{loadError=true;phase.textContent='Pack contents could not load. Reload to try again.';const table=oddsPanel.querySelector('table');table.setAttribute('aria-busy','false');table.querySelector('caption').textContent='Contents unavailable';table.querySelector('tbody').innerHTML='<tr><td colspan="3" class="odds-loading">Odds unavailable. Reload to try again.</td></tr>';$('.grail-grid').innerHTML='<p class="empty-grails">Grails could not load.</p>';$('.grail-grid').setAttribute('aria-busy','false')}
  finally{if(!contents.enabled)phase.textContent='This pack is currently unavailable.';updateOpen()}
 }
 document.addEventListener('DOMContentLoaded',loadContents,{once:true});
-function label(){if(inventoryPackId){openButton.textContent=window.RIPPR_ACCOUNT?.user?'Open reward pack':'Log in to open reward pack';return}openButton.textContent=(window.RIPPR_AUTH_OFFLINE?'Preview open':window.RIPPR_ACCOUNT?.user?'Open':'Log in to open')+' · '+money.format(contents.priceCents*quantity/100)}
+function label(){
+ $('#pack-price').textContent=inventoryPackId?'Owned pack':contentsReady?money.format(contents.priceCents/100):'—';$('#price-suffix').hidden=Boolean(inventoryPackId);
+ if(!contentsReady){openButton.textContent=loadError?'Pack unavailable':'Loading pack…';return}
+ if(!contents.enabled){openButton.textContent='Pack unavailable';return}
+ if(inventoryPackId){openButton.textContent=window.RIPPR_ACCOUNT?.user?'Open reward pack':'Log in to open reward pack';return}
+ const packs=`${quantity} pack${quantity===1?'':'s'}`;
+ openButton.textContent=(window.RIPPR_AUTH_OFFLINE?'Preview':window.RIPPR_ACCOUNT?.user?'Open':'Log in to open')+' '+packs+' · '+money.format(contents.priceCents*quantity/100);
+}
 document.addEventListener('rippr:authchange',()=>{if(state!=='idle')resetOpening();label()});
-if(inventoryPackId){$('.quantities').hidden=true;$('.back').href='profile.html';$('.back').textContent='← Back to my items';$('#again').textContent='Back to my items';}
+if(inventoryPackId){$('.quantities').hidden=true;$('#quantity-control').hidden=true;$('.back').href='profile.html';$('.back').textContent='← Back to my items';$('#again').textContent='Back to my items';}
 quantityButtons.forEach(button=>button.addEventListener('click',()=>{if(state!=='idle')return;quantity=Number(button.dataset.qty);quantityButtons.forEach(b=>{b.classList.toggle('selected',b===button);b.setAttribute('aria-pressed',String(b===button))});label()}));
 function randomUnit(){const v=new Uint32Array(1);crypto.getRandomValues(v);return v[0]/4294967296}
 function makeDeck(){return Array.from({length:quantity},(_,p)=>{const card=catalog.drawItem(contents.items,randomUnit());return {...card,pack:p+1,tone:catalog.RARITIES.find(r=>r.name===card.rarity).color}})}
@@ -119,17 +128,26 @@ packImage.src=selectedPack.image;
 function setRip(value){progress=Math.max(0,Math.min(1,value));shell.style.setProperty('--rip',progress);ripButton.setAttribute('aria-label',`Rip top foil: ${Math.round(progress*100)} percent. Drag across, or press Enter`)}
 function prepareRip(){
  const previousBounds=shell.getBoundingClientRect();
- clearTimeout(openingTimer);state='zooming';stage.hidden=true;arena.classList.remove('is-revealing');display.style.visibility='';
+ placeOdds(true);
+ clearTimeout(openingTimer);state='zooming';stage.hidden=true;skipOpening.hidden=false;arena.classList.remove('is-revealing','skip-reveal-motion');display.style.visibility='';
  shell.classList.remove('ripping','unsealed');setRip(0);ripButton.hidden=true;
  $('.showcase').classList.add('opening-focus');arena.classList.add('zoomed');
  if(!reduced()){const now=shell.getBoundingClientRect();shell.animate([{translate:`${previousBounds.x+previousBounds.width/2-now.x-now.width/2}px ${previousBounds.y+previousBounds.height/2-now.y-now.height/2}px`},{translate:'0 0'}],{duration:500,easing:'cubic-bezier(.2,.8,.2,1)'})}phase.textContent='';announcement.textContent=`Pack ${cursor+1} of ${deck.length}. Zooming in.`;
+ arena.scrollIntoView({behavior:reduced()?'instant':'smooth',block:'nearest'});
  openingTimer=setTimeout(()=>{state='ripping';shell.classList.add('ripping');ripButton.hidden=false;phase.textContent='';announcement.textContent=`Pack ${cursor+1} of ${deck.length}. Drag across the foil, or press Enter to rip.`;ripButton.focus({preventScroll:true})},reduced()?0:500);
 }
 function completeRip(){
  if(state!=='ripping')return;state='unsealing';drag=null;setRip(1);ripButton.hidden=true;shell.classList.add('unsealed');phase.textContent='';
  announcement.textContent='Foil removed. Revealing your card.';
- openingTimer=setTimeout(()=>{state='revealing';arena.classList.add('is-revealing');stage.hidden=false;renderCard()},reduced()?0:600);
+ openingTimer=setTimeout(()=>showReveal(false),reduced()?0:600);
 }
+function showReveal(instant){
+ if(!['zooming','ripping','unsealing'].includes(state))return;
+ clearTimeout(openingTimer);drag=null;setRip(1);ripButton.hidden=true;skipOpening.hidden=true;
+ shell.getAnimations().forEach(animation=>animation.cancel());
+ state='revealing';arena.classList.add('is-revealing');arena.classList.toggle('skip-reveal-motion',instant);stage.hidden=false;renderCard();
+}
+skipOpening.addEventListener('click',()=>showReveal(true));
 ripButton.addEventListener('pointerdown',event=>{if(state!=='ripping'||(event.pointerType==='mouse'&&event.button!==0))return;event.preventDefault();drag={x:event.clientX,id:event.pointerId};ripButton.setPointerCapture(event.pointerId);setRip(0)});
 ripButton.addEventListener('pointermove',event=>{if(!drag||event.pointerId!==drag.id)return;setRip(Math.abs(event.clientX-drag.x)/(ripButton.getBoundingClientRect().width*.75))});
 ripButton.addEventListener('pointerup',event=>{if(!drag||event.pointerId!==drag.id)return;drag=null;if(progress>=.8)completeRip();else setRip(0)});
@@ -157,7 +175,7 @@ openButton.addEventListener('click',async()=>{
   if(error.code==='functions/resource-exhausted')document.querySelector('.topup-trigger')?.click();
  }
 });
-function resetOpening(){openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;arena.classList.remove('zoomed');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
+function resetOpening(){openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);placeOdds(false);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
 $('#again').addEventListener('click',()=>{if(inventoryPackId){location.href='profile.html';return}resetOpening();openButton.focus({preventScroll:true});$('.heading').scrollIntoView({behavior:reduced()?'instant':'smooth'})});
 
 // Ambient animation runs only while the stage is visible and navigation is clear.

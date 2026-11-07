@@ -131,8 +131,8 @@
 @keyframes stage-orbit-travel { from { stroke-dashoffset:0; } to { stroke-dashoffset:-1000; } }
 @keyframes stage-seam-glint { 0%,30%,100% { opacity:.25; } 44%,58% { opacity:1; } }
 @keyframes stage-star-twinkle { 0%,100% { opacity:.5; } 50% { opacity:1; } }
-@media(max-width:1000px) and (min-width:701px) { .arena { --pack-height:268px; } .arena.zoomed { --pack-height:300px; } }
-@media(max-width:700px) {
+@media(max-width:1000px) and (min-width:761px) { .arena { --pack-height:268px; } .arena.zoomed { --pack-height:300px; } }
+@media(max-width:760px) {
   .arena { --pack-height:228px; border-radius:12px; }
   .arena.zoomed { --pack-height:240px; }
   .arena .side-card { border-radius:8px; }
@@ -188,7 +188,7 @@
 .reveal-sale-buttons button{min-height:44px;padding:10px 16px;border:1px solid #4a6e86;border-radius:8px;background:#112b3c;color:#e7f5ff;font:650 12px/1.5 Manrope,Arial,sans-serif}
 .reveal-sale-buttons #confirm-reveal-sale{border-color:#00d9e7;background:#00d9e7;color:#03222d}
 @keyframes reveal-sheen{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
-@media(max-width:700px){
+@media(max-width:760px){
  .showcase.opening-focus .arena.is-revealing{height:auto;min-height:540px;padding:28px 20px 30px}
  .reveal-art-stage .spotlight-card .revealed-art{height:clamp(200px,30svh,260px)}
  .reveal-art-stage{margin-bottom:32px}
