@@ -7,6 +7,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { defaultRewards, readRewards } from './reward-model.js';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 import { OWNER_EMAIL, DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack } from './catalog-model.js';
 
@@ -147,4 +148,13 @@ export async function uploadCardImage(file) {
   const target = ref(getImageStorage(), `card-images/${crypto.randomUUID()}.${extensions[file.type]}`);
   await uploadBytes(target, file, { contentType: file.type, cacheControl: 'public,max-age=31536000,immutable' });
   return getDownloadURL(target);
+}
+
+export async function loadRewardSettings(){
+  const snapshot=await getDoc(doc(getDatabase(),'rewardSettings','daily'));
+  return snapshot.exists()?readRewards(snapshot.data()):defaultRewards();
+}
+export async function saveRewardSettings(config,expectedVersion,operationId){
+  await requireAdmin();
+  return accountAction('saveRewards',{config,expectedVersion},operationId);
 }

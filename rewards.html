@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#070f18"><title>Daily rewards — rippr</title><link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="rewards.css"><link rel="stylesheet" href="navigation.css?v=2"><link rel="stylesheet" href="mascot.css"><script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="account-state.js" defer></script><script src="reward-model.js" defer></script><script src="navigation.js" defer></script><script src="rewards.js" defer></script></head><body><a class="skip-link" href="#main">Skip to content</a><header class="site-navigation">
+    <div class="nav-shell">
+      <a class="nav-brand" href="index.html" aria-label="rippr home"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg><span>rippr</span></a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a class="nav-link" href="index.html#packs" data-nav-packs>Packs</a>
+        <button class="nav-link" type="button" data-nav-dialog="collection">Collection</button>
+        <button class="nav-link" type="button" data-nav-dialog="how">How it works</button>
+      <a class="nav-link" href="rewards.html" aria-current="page">Rewards</a></nav>
+      <div class="nav-actions">
+        <a class="nav-login" href="auth.html?mode=login">Log in</a>
+        <a class="nav-signup" href="auth.html?mode=signup">Sign up</a>
+        <button class="nav-toggle" id="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-navigation" aria-label="Open navigation menu" hidden><svg class="nav-hamburger" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="nav-close-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
+      </div>
+    </div>
+    <nav id="mobile-navigation" class="mobile-navigation" aria-label="Mobile navigation" hidden>
+      <a href="index.html#packs" data-nav-packs>Packs</a>
+      <button type="button" data-nav-dialog="collection">Collection</button>
+      <button type="button" data-nav-dialog="how">How it works</button>
+      <a href="rewards.html" aria-current="page">Rewards</a><a href="auth.html?mode=login">Log in</a>
+    </nav>
+    <dialog id="nav-dialog" class="nav-dialog" aria-labelledby="nav-dialog-title"><button class="nav-dialog-close" type="button" aria-label="Close dialog">×</button><div id="nav-dialog-content"></div></dialog>
+  </header><main class="rewards-page" id="main"><h1>Daily rewards</h1><section class="case-panel" id="case-panel" aria-labelledby="case-title"><div class="case-head"><div><h2 id="case-title">Daily case</h2><p class="ready-label"><span class="status-dot" aria-hidden="true"></span><span id="status-text">Loading rewards…</span></p><p class="one-opening" id="opening-detail">1 free opening</p></div><div class="timer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg><span id="timer-label">Daily reward</span><strong id="countdown" hidden></strong></div></div><div class="hero-art"><img data-image="pip-daily-case.png" alt="Pip beside rippr’s glowing daily reward case" width="1792" height="1024" draggable="false"></div><div class="reel-wrap"><div class="pointer" aria-hidden="true"></div><div class="reel-window" id="reel-window" aria-label="Daily case prize reel"><div class="reel-track" id="reel-track" aria-hidden="true"></div></div><div class="reel-baseline" aria-hidden="true"></div></div><div class="case-actions"><button class="primary open-button" id="open-case" disabled>✦ &nbsp; Open daily case</button><p id="result" class="result" hidden></p></div></section>
+<section class="possible" aria-labelledby="possible-title"><h2 id="possible-title">Possible rewards</h2><div class="reward-grid" id="reward-grid"></div></section><p id="reward-error" class="reward-error" role="alert" hidden></p><button class="outline" id="retry-rewards" hidden>Retry</button><p class="sr-only" id="live-status" role="status" aria-live="polite"></p></main></body></html>

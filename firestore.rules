@@ -29,6 +29,10 @@ service cloud.firestore {
       allow update: if validPackId(packId) && owner() && validContents() && request.resource.data.version == resource.data.version + 1;
       allow delete: if false;
     }
+    match /rewardSettings/{id} {
+      allow get: if id == 'daily';
+      allow list, write: if false;
+    }
     // Free test balances and winnings are written exclusively by callable Functions.
     // Members may inspect only their own records; no browser can mint credit/items.
     match /testAccounts/{uid} {

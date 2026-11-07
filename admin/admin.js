@@ -52,13 +52,14 @@
   }
   function view(name, focus = false) {
     if (!owner()) return;
-    for (const id of ['packs', 'library', 'members', 'settings']) $(`#${id}-view`).hidden = id !== name;
+    for (const id of ['packs', 'library', 'members', 'settings', 'rewards']) $(`#${id}-view`).hidden = id !== name;
     document.querySelectorAll('[data-view]').forEach(button => {
       if (button.dataset.view === name) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
     });
-    $('#page-title').textContent = { packs:'Packs', library:'Card library', members:'Members', settings:'Settings' }[name];
+    $('#page-title').textContent = { packs:'Packs', library:'Card library', members:'Members', settings:'Settings', rewards:'Daily rewards' }[name];
     document.title = `${$('#page-title').textContent} — rippr Admin`;
     if (name === 'library') renderLibrary();
+    document.dispatchEvent(new CustomEvent('rippr:adminview',{detail:{name}}));
     setSidebar(false);
     if (focus) $('#workspace').focus({ preventScroll:true });
   }

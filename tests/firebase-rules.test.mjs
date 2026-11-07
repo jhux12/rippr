@@ -69,3 +69,10 @@ test('members can read only their test account and cannot mint balances or winni
   await assertFails(setDoc(doc(member,'testAccounts/member/items/fake'),{name:'Forged winning'}));
   await assertFails(setDoc(doc(member,'testAccounts/member/operations/fake'),{result:{balanceCents:999999}}));
 });
+
+test('reward settings are public display data but clients cannot edit them or mint unopened packs',async()=>{
+ await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'rewardSettings/daily'),{enabled:true,version:1,prizes:[]});});
+ await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'rewardSettings/daily')));
+ for(const ctx of [context(OWNER_EMAIL),context('member@example.com')])await assertFails(setDoc(doc(ctx.firestore(),'rewardSettings/daily'),{enabled:true}));
+ await assertFails(setDoc(doc(context('member@example.com').firestore(),'testAccounts/member/packs/fake'),{packId:'ultimate',status:'available'}));
+});

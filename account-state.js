@@ -1,6 +1,6 @@
 (() => {
   const client = window.RipprFirebase;
-  const state = window.RIPPR_ACCOUNT = { user:null, ready:false, error:null, wallet:null, items:[], activity:[], accountReady:false, accountError:null, freeTopups:false };
+  const state = window.RIPPR_ACCOUNT = { user:null, ready:false, error:null, wallet:null, items:[], packs:[], activity:[], accountReady:false, accountError:null, freeTopups:false };
   let generation=0, request=0;
   const pendingOperations=new Map();
   const migratedNames=new Set();
@@ -21,7 +21,7 @@
           snapshot=await client.accountAction('snapshot',{accountUid:uid});
         }
         if (version!==generation || ticket!==request) return;
-        state.wallet=snapshot.account; state.items=snapshot.items; state.activity=snapshot.activity;
+        state.packs=snapshot.packs||[]; state.wallet=snapshot.account; state.items=snapshot.items; state.activity=snapshot.activity;
         state.freeTopups=snapshot.freeTopups; state.hasMore=snapshot.hasMore;
         state.accountReady=true; state.accountError=null;
       } catch(error) {
@@ -64,7 +64,7 @@
   if(!client){state.ready=true;state.error='Authentication could not load. Please reload.';return}
   client.observe(user=>{
     const changed=user?.uid!==state.user?.uid;
-    if(changed){generation++;request++;state.wallet=null;state.items=[];state.activity=[];state.accountReady=false;state.accountError=null;state.freeTopups=false}
+    if(changed){generation++;request++;state.wallet=null;state.packs=[];state.items=[];state.activity=[];state.accountReady=false;state.accountError=null;state.freeTopups=false}
     state.user=user;state.ready=true;state.error=null;emit('rippr:authchange');
     if(user&&changed)window.RipprAccount.refresh();
   },()=>{state.ready=true;state.error='Authentication could not load. Please reload.';emit('rippr:authchange')});

@@ -20,6 +20,10 @@
       {
         "source": "/profile",
         "destination": "/profile.html"
+      },
+      {
+        "source": "/rewards",
+        "destination": "/rewards.html"
       }
     ],
     "headers": [

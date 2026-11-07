@@ -16,7 +16,8 @@
     "deploy": "npm run build && firebase deploy --only hosting --project rippr-2b01c",
     "build:functions": "node scripts/build-functions.mjs",
     "test:accounts": "npm run build:functions && node tests/account-service.test.mjs",
-    "test:accounts:emulator": "firebase emulators:exec --only firestore --project demo-rippr 'node --test tests/account-service.test.mjs'"
+    "test:accounts:emulator": "firebase emulators:exec --only firestore --project demo-rippr 'node --test tests/account-service.test.mjs'",
+    "test:rewards": "npm run build:functions && node tests/rewards.test.mjs"
   },
   "dependencies": {
     "firebase": "13.2.0"

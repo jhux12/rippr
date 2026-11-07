@@ -18,7 +18,7 @@ The static frontend builds to `dist/` and serves on `127.0.0.1:3000`. `src/fireb
 
 ## Account backend setup — required for live wallets and saved items
 
-The public web configuration targets **rippr-2b01c**. The profile is `/profile` or `/profile.html`. The frontend uses the `ripprAccount` callable Function in **us-central1**, which verifies Firebase Authentication automatically. Static deployment alone does not deploy this backend.
+The public web configuration targets **rippr-2b01c**. The profile is `/profile` or `/profile.html`. Daily rewards are `/rewards` or `/rewards.html`. The frontend uses the `ripprAccount` callable Function in **us-central1**, which verifies Firebase Authentication automatically. Static deployment alone does not deploy this backend.
 
 From a terminal with project-owner Firebase access:
 
@@ -47,6 +47,35 @@ The server parameter `FREE_TEST_TOPUPS` defaults to `true`, enabling the tempora
 - All account state lives under `testAccounts/{uid}` with `items`, `activity`, `operations` and `shipments` subcollections. Clients can read only their own test records and **cannot write balances, winnings or statuses directly**. The authenticated callable Function performs all writes. Test data is intentionally separate from any future real-money ledger.
 
 This is a test economy, not a real-money payment, cash withdrawal or physical-prize service. Do not promote its balances/items into real value automatically. Account services report an error if the backend has not been deployed; they do not substitute localStorage for saved Firebase accounts.
+
+## Daily rewards and unopened pack inventory
+
+`/rewards` (also `/rewards.html`) uses the approved Pip/case artwork and horizontal prize reel. Rewards is linked from desktop and mobile navigation. Displayed prizes/odds come from the saved reward configuration; the reel animates to the result selected by the server, never a browser-selected prize.
+
+**Testing mode is enabled by default: no 24-hour wait.** Under **Admin → Daily rewards**, turn off **Testing: no cooldown** and save to enforce one claim per rolling 24 hours. The cooldown uses server time. Turning the bypass back on ignores an existing cooldown for testing. Turning it off restores normal cooldown enforcement; the next eligible successful claim starts a fresh 24-hour wait. Duplicate network retries always return the original award, even with the bypass enabled. The earlier deposit-unlock requirement is still deferred; test top-ups do not qualify as deposits or affect eligibility.
+
+The verified owner can add/remove up to 20 prizes, choose balance credit ($0.01–$1,000) or any of the five pack tiers, edit each prize's odds to two decimal places, pause rewards, and toggle testing mode. Odds must sum to exactly 100%; zero-odds prizes are not offered. Version checks prevent stale admin saves and claims using stale displayed odds. Server-side owner claims authorize settings writes, not UI visibility or browser profile fields. Only the callable Function writes `rewardSettings/daily`; the document is publicly readable display data.
+
+Default odds: $0.25 credit 40%, $0.50 credit 30%, $1 credit 20%, Basic pack 8%, Plus pack 2%. Defaults apply only until the owner saves a configuration. Credit awards immediately update test balance. Pack awards are saved under `testAccounts/{uid}/packs` and displayed as **Unopened packs** on the profile. They are separate from collectible cards and cannot be sold/shipped as cards.
+
+Opening an inventory pack navigates to the regular opening screen with a single pack, current odds/grails and normal foil animation. The Function atomically consumes the owned pack and saves one card with a **zero balance debit**. A pack cannot be opened twice, substituted for another tier, or opened by another account. Failed catalog/enablement checks leave it unopened. Cards are saved before animation, so interrupted reveals do not lose winnings. Won packs use their tier's current saved contents when opened. The profile currently displays the most recent 200 pack records, alongside the latest 200 cards.
+
+**Upgrade requires both the updated Function and Firestore rules:**
+
+```sh
+git pull origin main
+npm ci
+npm ci --prefix functions
+npx firebase deploy --only functions:ripprAccount,firestore:rules --project rippr-2b01c
+```
+
+Use the existing authenticated Firebase terminal/Cloud Shell. Redeploy the latest static frontend as usual. No deployment was performed from this workspace, which has no Firebase admin credentials. No new Function name, billing provider or secrets are needed. The Functions predeploy step synchronizes both catalog and rewards models.
+
+```sh
+npm run test:rewards
+```
+
+This suite checks weighted boundaries, admin permissions, configuration conflicts, claim idempotency, cooldown boundaries, concurrency, credit awards, pack persistence, zero-cost opening, ownership/tier checks, one-time consumption, catalog failures, and enabling/disabling the testing cooldown bypass. It uses the actual service with the strict transactional fixture described below; official Firestore Rules emulator verification remains blocked by the emulator download policy here. Browser checks use an explicit SDK fixture routed to the actual account service with the transactional fixture. They cover repeat test claims, unopened inventory, foil ripping with no balance debit, admin saves/invalid totals, cooldown restoration, lost-response retries, guest/error states, and layouts at 320/390/768/1024/1440 px. They make no production requests.
 
 ## Firebase Authentication
 
@@ -101,12 +130,12 @@ Emulators are supported only on local development hosts. Ports: Auth 9099, Fires
 
 ## Deployment and offline previews
 
-Vercel uses the repository root, `npm ci`, `npm run build` and output directory `dist/`. Rewrites support `/admin` and `/profile`. Firebase Hosting uses the same `dist/` directory; `npm run deploy` builds and deploys Hosting only. Neither static deploy automatically publishes Functions/rules.
+Vercel uses the repository root, `npm ci`, `npm run build` and output directory `dist/`. Rewrites support `/admin`, `/profile` and `/rewards`. Firebase Hosting uses the same `dist/` directory; `npm run deploy` builds and deploys Hosting only. Neither static deploy automatically publishes Functions/rules.
 
 ```sh
 python3 scripts/export-previews.py /workspace/downloads
 ```
 
-Exports four standalone HTML previews and `rippr-site.zip`. Keep the previews together. Offline previews do not contact Firebase; pack reveals are explicitly offline design previews and the profile shows the sign-in gate. The source ZIP includes Functions source/lockfile but excludes dependency directories, environment files, credentials, CLI logs and deployment outputs.
+Exports five standalone HTML previews and `rippr-site.zip`. Keep the previews together. Offline previews do not contact Firebase; pack reveals are explicitly offline design previews and the profile shows the sign-in gate. The source ZIP includes Functions source/lockfile but excludes dependency directories, environment files, credentials, CLI logs and deployment outputs.
 
 Manrope and its OFL license are bundled locally. Pack/grail SVGs contain the approved raster art, not vector masters.
