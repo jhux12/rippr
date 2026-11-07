@@ -55,7 +55,7 @@
     dialogTrigger = button;
     setMenu(false);
     content.innerHTML = button.dataset.navDialog === 'collection'
-      ? '<h2 id="nav-dialog-title">Your collection</h2><p>Saved collections are coming soon. For now, try a demo pack and view your cards after opening.</p>'
+      ? `<div class="pip-dialog-intro"><img class="pip-dialog-portrait" src="${window.RIPPR_MASCOT_URLS?.hover||'assets/mascot/pip-hover.png'}" alt="" width="72" height="72"><h2 id="nav-dialog-title">Your collection</h2></div><p>Saved collections are coming soon. For now, try a demo pack and view your cards after opening.</p>`
       : '<h2 id="nav-dialog-title">How it works</h2><ol><li>Choose one of five pack tiers.</li><li>Select how many packs to open.</li><li>Rip the foil to reveal one card per pack.</li></ol><p>Openings are free demos. No payments or physical cards are involved.</p>';
     const explore = document.createElement('a');
     explore.className = 'nav-dialog-action';

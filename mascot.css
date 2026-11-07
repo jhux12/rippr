@@ -1,0 +1,43 @@
+/* Pip shares the logo's four-point silhouette and stays clear of page controls. */
+.pip-mascot { display:block; height:auto; object-fit:contain; pointer-events:none; user-select:none; -webkit-user-drag:none; }
+.hero-pip {
+  position:absolute; z-index:4; left:-44px; bottom:7px; width:176px; height:176px;
+  filter:drop-shadow(0 7px 12px #00dbea18);
+  animation:pip-hover 7.5s ease-in-out infinite;
+}
+.hero.is-paused .hero-pip { animation-play-state:paused; }
+.auth-pack-fan .auth-pack { top:34px; height:210px; }
+.auth-pack-fan .auth-pack-left { transform:translateX(-135%) rotate(-14deg); }
+.auth-pack-fan .auth-pack-right { transform:translateX(35%) rotate(14deg); }
+.auth-pip {
+  position:absolute; left:50%; top:0; z-index:3; width:240px; height:240px;
+  transform:translateX(-50%); filter:drop-shadow(0 6px 15px #00dbea18);
+}
+.pip-dialog-intro { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+.pip-dialog-portrait { display:block; width:72px; height:72px; flex:none; object-fit:contain; pointer-events:none; }
+#nav-dialog .pip-dialog-intro h2 { margin:0; padding:0; font-size:23px; }
+.collection-empty .pip-empty { width:82px; height:82px; margin:0 auto 6px; }
+.results-heading { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:14px; }
+.results-heading #result-title { margin:0; }
+.result-pip { width:70px; height:70px; flex:none; }
+.results.visible .result-pip { animation:pip-celebrate-in .6s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes pip-hover { 0%,100% { translate:0 0; } 50% { translate:0 -4px; } }
+@keyframes pip-celebrate-in { from { opacity:0; transform:translateY(7px) rotate(-8deg) scale(.9); } to { opacity:1; transform:none; } }
+@media(max-width:1000px) and (min-width:701px) { .hero-pip { left:-30px; width:150px; height:150px; } }
+@media(max-width:900px) and (min-width:681px) {
+  .auth-pip { width:212px; height:212px; }
+  .auth-pack-fan .auth-pack { height:185px; top:32px; }
+}
+@media(max-width:700px) {
+  .hero-pip { width:100px; height:100px; left:-62px; bottom:-2px; }
+  .result-pip { width:56px; height:56px; }
+  .results-heading { gap:9px; }
+}
+@media(max-width:680px) {
+  .auth-pip { width:92px; height:92px; top:-5px; }
+  .auth-pack-fan .auth-pack { height:68px; top:12px; }
+}
+@media(max-width:370px) { .hero-pip { width:88px; height:88px; left:-43px; bottom:0; } }
+@media(prefers-reduced-motion:reduce) {
+  .hero-pip,.results.visible .result-pip { animation:none; translate:0 0; }
+}

@@ -103,6 +103,7 @@
   });
   function heroSchedule(){
     clearInterval(heroTimer);
+    hero.classList.toggle('is-paused',heroPaused||heroHovered||document.hidden||modal.open||navigationBusy);
     heroRotation.textContent=heroPaused?'Play':'Pause';
     heroRotation.setAttribute('aria-label',heroPaused?'Play banners':'Pause banners');
     heroStatus.setAttribute('aria-live',heroPaused?'polite':'off');
@@ -154,7 +155,7 @@
     if (button.dataset.dialog === 'how') {
       show('<div class="modal-kicker">ONE PACK. ONE CARD.</div><h2 id="modal-title">How it works</h2><ol><li>Choose a pack.</li><li>Select how many to open.</li><li>Reveal one concept card per pack.</li></ol><p>Openings are free demos. No purchase, real-world items, or monetary value.</p><button class="primary-button" data-explore>Explore packs</button>', button);
     } else if (button.dataset.dialog === 'collection') {
-      show('<h2 id="modal-title">Your collection</h2><div class="collection-empty"><span aria-hidden="true">✧</span><p>A little room for discovery.</p></div><p>Saved collections are coming soon. For now, enjoy a demo opening and view your cards at the end.</p><button class="primary-button" data-explore>Explore packs</button>', button);
+      show(`<h2 id="modal-title">Your collection</h2><div class="collection-empty"><img class="pip-mascot pip-empty" src="${window.RIPPR_MASCOT_URLS?.hover||'assets/mascot/pip-hover.png'}" alt="" width="82" height="82"><p>A little room for discovery.</p></div><p>Saved collections are coming soon. For now, enjoy a demo opening and view your cards at the end.</p><button class="primary-button" data-explore>Explore packs</button>`, button);
     } else {
       location.href = 'auth.html?mode=login';
       return;
