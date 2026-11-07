@@ -9,11 +9,14 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "serve": "python3 -m http.server 3000 --bind 127.0.0.1 --directory dist",
-    "emulators": "firebase emulators:start --only auth,firestore,storage --project demo-rippr",
+    "emulators": "firebase emulators:start --only auth,firestore,storage,functions --project demo-rippr",
     "test": "node tests/catalog-model.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-rippr 'node tests/firebase-rules.test.mjs'",
     "deploy:rules": "firebase deploy --only firestore:rules,storage --project rippr-2b01c",
-    "deploy": "npm run build && firebase deploy --only hosting --project rippr-2b01c"
+    "deploy": "npm run build && firebase deploy --only hosting --project rippr-2b01c",
+    "build:functions": "node scripts/build-functions.mjs",
+    "test:accounts": "npm run build:functions && node tests/account-service.test.mjs",
+    "test:accounts:emulator": "firebase emulators:exec --only firestore --project demo-rippr 'node --test tests/account-service.test.mjs'"
   },
   "dependencies": {
     "firebase": "13.2.0"

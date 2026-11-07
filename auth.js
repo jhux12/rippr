@@ -162,7 +162,7 @@
   const dialog = $('#policy-dialog');
   document.querySelectorAll('[data-policy]').forEach(button => button.addEventListener('click', () => {
     policyTrigger = button; const privacy = button.dataset.policy === 'privacy'; $('#policy-title').textContent = privacy ? 'Privacy Policy' : 'Terms';
-    $('#policy-copy').textContent = privacy ? 'Email and password sign-in is handled by Firebase Authentication. Passwords are not saved in this site’s code. A full privacy policy is still being prepared.' : 'Published terms are still being prepared. Pack openings are demos and do not include payments or physical cards.';
+    $('#policy-copy').textContent = privacy ? 'Email and password sign-in is handled by Firebase Authentication. Passwords are not saved in this site’s code. A full privacy policy is still being prepared.' : 'Published terms are still being prepared. Test credit is free and has no cash value. Items and shipping requests are tests; no payment or physical dispatch is processed.';
     dialog.showModal();
   }));
   $('#policy-close').addEventListener('click', () => dialog.close()); dialog.addEventListener('close', () => policyTrigger?.focus());

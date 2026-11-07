@@ -146,3 +146,4 @@
   .stage-orbit-light.orbit-light-two { stroke-dashoffset:-620; }
   .foil-glint::before,.foil-glint::after { opacity:.75; }
 }
+.result-profile-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px}.result-profile-actions .text-button{margin:0;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-size:13px;min-height:42px}

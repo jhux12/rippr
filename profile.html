@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080e17"><title>Your profile — rippr</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="navigation.css?v=2"><link rel="stylesheet" href="mascot.css"><link rel="stylesheet" href="profile.css">
+<script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="account-state.js" defer></script><script src="navigation.js" defer></script><script src="catalog.js" defer></script><script src="profile.js" defer></script></head><body>
+<a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-navigation">
+    <div class="nav-shell">
+      <a class="nav-brand" href="index.html" aria-label="rippr home"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg><span>rippr</span></a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a class="nav-link" href="index.html#packs" data-nav-packs>Packs</a>
+        <button class="nav-link" type="button" data-nav-dialog="collection" aria-current="page">Collection</button>
+        <button class="nav-link" type="button" data-nav-dialog="how">How it works</button>
+      </nav>
+      <div class="nav-actions">
+        <a class="nav-login" href="auth.html?mode=login">Log in</a>
+        <a class="nav-signup" href="auth.html?mode=signup">Sign up</a>
+        <button class="nav-toggle" id="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-navigation" aria-label="Open navigation menu" hidden><svg class="nav-hamburger" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="nav-close-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
+      </div>
+    </div>
+    <nav id="mobile-navigation" class="mobile-navigation" aria-label="Mobile navigation" hidden>
+      <a href="index.html#packs" data-nav-packs>Packs</a>
+      <button type="button" data-nav-dialog="collection" aria-current="page">Collection</button>
+      <button type="button" data-nav-dialog="how">How it works</button>
+      <a href="auth.html?mode=login">Log in</a>
+    </nav>
+    <dialog id="nav-dialog" class="nav-dialog" aria-labelledby="nav-dialog-title"><button class="nav-dialog-close" type="button" aria-label="Close dialog">×</button><div id="nav-dialog-content"></div></dialog>
+  </header>
+<main id="main" class="profile-shell">
+<section id="profile-gate" class="profile-gate"><img data-pip="welcome" src="assets/mascot/pip-welcome.png" class="gate-pip" alt="Pip waving hello" width="110" height="110"><h1>Your next great collection.</h1><p id="gate-message" role="status">Loading your account…</p><a id="gate-login" class="button primary" href="auth.html?mode=login" hidden>Log in</a><button id="retry-account" class="button" hidden>Retry</button></section>
+<div id="profile-content" hidden>
+<section class="profile-identity" aria-labelledby="profile-name"><img class="profile-avatar" data-pip="welcome" src="assets/mascot/pip-welcome.png" alt="Your Pip avatar" width="112" height="112"><div class="identity-copy"><h1 id="profile-name">Collector</h1><p id="profile-handle"></p><span class="verified-badge" id="profile-verified" hidden><span aria-hidden="true">✓</span> Verified</span></div><img data-pip="welcome" src="assets/mascot/pip-welcome.png" class="identity-watermark" alt="" aria-hidden="true" width="240" height="240"><button id="edit-profile" class="button edit-profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15Z"/></svg><span>Edit profile</span></button></section>
+<section class="profile-stats" aria-label="Collection statistics"><div><strong id="stat-packs">0</strong><span>Packs opened</span></div><div><strong id="stat-cards">0</strong><span>Cards collected</span></div><div><strong id="stat-grails">0</strong><span>Grails found</span></div></section>
+<div class="profile-tabs" role="tablist" aria-label="Profile sections"><button id="tab-collection" role="tab" aria-selected="true" aria-controls="panel-collection">Collection</button><button id="tab-activity" role="tab" aria-selected="false" aria-controls="panel-activity" tabindex="-1">Activity</button><button id="tab-settings" role="tab" aria-selected="false" aria-controls="panel-settings" tabindex="-1">Settings</button></div>
+<section id="panel-collection" role="tabpanel" aria-labelledby="tab-collection" tabindex="0"><h2>Your items</h2><div class="collection-toolbar"><div class="item-filters" role="group" aria-label="Item status"><button data-filter="available" aria-pressed="true">Available</button><button data-filter="shipping" aria-pressed="false">Shipping</button><button data-filter="sold" aria-pressed="false">Sold</button></div><button class="button mobile-search-toggle" id="toggle-item-search" aria-label="Search your items" aria-expanded="false" aria-controls="collection-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button><label class="collection-search" id="collection-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="search" id="item-search" placeholder="Search your items" aria-label="Search your items"></label><button id="select-items" class="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" stroke-dasharray="3 2"/></svg><span>Select items</span></button></div><p class="collection-note">Free test items · sales credit your test balance.</p><p id="item-count" class="sr-only" role="status"></p><div id="items-grid" class="items-grid" aria-live="polite"></div><p id="more-items" class="collection-note" hidden>Showing your latest 200 items.</p><div id="bulk-actions" class="bulk-actions" hidden><strong id="selected-count">0 selected</strong><div><button id="bulk-ship" class="button">Ship selected</button><button id="bulk-sell" class="button primary">Sell</button></div></div></section>
+<section id="panel-activity" role="tabpanel" aria-labelledby="tab-activity" tabindex="0" hidden><h2>Activity</h2><div id="activity-list" class="activity-list"></div></section>
+<section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden><h2>Settings</h2><div class="settings-card"><div><h3>Account</h3><p id="settings-email"></p></div><a class="button" href="auth.html?mode=login">Manage sign-in</a></div><div class="settings-card"><div><h3>Free test balance</h3><p>No cash value. Shipping requests are tests.</p></div><button class="button" id="settings-topup">Top up</button></div><button class="button" id="profile-signout">Log out</button></section>
+<p id="profile-status" role="status" class="profile-status" tabindex="-1" hidden></p>
+</div></main>
+<dialog id="edit-dialog" class="profile-dialog" aria-labelledby="edit-title"><button type="button" class="dialog-close" data-close aria-label="Close edit profile">×</button><h2 id="edit-title">Edit profile</h2><form id="edit-form"><label for="edit-name">Display name</label><input id="edit-name" maxlength="40" required autocomplete="nickname"><label for="edit-handle">Handle</label><input id="edit-handle" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" required autocomplete="off" aria-describedby="handle-help"><p id="handle-help">3–24 letters, numbers or underscores.</p><p id="edit-error" role="alert" hidden></p><button class="button primary" type="submit">Save changes</button></form></dialog>
+<dialog id="item-dialog" class="profile-dialog" aria-labelledby="item-dialog-title"><button type="button" class="dialog-close" data-close aria-label="Close item action">×</button><h2 id="item-dialog-title"></h2><p id="item-dialog-description"></p><p id="action-error" role="alert" hidden></p><div class="dialog-actions"><button class="button" data-close>Cancel</button><button class="button primary" id="confirm-action">Confirm</button></div></dialog>
+</body></html>

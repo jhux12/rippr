@@ -55,3 +55,17 @@ test('card upload rules reject non-owners, SVGs, oversized files and overwrites'
   await assertFails(uploadBytes(ref(storage,'card-images/large.png'),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
   await assertFails(uploadBytes(ref(storage,'card-images/owner-test.png'),bytes,{contentType:'image/png'}));
 });
+
+test('members can read only their test account and cannot mint balances or winnings', async () => {
+  await env.withSecurityRulesDisabled(async ctx => {
+    await setDoc(doc(ctx.firestore(),'testAccounts/member'),{balanceCents:1000});
+    await setDoc(doc(ctx.firestore(),'testAccounts/member/items/example'),{name:'Test card'});
+  });
+  const member=context('member@example.com').firestore();
+  await assertSucceeds(getDoc(doc(member,'testAccounts/member')));
+  await assertSucceeds(getDoc(doc(member,'testAccounts/member/items/example')));
+  for(const ctx of [env.unauthenticatedContext(),context(OWNER_EMAIL)]) await assertFails(getDoc(doc(ctx.firestore(),'testAccounts/member')));
+  await assertFails(setDoc(doc(member,'testAccounts/member'),{balanceCents:1000000}));
+  await assertFails(setDoc(doc(member,'testAccounts/member/items/fake'),{name:'Forged winning'}));
+  await assertFails(setDoc(doc(member,'testAccounts/member/operations/fake'),{result:{balanceCents:999999}}));
+});

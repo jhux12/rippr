@@ -7,7 +7,8 @@ import {
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { OWNER_EMAIL, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack } from './catalog-model.js';
+import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
+import { OWNER_EMAIL, DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack } from './catalog-model.js';
 
 const app = initializeApp(window.RIPPR_FIREBASE_CONFIG);
 const auth = initializeAuth(app, {
@@ -24,7 +25,7 @@ if (window.RIPPR_FIREBASE_EMULATOR_URL) {
 }
 
 function userInfo(user) {
-  return user ? { uid: user.uid, email: user.email, displayName: user.displayName, emailVerified: user.emailVerified, isAdmin: isAdminUser(user) } : null;
+  return user ? { uid: user.uid, email: user.email, displayName: user.displayName, photoURL:user.photoURL, emailVerified: user.emailVerified, isAdmin: isAdminUser(user) } : null;
 }
 export const ready = auth.authStateReady();
 // Pages observing auth state may not await readiness; keep load errors handled.
@@ -99,7 +100,23 @@ async function requireAdmin() {
 export async function loadPackContents(packId) {
   assertPackId(packId);
   const snapshot = await getDoc(doc(getDatabase(), 'packContents', packId));
-  return snapshot.exists() ? readStoredPack(snapshot.data()) : defaultPack(packId);
+  const pack = snapshot.exists() ? readStoredPack(snapshot.data()) : defaultPack(packId);
+  return { ...pack, priceCents:pack.priceCents ?? DEFAULT_PRICES[packId] };
+}
+
+let functions;
+export async function accountAction(action, data = {}, operationId) {
+  await ready;
+  if (!auth.currentUser) throw Object.assign(new Error('Log in to use your account.'), { code:'functions/unauthenticated' });
+  if (!functions) {
+    functions = getFunctions(app, 'us-central1');
+    if (window.RIPPR_FUNCTIONS_EMULATOR_URL) {
+      const url = localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);
+      connectFunctionsEmulator(functions, url.hostname, Number(url.port));
+    }
+  }
+  const call = httpsCallable(functions, 'ripprAccount', { timeout:30000 });
+  return (await call({ action, ...data, ...(operationId ? { operationId } : {}) })).data;
 }
 export async function savePackContents(packId, pack, expectedVersion) {
   assertPackId(packId);

@@ -12,7 +12,7 @@ const dist = resolve(root, 'dist');
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 // Only site files are deployed. Never publish repository metadata or tooling.
-for (const file of ['index.html', 'opening.html', 'auth.html', 'style.css', 'auth.css',
+for (const file of ['index.html', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'style.css', 'auth.css',
   'app.js', 'auth.js', 'opening.js', 'opening-stage.css', 'mascot.css', 'packs.js', 'navigation.css', 'navigation.js',
   'firebase-config.js', 'firebase-client.js', 'account-state.js', 'catalog.js', 'admin', 'assets']) {
   await cp(resolve(root, file), resolve(dist, file), { recursive: true });

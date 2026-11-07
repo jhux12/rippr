@@ -23,7 +23,7 @@ const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDig
 const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 const rarityBadge=name=>`<span class="rarity-badge" style="--rarity-color:${catalog.RARITIES.find(rarity=>rarity.name===name).color}"><span class="rarity-dot" aria-hidden="true"></span>${escape(name)}</span>`;
 const rare=card=>!['Common','Uncommon'].includes(card.rarity);
-function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||state!=='idle'}
+function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||state!=='idle';label()}
 function renderContents(note){
  const table=$('.odds-table-panel table');
  table.querySelector('thead').innerHTML='<tr><th scope="col">Rarity</th><th scope="col">Chance</th><th scope="col">Min value</th><th scope="col">Max value</th></tr>';
@@ -37,19 +37,21 @@ function renderContents(note){
 }
 async function loadContents(){
  try{
-  if(window.RIPPR_AUTH_OFFLINE){renderContents('Demo contents · one card per pack');return}
+  if(window.RIPPR_AUTH_OFFLINE){renderContents('Offline design preview · one card per pack');contentsReady=true;return}
   contents=await Promise.race([window.RipprFirebase.loadPackContents(selectedPack.id),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Catalog timeout')),6000))]);
-  renderContents(contents.source==='firebase'?'Demo odds · one card per pack':'Demo contents · one card per pack');
- }catch{renderContents('Saved contents unavailable · demo defaults')}
- finally{contentsReady=true;if(!contents.enabled)phase.textContent='This pack is currently unavailable.';updateOpen()}
+  renderContents('One card per pack · free test balance');
+  contentsReady=true;
+ }catch{phase.textContent='Pack contents could not load. Reload to try again.';renderContents('Contents unavailable')}
+ finally{if(!contents.enabled)phase.textContent='This pack is currently unavailable.';updateOpen()}
 }
 document.addEventListener('DOMContentLoaded',loadContents,{once:true});
-function label(){openButton.textContent='Demo open'+(contents.priceCents==null?'  ✦':' · '+money.format(contents.priceCents*quantity/100))}
+function label(){openButton.textContent=(window.RIPPR_AUTH_OFFLINE?'Preview open':window.RIPPR_ACCOUNT?.user?'Open':'Log in to open')+' · '+money.format(contents.priceCents*quantity/100)}
+document.addEventListener('rippr:authchange',()=>{if(state!=='idle')resetOpening();label()});
 quantityButtons.forEach(button=>button.addEventListener('click',()=>{if(state!=='idle')return;quantity=Number(button.dataset.qty);quantityButtons.forEach(b=>{b.classList.toggle('selected',b===button);b.setAttribute('aria-pressed',String(b===button))});label()}));
 function randomUnit(){const v=new Uint32Array(1);crypto.getRandomValues(v);return v[0]/4294967296}
 function makeDeck(){return Array.from({length:quantity},(_,p)=>{const card=catalog.drawItem(contents.items,randomUnit());return {...card,pack:p+1,tone:catalog.RARITIES.find(r=>r.name===card.rarity).color}})}
 function renderCard(){const c=deck[cursor];arena.style.setProperty('--reveal-tone',c.tone);stage.innerHTML=`${rare(c)?'<div class="rare-halo" aria-hidden="true"></div>':''}<div class="reveal-meta">Pack ${c.pack} / ${quantity}</div><div class="spotlight-card ${rare(c)?'rare':''}" style="--tone:${c.tone}">${rarityBadge(c.rarity)}<img class="revealed-art" src="${escape(cardImage(c))}" alt="${escape(c.name)}"><strong>${escape(c.name)}</strong></div><div class="progress-track" aria-hidden="true"><span style="width:${(cursor+1)/deck.length*100}%"></span></div><p class="pack-counter">${cursor+1} / ${deck.length} ${deck.length===1?'CARD':'CARDS'}</p><div class="reveal-actions"><button id="next">${cursor===deck.length-1?(deck.length===1?'View card ↗':'View all cards ↗'):'Reveal next →'}</button><button id="skip" class="quiet" ${deck.length===1?'hidden':''}>Reveal all</button></div>`;announcement.textContent=`Card ${cursor+1} of ${deck.length}: ${c.rarity}, ${c.name}.`;$('#next').addEventListener('click',()=>{if(state!=='revealing')return;if(cursor<deck.length-1){cursor++;prepareRip()}else finish()});$('#skip').addEventListener('click',finish);$('#next').focus({preventScroll:true})}
-function finish(){if(state!=='revealing')return;state='complete';$('.showcase').hidden=true;stage.hidden=true;arena.classList.remove('is-revealing');display.style.visibility='hidden';cards.innerHTML='';deck.forEach((c,i)=>{const article=document.createElement('article');article.className='result-card';article.style.setProperty('--tone',c.tone);article.style.animationDelay=`${Math.min(i,12)*.025}s`;article.innerHTML=`${rarityBadge(c.rarity)}<img class="revealed-art" src="${escape(cardImage(c))}" alt="${escape(c.name)}"><strong>${escape(c.name)}</strong>`;cards.append(article)});results.classList.add('visible');$('#summary').textContent=`${deck.length} cards. Demo results are not saved.`;$('#result-title').textContent=deck.length===1?'Your card':'Your cards';phase.textContent='';announcement.textContent=`Opening complete. ${deck.length} cards revealed.`;$('#result-title').focus({preventScroll:true});results.scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'})}
+function finish(){if(state!=='revealing')return;state='complete';$('.showcase').hidden=true;stage.hidden=true;arena.classList.remove('is-revealing');display.style.visibility='hidden';cards.innerHTML='';deck.forEach((c,i)=>{const article=document.createElement('article');article.className='result-card';article.style.setProperty('--tone',c.tone);article.style.animationDelay=`${Math.min(i,12)*.025}s`;article.innerHTML=`${rarityBadge(c.rarity)}<img class="revealed-art" src="${escape(cardImage(c))}" alt="${escape(c.name)}"><strong>${escape(c.name)}</strong>`;cards.append(article)});results.classList.add('visible');$('#summary').textContent=window.RIPPR_AUTH_OFFLINE?'Offline preview. Results are not saved.':`${deck.length} card${deck.length===1?'':'s'} saved to your items.`;$('#result-title').textContent=deck.length===1?'Your card':'Your cards';phase.textContent='';announcement.textContent=`Opening complete. ${deck.length} cards revealed.`;$('#result-title').focus({preventScroll:true});results.scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'})}
 const shell=$('#pack-shell'),ripButton=$('#rip-foil');
 let drag=null,progress=0;
 const packImage=new Image();openButton.disabled=true;
@@ -77,8 +79,27 @@ ripButton.addEventListener('pointercancel',()=>{drag=null;setRip(0)});
 ripButton.addEventListener('lostpointercapture',()=>{if(drag){drag=null;setRip(0)}});
 ripButton.addEventListener('click',event=>{if(event.detail===0)completeRip()});
 ripButton.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){event.preventDefault();setRip(progress+.25);if(progress>=1)completeRip()}else if(event.key==='ArrowLeft'){event.preventDefault();setRip(progress-.25)}});
-openButton.addEventListener('click',()=>{if(state!=='idle'||!contentsReady||!contents.enabled)return;deck=makeDeck();cursor=0;quantityButtons.forEach(b=>b.disabled=true);openButton.disabled=true;controls.classList.add('is-busy');results.classList.remove('visible');prepareRip()});
-$('#again').addEventListener('click',()=>{clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;arena.classList.remove('zoomed');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);openButton.disabled=false;phase.textContent='';label();announcement.textContent='Ready for another opening.';openButton.focus({preventScroll:true});$('.heading').scrollIntoView({behavior:reduced()?'instant':'smooth'})});
+openButton.addEventListener('click',async()=>{
+ if(state!=='idle'||!contentsReady||!contents.enabled)return;
+ if(!window.RIPPR_AUTH_OFFLINE&&!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login';return}
+ const uid=window.RIPPR_ACCOUNT?.user?.uid;
+ state='purchasing';quantityButtons.forEach(b=>b.disabled=true);openButton.disabled=true;controls.classList.add('is-busy');results.classList.remove('visible');phase.textContent='Opening…';
+ try{
+  if(window.RIPPR_AUTH_OFFLINE)deck=makeDeck();
+  else{
+   const purchase=await window.RipprAccount.act('purchase',{packId:selectedPack.id,quantity,expectedPriceCents:contents.priceCents,expectedVersion:contents.version});
+   if(uid!==window.RIPPR_ACCOUNT?.user?.uid)return;
+   deck=purchase.cards.map(card=>({...card,tone:catalog.RARITIES.find(r=>r.name===card.rarity).color}));
+  }
+  cursor=0;prepareRip();
+ }catch(error){
+  if(uid!==window.RIPPR_ACCOUNT?.user?.uid)return;
+  state='idle';quantityButtons.forEach(b=>b.disabled=false);controls.classList.remove('is-busy');phase.textContent=window.RipprAccount?.errorMessage(error)||'Opening is unavailable.';updateOpen();
+  if(error.code==='functions/resource-exhausted')document.querySelector('.topup-trigger')?.click();
+ }
+});
+function resetOpening(){clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;arena.classList.remove('zoomed');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
+$('#again').addEventListener('click',()=>{resetOpening();openButton.focus({preventScroll:true});$('.heading').scrollIntoView({behavior:reduced()?'instant':'smooth'})});
 
 // Ambient animation runs only while the stage is visible and navigation is clear.
 (() => {

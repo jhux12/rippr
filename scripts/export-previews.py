@@ -54,7 +54,7 @@ window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>null,observe:cb=>{
 createAccount:()=>Promise.reject({code:'auth/offline-preview'}),signInEmail:()=>Promise.reject({code:'auth/offline-preview'}),
 signInGoogle:()=>Promise.reject({code:'auth/offline-preview'}),resetPassword:()=>Promise.reject({code:'auth/offline-preview'}),
 signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'})};"""
-    mascot_poses = ['hover'] + [pose for pose in ['welcome', 'celebrate'] if 'data-pip="' + pose + '"' in text]
+    mascot_poses = ['hover', 'welcome'] + [pose for pose in ['celebrate'] if 'data-pip="' + pose + '"' in text]
     mascot_urls = {pose: uri(ROOT / ('assets/mascot/pip-' + pose + '.png'), 'image/png') for pose in mascot_poses}
     offline_auth += 'window.RIPPR_MASCOT_URLS=' + json.dumps(mascot_urls) + ';'
     offline_auth += "document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('img[data-pip]').forEach(img=>{img.src=window.RIPPR_MASCOT_URLS[img.dataset.pip];}));"
@@ -67,10 +67,10 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     text = text.replace('<script src="catalog.js"></script>', '<script>' + (ROOT / 'catalog.js').read_text() + '</script>')
     text = text.replace('</body>', '<script>' + (ROOT / 'navigation.js').read_text() + '</script></body>')
     text = text.replace('href="assets/favicon.svg"', 'href="' + uri(ROOT / 'assets/favicon.svg', 'image/svg+xml') + '"')
-    filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html'}
+    filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html', 'profile.html': 'rippr-profile.html'}
     # Rewrite complete relative filenames once, including query/hash links. Do not
     # rewrite an already exported filename such as rippr-opening.html again.
-    text = re.sub(r'(?<![\w-])(?:index|opening|auth)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
+    text = re.sub(r'(?<![\w-])(?:index|opening|auth|profile)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
     return text
 
 
@@ -101,20 +101,27 @@ auth_js = (ROOT / 'auth.js').read_text()
 auth = auth.replace('</body>', '<script>' + bootstrap + '</script><script>' + auth_js + '</script></body>')
 (OUT / 'rippr-auth.html').write_text(common(auth))
 
+profile = (ROOT / 'profile.html').read_text()
+profile = profile.replace('<link rel="stylesheet" href="profile.css">', '<style>' + (ROOT / 'profile.css').read_text() + '</style>')
+profile = profile.replace('<script src="catalog.js" defer></script>', '<script>' + (ROOT / 'catalog.js').read_text() + '</script>')
+profile = profile.replace('<script src="profile.js" defer></script>', '')
+profile = profile.replace('</body>', '<script>' + bootstrap + '</script><script>' + (ROOT / 'profile.js').read_text() + '</script></body>')
+(OUT / 'rippr-profile.html').write_text(common(profile))
+
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
-                    'index.html', 'opening.html', 'auth.html', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
+                    'index.html', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'style.css', 'auth.css', 'app.js', 'auth.js', 'packs.js',
                     'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'catalog.js', 'opening.js', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
-    for folder in ['scripts', 'src', 'assets', 'admin', 'tests']:
+    for folder in ['scripts', 'src', 'assets', 'admin', 'tests', 'functions']:
         for path in sorted((ROOT / folder).rglob('*')):
-            if path.is_file() and '__pycache__' not in path.parts:
+            if path.is_file() and not any(part in path.parts for part in ['__pycache__', 'node_modules']) and not path.name.startswith('.env'):
                 archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
-    for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html']:
+    for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html']:
         archive.write(OUT / name, 'previews/' + name)
 with zipfile.ZipFile(OUT / 'rippr-site.zip') as archive:
     assert archive.testzip() is None
-for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-site.zip']:
+for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-site.zip']:
     print(f'{name}: {(OUT / name).stat().st_size:,} bytes')

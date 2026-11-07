@@ -52,11 +52,10 @@
     announceState();
   }
   header.querySelectorAll('[data-nav-dialog]').forEach(button => button.addEventListener('click', () => {
+    if(button.dataset.navDialog==='collection'){ location.href='profile.html'; return; }
     dialogTrigger = button;
     setMenu(false);
-    content.innerHTML = button.dataset.navDialog === 'collection'
-      ? `<div class="pip-dialog-intro"><img class="pip-dialog-portrait" src="${window.RIPPR_MASCOT_URLS?.hover||'assets/mascot/pip-hover.png'}" alt="" width="72" height="72"><h2 id="nav-dialog-title">Your collection</h2></div><p>Saved collections are coming soon. For now, try a demo pack and view your cards after opening.</p>`
-      : '<h2 id="nav-dialog-title">How it works</h2><ol><li>Choose one of five pack tiers.</li><li>Select how many packs to open.</li><li>Rip the foil to reveal one card per pack.</li></ol><p>Openings are free demos. No payments or physical cards are involved.</p>';
+    content.innerHTML = '<h2 id="nav-dialog-title">How it works</h2><ol><li>Add free test credit to your account.</li><li>Choose a pack and open it using your balance.</li><li>Rip the foil. Your card is saved to your items.</li></ol><p>Test credit has no cash value. Shipping requests are tests.</p>';
     const explore = document.createElement('a');
     explore.className = 'nav-dialog-action';
     explore.href = packsTarget;
@@ -78,11 +77,14 @@
     const login = header.querySelector('.nav-login');
     const signup = header.querySelector('.nav-signup');
     login.hidden = Boolean(user);
-    signup.textContent = user ? 'Account' : 'Sign up';
-    signup.href = user ? 'auth.html?mode=login' : 'auth.html?mode=signup';
+    signup.classList.toggle('nav-profile',Boolean(user));
+    signup.replaceChildren();
+    if(user){const img=document.createElement('img');img.src=window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png';img.alt='';img.width=32;img.height=32;signup.append(img);signup.setAttribute('aria-label','Your profile');}
+    else {signup.textContent='Sign up';signup.removeAttribute('aria-label');}
+    signup.href = user ? 'profile.html' : 'auth.html?mode=signup';
     const mobileAccount = menu.querySelector('a:last-child');
-    mobileAccount.textContent = user ? 'Account' : 'Log in';
-    mobileAccount.href = 'auth.html?mode=login';
+    mobileAccount.textContent = user ? 'Your profile' : 'Log in';
+    mobileAccount.href = user ? 'profile.html' : 'auth.html?mode=login';
   }
   document.addEventListener('rippr:authchange', updateAccountLinks);
   updateAccountLinks();
@@ -95,14 +97,13 @@
   const actions = header?.querySelector('.nav-actions');
   if (!actions) return;
 
-  // Payment processing and an account wallet are not connected yet.
-  const demoBalanceCents = 0;
+  const initialBalanceCents = window.RIPPR_ACCOUNT?.wallet?.balanceCents || 0;
   const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-  const balance = currency.format(demoBalanceCents / 100);
+  const balance = currency.format(initialBalanceCents / 100);
   const trigger = document.createElement('button');
   trigger.type = 'button';
   trigger.className = 'topup-trigger nav-balance';
-  trigger.setAttribute('aria-label', `Demo balance ${balance}. Open top up`);
+  trigger.setAttribute('aria-label', `Test balance ${balance}. Open top up`);
   trigger.setAttribute('aria-haspopup', 'dialog');
   trigger.setAttribute('aria-controls', 'topup-dialog');
   trigger.title = 'Top up balance';
@@ -113,7 +114,7 @@
   dialog.id = 'topup-dialog';
   dialog.className = 'topup-dialog';
   dialog.setAttribute('aria-labelledby', 'topup-title');
-  dialog.innerHTML = `<div class="topup-heading"><span><b>✦</b> rippr</span><button type="button" class="topup-close" aria-label="Close top up">×</button></div><h2 id="topup-title">Top up your balance</h2><p class="topup-muted">Choose an amount to add.</p><div class="topup-balance"><span>Current balance</span><strong id="topup-current-balance">${balance}</strong></div><div class="topup-presets" role="group" aria-label="Choose amount">${[5,10,25,50,100,250].map(n => `<button type="button" data-amount="${n}" aria-pressed="${n === 25}">$${n}</button>`).join('')}</div><form novalidate><label for="topup-amount">Custom amount</label><div class="topup-input"><span>$</span><input id="topup-amount" inputmode="decimal" type="text" value="25.00" aria-describedby="topup-error"><span>USD</span></div><p id="topup-error" class="topup-error" role="alert" hidden></p><label>Payment method</label><div class="topup-method"><span aria-hidden="true">▤</span> Credit or debit card <span class="topup-chevron" aria-hidden="true">›</span></div><div class="topup-total"><span>You add</span><strong id="topup-total">$25.00</strong></div><button class="topup-continue" type="submit">Continue to payment <span aria-hidden="true">→</span></button><p class="topup-review">Review the total before paying.</p><p class="topup-notice" role="status" tabindex="-1">DESIGN PREVIEW · NO PAYMENT PROCESSED</p></form>`;
+  dialog.innerHTML = `<div class="topup-heading"><span><b>✦</b> rippr</span><button type="button" class="topup-close" aria-label="Close top up">×</button></div><h2 id="topup-title">Top up your balance</h2><p class="topup-muted">Free test credit. No payment required.</p><div class="topup-balance"><span>Current balance</span><strong id="topup-current-balance">${balance}</strong></div><div class="topup-presets" role="group" aria-label="Choose amount">${[5,10,25,50,100,250].map(n => `<button type="button" data-amount="${n}" aria-pressed="${n === 25}">$${n}</button>`).join('')}</div><form novalidate><label for="topup-amount">Custom amount</label><div class="topup-input"><span>$</span><input id="topup-amount" inputmode="decimal" type="text" value="25.00" aria-describedby="topup-error"><span>USD</span></div><p id="topup-error" class="topup-error" role="alert" hidden></p><div class="topup-total"><span>You add</span><strong id="topup-total">$25.00</strong></div><button class="topup-continue" type="submit">Add free test credit <span aria-hidden="true">+</span></button><p class="topup-review">Temporary test balance · no cash value.</p><p class="topup-notice" role="status" tabindex="-1">FREE TEST TOP-UP · NO CHARGE</p></form>`;
   document.body.append(dialog);
   const input = dialog.querySelector('input');
   const error = dialog.querySelector('#topup-error');
@@ -148,7 +149,7 @@
   input.addEventListener('input', update);
   trigger.addEventListener('click', () => {
     if (menuToggle.getAttribute('aria-expanded') === 'true') menuToggle.click();
-    notice.textContent = 'DESIGN PREVIEW · NO PAYMENT PROCESSED';
+    notice.textContent = 'FREE TEST TOP-UP · NO CHARGE';
     update();
     dialog.showModal();
     announceState();
@@ -163,7 +164,17 @@
     const bounds = dialog.getBoundingClientRect();
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
   });
-  dialog.querySelector('form').addEventListener('submit', event => {
+  function updateBalance(){
+    const account=window.RIPPR_ACCOUNT;
+    const value=account?.user&&!account.wallet?'—':currency.format((account?.wallet?.balanceCents||0)/100);
+    trigger.querySelector('.nav-balance-amount').textContent=value;
+    trigger.setAttribute('aria-label',`Test balance ${value}. Open top up`);
+    dialog.querySelector('#topup-current-balance').textContent=value;
+  }
+  document.addEventListener('rippr:walletchange',updateBalance);
+  document.addEventListener('rippr:authchange',updateBalance);
+  updateBalance();
+  dialog.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
     if (!update()) {
       error.textContent = 'Enter an amount from $1 to $1,000 with up to two decimal places.';
@@ -172,7 +183,12 @@
       input.focus();
       return;
     }
-    notice.textContent = 'Payments are not connected yet. No charge was made and no funds were added.';
-    notice.focus();
+    if(!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login';return;}
+    const submit=dialog.querySelector('.topup-continue');
+    submit.disabled=true;input.disabled=true;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=true);
+    notice.textContent='Adding test credit…';
+    try{await window.RipprAccount.act('topup',{amountCents:amount()});notice.textContent='Test credit added. You’re ready to open packs.';}
+    catch(error){notice.textContent=window.RipprAccount?.errorMessage(error)||'Account services are unavailable in this preview.';}
+    finally{submit.disabled=false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
   });
 })();
