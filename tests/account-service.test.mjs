@@ -90,3 +90,16 @@ test('profile changes are limited to display fields and activity is persisted',a
  const saved=await snapshot(uid);assert.equal(saved.account.displayName,'Jamie');assert.equal(saved.account.balanceCents,1000);assert.equal(saved.account.isAdmin,undefined);assert.equal(saved.activity.length,1);
  await assert.rejects(()=>act(uid,'profile',{displayName:'Jamie',handle:'bad handle'}),code('invalid-argument'));
 });
+
+test('settings protect wallet fields, persist preferences and snapshot shipping addresses',async()=>{
+ const uid=user();await act(uid,'topup',{amountCents:1000});
+ for(const patch of [{balanceCents:99999},{admin:true},{preferences:{soundEffects:'yes'}},{address:{fullName:'Missing street'}}])await assert.rejects(()=>act(uid,'settings',patch),code('invalid-argument'));
+ const address={fullName:'Test Collector',line1:'123 Example St',line2:'',city:'Example',region:'IN',postalCode:'46000',country:'US'};
+ const id=randomUUID(),patch={displayName:'Collector One',address,emailForUpdates:'collector@example.com',preferences:{emailUpdates:true,soundEffects:false}};
+ await act(uid,'settings',patch,id);await act(uid,'settings',patch,id);
+ let saved=await snapshot(uid);assert.equal(saved.account.balanceCents,1000);assert.equal(saved.account.displayName,'Collector One');assert.equal(saved.account.preferences.soundEffects,false);assert.equal(saved.account.preferences.shippingUpdates,true);
+ const opened=await purchase(uid);const shipped=await act(uid,'ship',{itemIds:[opened.cards[0].id]});
+ await act(uid,'settings',{address:{...address,line1:'456 New Address'}});
+ saved=await snapshot(uid);const request=saved.shipments.find(s=>s.id===shipped.shipmentId);assert.equal(request.address.line1,'123 Example St');assert.equal(request.items[0].name,opened.cards[0].name);assert.equal(request.status,'test-request');assert.equal(saved.account.address.line1,'456 New Address');
+ await assert.rejects(()=>act(uid,'settings',{emailForUpdates:''}),code('invalid-argument'));
+});

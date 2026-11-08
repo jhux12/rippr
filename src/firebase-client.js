@@ -4,7 +4,7 @@ import {
   connectAuthEmulator, onAuthStateChanged, createUserWithEmailAndPassword,
   signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut,
   sendEmailVerification, sendPasswordResetEmail, reload, getIdTokenResult,
-  RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber
+  RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, PhoneAuthProvider, updatePhoneNumber, reauthenticateWithCredential
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -59,7 +59,7 @@ export function signInGoogle() {
   // Invoke directly from the click handler to retain popup user activation.
   return signInWithPopup(auth, provider, browserPopupRedirectResolver).then(result => userInfo(result.user));
 }
-export const signOut = () => { cancelPhoneSignIn(); return firebaseSignOut(auth); };
+export const signOut = () => { cancelPhoneSignIn(); cancelPhoneChange(); return firebaseSignOut(auth); };
 
 let phoneVerifier = null, phoneAttempt = null, phoneGeneration = 0;
 const phoneError = (code, message) => Object.assign(new Error(message), { code });
@@ -240,4 +240,56 @@ export async function uploadHomepageGrailImage(file) {
   await uploadBytes(target, file, { contentType:file.type, cacheControl:'public,max-age=31536000,immutable' });
   if (auth.currentUser?.uid !== owner.uid) throw Object.assign(new Error('Your sign-in changed.'), { code:'catalog/permission-denied' });
   return getDownloadURL(target);
+}
+
+export async function uploadProfileImage(file) {
+  await ready;const user=auth.currentUser;
+  if(!user)throw phoneError('auth/user-signed-out','Sign in to change your photo.');
+  const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'};
+  if(!file||!types[file.type]||file.size<1||file.size>5*1024*1024)throw phoneError('catalog/invalid-image','Choose a JPG, PNG or WebP image up to 5 MB.');
+  const target=ref(getImageStorage(),`profile-images/${user.uid}/${crypto.randomUUID()}.${types[file.type]}`);
+  await uploadBytes(target,file,{contentType:file.type,cacheControl:'public,max-age=31536000,immutable'});
+  if(auth.currentUser?.uid!==user.uid)throw phoneError('auth/user-signed-out','Your sign-in changed.');
+  return getDownloadURL(target);
+}
+export async function loadShipment(id) {
+  await ready;const uid=auth.currentUser?.uid;
+  if(!uid)throw phoneError('auth/user-signed-out','Sign in to view shipping requests.');
+  if(typeof id!=='string'||!/^[a-zA-Z0-9-]{16,80}$/.test(id))throw phoneError('account/not-found','Shipping request not found.');
+  const found=await getDoc(doc(getDatabase(),'testAccounts',uid,'shipments',id));
+  if(!found.exists())throw phoneError('account/not-found','Shipping request not found.');
+  const data=found.data();
+  let items=data.items;
+  if(!Array.isArray(items)){
+    if(!Array.isArray(data.itemIds)||data.itemIds.length>50||data.itemIds.some(x=>typeof x!=='string'||!/^[a-zA-Z0-9-]{16,90}$/.test(x)))throw phoneError('account/invalid-data','Request details are unavailable.');
+    const records=await Promise.all(data.itemIds.map(itemId=>getDoc(doc(getDatabase(),'testAccounts',uid,'items',itemId))));
+    items=records.filter(x=>x.exists()).map(x=>({...x.data(),id:x.id}));
+  }
+  if(auth.currentUser?.uid!==uid)throw phoneError('auth/user-signed-out','Your sign-in changed.');
+  return {...data,id,createdAt:data.createdAt?.toMillis?.()??data.createdAt,items};
+}
+
+let changeAttempt=null,changeGeneration=0;
+export function cancelPhoneChange(){changeGeneration++;changeAttempt=null;clearPhoneVerifier()}
+export async function startPhoneChange(value,{verifyCurrent=false}={}){
+  await ready;const user=auth.currentUser,phoneNumber=verifyCurrent?user?.phoneNumber:normalizePhoneNumber(value);
+  if(!user||!phoneNumber)throw phoneError('auth/invalid-phone-number','Enter a valid phone number.');
+  cancelPhoneChange();const generation=changeGeneration;
+  const verifier=phoneVerifier=new RecaptchaVerifier(auth,'phone-recaptcha',{size:'invisible'});
+  try{
+    const verificationId=await new PhoneAuthProvider(auth).verifyPhoneNumber(phoneNumber,verifier);
+    if(generation!==changeGeneration||auth.currentUser?.uid!==user.uid)throw phoneError('auth/cancelled-phone-request','Your sign-in changed.');
+    changeAttempt={uid:user.uid,generation,verificationId,verifyCurrent,phoneNumber};return{phoneNumber};
+  }finally{if(phoneVerifier===verifier)clearPhoneVerifier()}
+}
+export async function confirmPhoneChange(code){
+  if(!validVerificationCode(code))throw phoneError('auth/invalid-verification-code','Enter the six-digit code.');
+  const a=changeAttempt,user=auth.currentUser;
+  if(!a||a.generation!==changeGeneration||user?.uid!==a.uid)throw phoneError('auth/code-expired','Send a new code.');
+  const credential=PhoneAuthProvider.credential(a.verificationId,code);
+  if(a.verifyCurrent)await reauthenticateWithCredential(user,credential);else await updatePhoneNumber(user,credential);
+  if(a.generation!==changeGeneration||auth.currentUser?.uid!==a.uid)throw phoneError('auth/cancelled-phone-request','Your sign-in changed.');
+  await user.getIdToken(true);changeAttempt=null;
+  for(const listener of authObservers)listener(userInfo(user));
+  return{verifiedCurrent:a.verifyCurrent,user:userInfo(user)};
 }

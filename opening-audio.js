@@ -4,6 +4,8 @@
  const storageKey='rippr:opening-muted',button=document.querySelector('#opening-mute');
  let muted=false,context,master,loading,overlayOpen=false;
  try{muted=localStorage.getItem(storageKey)==='true'}catch{}
+ function syncSound(){try{muted=localStorage.getItem(storageKey)==='true'}catch{}if(master)master.gain.value=muted?0:.28;if(muted)stop();updateButton()}
+ window.addEventListener('storage',event=>{if(event.key===storageKey)syncSound()});document.addEventListener('rippr:soundpreferencechange',syncSound);
  const buffers=new Map(),active=new Map();
  function updateButton(){
   if(!button)return;

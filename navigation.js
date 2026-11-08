@@ -4,6 +4,10 @@
   if (!header) return;
   const toggle = header.querySelector('#nav-menu-toggle');
   const menu = header.querySelector('#mobile-navigation');
+  const accountLink=menu.querySelector('a:last-child');
+  const settingsLink=document.createElement('a');settingsLink.href='account-settings.html';settingsLink.textContent='Account settings';
+  const trackingLink=document.createElement('a');trackingLink.href='order-tracking.html';trackingLink.textContent='Order tracking';
+  accountLink.before(trackingLink,settingsLink);
   const dialog = header.querySelector('#nav-dialog');
   const content = header.querySelector('#nav-dialog-content');
   const mobile = matchMedia('(max-width: 760px)');
@@ -74,7 +78,7 @@
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
   });
   function updateAccountLinks() {
-    const user = window.RIPPR_ACCOUNT?.user;
+    const user = window.RIPPR_ACCOUNT?.user;settingsLink.hidden=!user;trackingLink.hidden=!user;
     const login = header.querySelector('.nav-login');
     const signup = header.querySelector('.nav-signup');
     login.hidden = Boolean(user);
@@ -82,7 +86,7 @@
     signup.replaceChildren();
     const displayName=window.RIPPR_ACCOUNT?.wallet?.displayName||user?.displayName||'Collector';
     function identity(link){
-      const img=document.createElement('img');img.src=window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png';img.alt='';img.width=32;img.height=32;
+      const img=document.createElement('img');const photo=window.RIPPR_ACCOUNT?.wallet?.photoURL||user?.photoURL;img.src=photo&&/^https:\/\//.test(photo)?photo:(window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png');img.onerror=()=>{img.onerror=null;img.src='assets/mascot/pip-welcome.png'};img.alt='';img.width=32;img.height=32;
       const name=document.createElement('span');name.className='nav-display-name';name.textContent=displayName;
       link.replaceChildren(img,name);link.setAttribute('aria-label',`${displayName} — Your profile`);link.title=displayName;
     }

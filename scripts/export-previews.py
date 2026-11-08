@@ -77,10 +77,10 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     text = re.sub(r'<script src="catalog\.js"(?: defer)?></script>', lambda match: '<script>' + (ROOT / 'catalog.js').read_text() + '</script>', text)
     text = text.replace('</body>', '<script>' + (ROOT / 'navigation.js').read_text() + '</script></body>')
     text = text.replace('href="assets/favicon.svg"', 'href="' + uri(ROOT / 'assets/favicon.svg', 'image/svg+xml') + '"')
-    filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html', 'profile.html': 'rippr-profile.html', 'rewards.html':'rippr-rewards.html', 'how-it-works.html':'rippr-how-it-works.html'}
+    filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html', 'profile.html': 'rippr-profile.html', 'rewards.html':'rippr-rewards.html', 'how-it-works.html':'rippr-how-it-works.html','shipping.html':'rippr-shipping.html','order-tracking.html':'rippr-order-tracking.html','account-settings.html':'rippr-account-settings.html'}
     # Rewrite complete relative filenames once, including query/hash links. Do not
     # rewrite an already exported filename such as rippr-opening.html again.
-    text = re.sub(r'(?<![\w-])(?:index|opening|auth|profile|rewards|how-it-works)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
+    text = re.sub(r'(?<![\w-])(?:index|opening|auth|profile|rewards|how-it-works|shipping|order-tracking|account-settings)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
     return text
 
 
@@ -142,9 +142,22 @@ guide = re.sub(r'href="(assets/how-it-works/[^\"]+\.png)"', lambda m: 'href="' +
 guide = re.sub(r'src="(assets/pack-[^\"]+\.svg)"', lambda m: 'src="' + uri(ROOT / m[1], 'image/svg+xml') + '"', guide)
 (OUT / 'rippr-how-it-works.html').write_text(common(guide))
 
+for page in ['shipping', 'order-tracking', 'account-settings']:
+    content=(ROOT / (page+'.html')).read_text()
+    for css in ['how-it-works.css','service-pages.css']:
+        content=content.replace('<link rel="stylesheet" href="'+css+'">','<style>'+(ROOT/css).read_text()+'</style>')
+    for js in ['catalog.js','settings-model.js',page+'.js']:
+        if (ROOT/js).exists():
+            content=content.replace('<script src="'+js+'" defer></script>','<script>'+(ROOT/js).read_text()+'</script>')
+    if (ROOT/(page+'.js')).exists():
+        content=content.replace('<script>'+(ROOT/(page+'.js')).read_text()+'</script>','')
+        content=content.replace('</body>','<script>'+(ROOT/(page+'.js')).read_text()+'</script></body>')
+    content=re.sub(r'src="(assets/(?:shipping|fulfillment)/[^\"]+\.png)"',lambda m:'src="'+uri(ROOT/m[1],'image/png')+'"',content)
+    (OUT / ('rippr-'+page+'.html')).write_text(common(content))
+
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
-                    'index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
+                    'shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'catalog.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
@@ -153,9 +166,9 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
         for path in sorted((ROOT / folder).rglob('*')):
             if path.is_file() and not any(part in path.parts for part in ['__pycache__', 'node_modules']) and not path.name.startswith('.env'):
                 archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
-    for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html']:
+    for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html']:
         archive.write(OUT / name, 'previews/' + name)
 with zipfile.ZipFile(OUT / 'rippr-site.zip') as archive:
     assert archive.testzip() is None
-for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html', 'rippr-site.zip']:
+for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html', 'rippr-site.zip']:
     print(f'{name}: {(OUT / name).stat().st_size:,} bytes')

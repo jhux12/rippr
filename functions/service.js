@@ -1,3 +1,4 @@
+import { cleanSettingsPatch } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -29,12 +30,13 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         if (!found.exists) tx.create(account, initial(uid));
         return found.exists ? found.data() : { ...initial(uid), createdAt:null };
       });
-      const [items, activity, packs] = await Promise.all([
+      const [items, activity, packs, shipments] = await Promise.all([
         account.collection('items').orderBy('wonAt','desc').limit(200).get(),
         account.collection('activity').orderBy('createdAt','desc').limit(50).get(),
-        account.collection('packs').orderBy('wonAt','desc').limit(200).get()
+        account.collection('packs').orderBy('wonAt','desc').limit(200).get(),
+        account.collection('shipments').orderBy('createdAt','desc').limit(50).get()
       ]);
-      return { packs:packs.docs.map(s=>({...timestampJSON(s.data()),id:s.id})), account:timestampJSON(snapshot), items:items.docs.map(s => ({ ...timestampJSON(s.data()), id:s.id })), activity:activity.docs.map(s => ({ ...timestampJSON(s.data()), id:s.id })), hasMore:items.size===200, freeTopups:freeTopups() };
+      return { shipments:shipments.docs.map(s=>({...timestampJSON(s.data()),id:s.id})), packs:packs.docs.map(s=>({...timestampJSON(s.data()),id:s.id})), account:timestampJSON(snapshot), items:items.docs.map(s => ({ ...timestampJSON(s.data()), id:s.id })), activity:activity.docs.map(s => ({ ...timestampJSON(s.data()), id:s.id })), hasMore:items.size===200, freeTopups:freeTopups() };
     }
     if (action === 'rewardState') {
       return db.runTransaction(async tx=>{
@@ -134,12 +136,15 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           result = { balanceCents:patch.balanceCents, soldCents:value, count:ids.length };
           activity = { type:'sale', label:`Sold ${ids.length} item${ids.length===1?'':'s'} to test balance`, amountCents:value };
         } else {
-          // Intentional test request, no address/PII collection or actual dispatch.
+          // Record a request and optional saved delivery details; never initiate dispatch or charge shipping.
           refs.forEach(ref=>tx.update(ref,{ status:'shipping', shipmentId:operationId, requestedAt:stamp() }));
-          tx.create(account.collection('shipments').doc(operationId),{ itemIds:ids, status:'test-request', createdAt:stamp(), testOnly:true });
+          tx.create(account.collection('shipments').doc(operationId),{ itemIds:ids, items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents}}), address:wallet.address||null, status:'test-request', createdAt:stamp(), testOnly:true });
           result = { count:ids.length, shipmentId:operationId };
           activity = { type:'shipping', label:`Test shipping request · ${ids.length} item${ids.length===1?'':'s'}`, amountCents:0 };
         }
+      } else if (action === 'settings') {
+        try { patch=cleanSettingsPatch(data,wallet); } catch(error){ fail('invalid-argument',error.message); }
+        result={settings:patch};
       } else if (action === 'profile') {
         patch = cleanProfile(data);
         result = { profile:patch };

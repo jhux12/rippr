@@ -20,6 +20,18 @@
     {
       "source": "/how-it-works",
       "destination": "/how-it-works.html"
+    },
+    {
+      "source": "/shipping",
+      "destination": "/shipping.html"
+    },
+    {
+      "source": "/order-tracking",
+      "destination": "/order-tracking.html"
+    },
+    {
+      "source": "/account-settings",
+      "destination": "/account-settings.html"
     }
   ]
 }

@@ -22,7 +22,7 @@
     shipping:{title:'Shipping',html:'<p>Shipping is currently being tested. Requests are saved to your account; no physical items are dispatched and no shipping charges are collected.</p><p>You can view your requests in My items under Shipping.</p><a href="profile.html">View my items ↗</a>'},
     contact:{title:'Contact',html:'<p>Support contact details are coming soon.</p><p>For guidance on packs, rewards and your collection, visit the Help center.</p><button type="button" data-footer-dialog="help">Open Help center →</button>'},
     terms:{title:'Terms',html:'<p>Published terms are being prepared.</p><p>Current credit, rewards and items are for testing and have no cash value. No real payments or physical shipments are processed.</p>'},
-    privacy:{title:'Privacy',html:'<p>Sign-in is handled by Firebase Authentication. rippr saves your display name, test balance and items to your account.</p><p>A full privacy policy is being prepared.</p>'}
+    privacy:{title:'Privacy',html:'<p>Sign-in is handled by Firebase Authentication. rippr saves your display name, profile photo, delivery address, communication preferences, test balance, items and shipping requests to your account. Profile photos are publicly accessible; delivery details are private to your account.</p><p>A full privacy policy is being prepared.</p>'}
   };
   const announce=()=>document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:!document.querySelector('#mobile-navigation')?.hidden,dialogOpen:dialog.open||Boolean(document.querySelector('.topup-dialog')?.open)||Boolean(document.querySelector('#nav-dialog')?.open)}}));
   footer.addEventListener('click',event=>{

@@ -147,3 +147,18 @@ test('homepage grail image uploads allow public reads and immutable owner JPEG, 
  await assertFails(uploadBytes(ref(storage,'homepage-grails/oversized.png'),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
  await assertFails(uploadBytes(ref(storage,'homepage-grails/nested/file.png'),bytes,{contentType:'image/png'}));
 });
+
+test('profile photos are immutable uploads owned by the authenticated member',async()=>{
+ const own=env.authenticatedContext('photo-member'),other=env.authenticatedContext('other-member'),bytes=new Uint8Array([1,2,3]);
+ for(const [extension,type]of [['jpg','image/jpeg'],['png','image/png'],['webp','image/webp']]){
+  const path=`profile-images/photo-member/avatar-${extension}.${extension}`;
+  await assertSucceeds(uploadBytes(ref(own.storage(),path),bytes,{contentType:type}));
+  await assertSucceeds(getBytes(ref(env.unauthenticatedContext().storage(),path)));
+  await assertFails(uploadBytes(ref(own.storage(),path),bytes,{contentType:type}));
+  await assertFails(deleteObject(ref(own.storage(),path)));
+ }
+ for(const client of [other,env.unauthenticatedContext()])await assertFails(uploadBytes(ref(client.storage(),'profile-images/photo-member/forbidden.png'),bytes,{contentType:'image/png'}));
+ await assertFails(uploadBytes(ref(own.storage(),'profile-images/photo-member/unsafe.svg'),bytes,{contentType:'image/svg+xml'}));
+ await assertFails(uploadBytes(ref(own.storage(),'profile-images/photo-member/unsafe.png'),bytes,{contentType:'text/html'}));
+ await assertFails(uploadBytes(ref(own.storage(),'profile-images/photo-member/oversized.png'),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
+});

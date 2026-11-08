@@ -213,3 +213,21 @@ Manrope and its OFL license are bundled locally. Pack/grail SVGs contain the app
 `/how-it-works` and `how-it-works.html` serve the illustrated four-step guide. The compact Pip intro, connected step cards, CTA row, keyboard-accessible FAQ and compact shared-footer presentation follow the approved mockup, with the testing strip omitted. Actual Basic/Premium/Ultimate pack assets compose the pack illustration. The other three transparent illustrations are in `assets/how-it-works/`; SVG presentation viewports fit the original images without modifying their pixels. Mobile uses compact illustrated rows. All existing customer headers link to the guide; shared authentication, profile, balance and top-up behavior remain in place. The build includes the clean route for Vercel and Firebase Hosting. No Functions or rules deployment is required.
 
 The preview exporter now creates `rippr-how-it-works.html`, embeds its artwork, fonts, Pip and pack images, rewrites sibling links, and includes the page in the source ZIP. Browser checks cover 320–1920px layouts, keyboard FAQ controls, desktop/mobile navigation, guest/member header state and support/legal dialogs using a read-only SDK fixture.
+
+### Delivery and account pages
+
+`/shipping` explains the request process with original Pip and packaging artwork. `/order-tracking` reads the signed-in account's shipping requests, stored item and address snapshots, and recorded status. Existing requests remain test requests; this update does not dispatch parcels, charge shipping, create carrier tracking or send notifications. Missing carrier details stay empty until recorded by a future fulfillment integration.
+
+`/account-settings` saves display name, optional contact email, delivery address, profile photo and preferences through the account Function. The phone change dialog verifies the existing number before verifying the replacement, preserving the account UID. Profile photos are public, immutable, member-owned JPG/PNG/WebP uploads up to 5 MB. Saved addresses and shipping requests remain under the account's private Firestore path. Communication switches save preferences only; no notification delivery service is enabled.
+
+After pulling this update in an authenticated Firebase terminal, deploy the account Function and Storage rules before using the new saves/uploads:
+
+```sh
+cd ~/rippr
+git pull origin main
+npm ci
+npm ci --prefix functions
+npx firebase deploy --only functions:ripprAccount,firestore:rules,storage --project rippr-2b01c
+```
+
+Publish the static build through the existing hosting workflow. This development session does not deploy Firebase or publish the environment.
