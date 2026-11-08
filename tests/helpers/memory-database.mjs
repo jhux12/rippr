@@ -5,7 +5,7 @@ export function memoryDatabase(){
  const records=new Map();let queue=Promise.resolve();
  const ref=path=>({path,id:path.split('/').at(-1),collection:name=>collection(path+'/'+name)});
  const snapshot=target=>({id:target.id,exists:records.has(target.path),data:()=>structuredClone(records.get(target.path))});
- const collection=path=>({doc:id=>ref(path+'/'+id),get:async()=>{const docs=[...records].filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')).map(([key])=>snapshot(ref(key)));return{docs,size:docs.length}},orderBy:(field,direction)=>({limit:count=>({get:async()=>{
+ const collection=path=>({doc:id=>ref(path+'/'+id),orderBy:(field,direction)=>({limit:count=>({get:async()=>{
   const entries=[...records].filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/'));
   entries.sort((a,b)=>(a[1][field]-b[1][field])*(direction==='desc'?-1:1));
   const docs=entries.slice(0,count).map(([key])=>snapshot(ref(key)));return {docs,size:docs.length};

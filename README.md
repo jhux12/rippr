@@ -264,20 +264,13 @@ Mobile sign-in uses a compact welcome strip, consistent form insets and touch-si
 
 The pack-opening grails section uses a compact single-row carousel: four cards on desktop, three on tablet and a swipeable card with the next tile visible on mobile. All obtainable grails are included, using the existing catalog artwork, rarity colors and values. Names with spaced dash separators are shortened for tiles; complete names and uncropped artwork are available in a keyboard-accessible preview dialog. Desktop arrows, mobile dots and keyboard scrolling reflect actual scroll positions. No backend or rules deployment is required.
 
-### Collection rewards, cosmetics, seasons and referrals
+### Referrals
 
-The Rewards page keeps the existing daily case and configured prize odds. A compact sidebar shows how prizes are delivered and the account's actual recent reward activity. Below it, the collection rewards dashboard provides:
+The Rewards page retains the original daily case and possible-prize display, with a standalone referral card underneath. Other collection reward features have been rolled back. Members can copy invite links or apply one non-self code before their first opening. A qualifying **test-balance** purchase credits both accounts once in the same transaction; free inventory packs do not qualify. Defaults are $0.25 per person, a $1 minimum purchase and 20 bonuses per referrer. This is not verified real-deposit qualification; real-payment and anti-abuse integration remain future work.
 
-- Collector milestones at 10, 25, 50 and 100 unique catalog card IDs ever acquired. Sold/shipped cards still count; duplicate IDs do not. The first visit migrates the account's full saved item history, beyond the 200-item inventory display limit. New purchases and inventory pack openings update progress atomically. Tracking is bounded at 1,000 distinct IDs; all current milestones are below that bound.
-- One-time milestone claims: 10 unlocks Pip Celebrate and a cyan frame; 25/50/100 award unopened packs configurable by the owner. The 50 milestone also unlocks an Aurora profile background; 100 adds a gold frame. Reward packs open through the same inventory flow as daily case packs, without another balance charge.
-- A rarity collection challenge for Common, Uncommon, Rare, Ultra rare and Legendary. Completing it unlocks a violet profile frame once.
-- A seasonal claim gated by owner-configured start/end timestamps and an immutable season ID. The default winter bundle provides Winter Pip, an ice frame and winter background. Dates default to November 1, 2026–March 1, 2027 UTC and can be edited in admin. New season IDs permit new claims, currently awarding the same winter bundle; previously earned cosmetics remain available.
-- A cosmetic picker with server-validated ownership. Equipped avatars/frames persist in desktop/mobile navigation, the profile and account settings; backgrounds apply to the profile identity panel. Uploading a profile photo switches the avatar selection back to Your photo. Account settings links to the picker.
-- Copyable referral links/codes. A new collector can bind one non-self invite before their first opening. A qualifying **test-balance** purchase pays both accounts in one transaction, once per invited account. Default: $0.25 each after a purchase of at least $1, capped at 20 bonuses per referrer. Free inventory openings do not qualify. Admin can change the amounts, minimum and cap or pause payouts. This is not verified real-deposit qualification and must not be treated as a production cash referral system. Multiple phone accounts are not proof of distinct people; real-payment qualification and anti-abuse checks remain future provider work.
+Admin → Referrals controls the enabled switch, credit amount, purchase minimum and per-referrer cap. Existing invite codes, bindings and payout history remain valid. Previously saved referral settings are read from the legacy collection reward configuration until saved into `rewardSettings/referrals`. The retired collection reward actions no longer award anything. Existing earned packs and account records are preserved.
 
-Admin → Collection rewards controls milestone pack tiers, feature switches, season ID/title/dates and referral settings. The daily case retains its existing separate settings. All progress, claims, code binding, unlocks and payouts are validated in callable Functions; browser writes to account records or referral mappings remain denied. Claims are one-time even across different operation IDs, duplicate requests are idempotent, stale admin saves/claims are rejected and locked cosmetics cannot be equipped by sending crafted requests.
-
-Deploy the updated Function after pulling:
+Deploy the updated account Function after pulling:
 
 ```sh
 cd ~/rippr
@@ -287,4 +280,4 @@ npm ci --prefix functions
 npx firebase deploy --only functions:ripprAccount --project rippr-2b01c
 ```
 
-No new Firestore/Storage rule changes are needed. Publish the static site through the existing hosting workflow. Validation: `npm run test:journey`, `npm run test:accounts`, `npm run test:rewards` and responsive Chromium checks with an isolated transactional database. These fixtures validate application logic and rollback/read-before-write behavior, not the production Firestore service.
+No new Firestore or Storage rules are needed. Validation: `npm run test:referrals`, `npm run test:accounts`, `npm run test:rewards`, and responsive browser tests with an isolated account database.

@@ -18,7 +18,7 @@
     "test:accounts": "npm run build:functions && node tests/account-service.test.mjs",
     "test:accounts:emulator": "firebase emulators:exec --only firestore --project demo-rippr 'node --test tests/account-service.test.mjs'",
     "test:rewards": "npm run build:functions && node tests/rewards.test.mjs",
-    "test:journey": "npm run build:functions && node --test tests/journey.test.mjs"
+    "test:referrals": "npm run build:functions && node --test tests/referrals.test.mjs"
   },
   "dependencies": {
     "firebase": "13.2.0"

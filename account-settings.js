@@ -14,7 +14,6 @@
   if(!ready){$('#saved-address').replaceChildren();$('#settings-phone').textContent='';$('#settings-avatar').src='assets/mascot/pip-welcome.png';return;}
   if(!dirty&&!busy){$('#display-name').value=a.wallet.displayName||'';$('#updates-email').value=a.wallet.emailForUpdates||''}
   const image=a.wallet.photoURL||user().photoURL;$('#settings-avatar').src=window.RipprCatalog.safeImageURL(image)?image:(window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png');
-  window.RipprCosmetics?.image($('#settings-avatar'),a.wallet,user());
   const phone=user().phoneNumber,digits=phone?.replace(/\D/g,'');$('#settings-phone').textContent=phone?`+${digits.slice(0,-10)||digits.slice(0,1)} ••• ••• ${digits.slice(-4)}`:'No phone linked';$('#phone-verified').hidden=!phone;$('#change-number').textContent=phone?'Change number':'Link phone';
   const box=$('#saved-address');box.replaceChildren();const lines=model.addressLines(a.wallet.address);for(const line of lines){const p=document.createElement('p');p.textContent=line;box.append(p)}if(!lines.length)box.textContent='Add a delivery address for future shipping requests.';
   const prefs={...model.DEFAULT_PREFERENCES,...a.wallet.preferences};let sound=prefs.soundEffects;try{const saved=localStorage.getItem('rippr:opening-muted');if(saved!==null)sound=saved!=='true'}catch{}

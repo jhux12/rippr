@@ -37,7 +37,7 @@
     if(!user||!a.wallet)return;
     if(a.accountError)status(a.accountError);
     $('#profile-name').textContent=a.wallet.displayName;
-    const photo=a.wallet.photoURL||user.photoURL;document.querySelector('.profile-avatar').src=window.RipprCatalog.safeImageURL(photo)?photo:'assets/mascot/pip-welcome.png';window.RipprCosmetics?.apply();
+    const photo=a.wallet.photoURL||user.photoURL;document.querySelector('.profile-avatar').src=window.RipprCatalog.safeImageURL(photo)?photo:'assets/mascot/pip-welcome.png';
     $('#profile-verified').hidden=!(user.phoneNumber||user.emailVerified);
     $('#stat-packs').textContent=a.wallet.packsOpened;
     $('#stat-cards').textContent=a.wallet.cardsCollected;
@@ -46,7 +46,7 @@
     for(const id of selected){if(!a.items.some(item=>item.id===id&&item.status==='available'))selected.delete(id)}
     const packs=(a.packs||[]).filter(pack=>pack.status==='available');
     $('#unopened-packs').hidden=!packs.length;
-    $('#inventory-packs-grid').innerHTML=packs.map(pack=>`<article class="inventory-pack"><img src="${escape(pack.image)}" alt="${escape(pack.name)}" loading="lazy"><div><h3>${escape(pack.name)}</h3><p>${pack.source==='daily-reward'?'Daily reward':'Collector reward'}</p><a class="button primary" href="opening.html?pack=${encodeURIComponent(pack.packId)}&inventory=${encodeURIComponent(pack.id)}">Open pack ↗</a></div></article>`).join('');
+    $('#inventory-packs-grid').innerHTML=packs.map(pack=>`<article class="inventory-pack"><img src="${escape(pack.image)}" alt="${escape(pack.name)}" loading="lazy"><div><h3>${escape(pack.name)}</h3><p>Daily reward</p><a class="button primary" href="opening.html?pack=${encodeURIComponent(pack.packId)}&inventory=${encodeURIComponent(pack.id)}">Open pack ↗</a></div></article>`).join('');
     renderItems();
     $('#activity-list').innerHTML=a.activity.length?a.activity.map(event=>`<div class="activity-row"><div><p>${escape(event.label)}</p><time>${escape(event.createdAt?new Date(event.createdAt).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'Just now')}</time></div><strong>${event.amountCents?`${event.amountCents>0?'+':'−'}${money(Math.abs(event.amountCents))}`:'—'}</strong></div>`).join(''):'<p class="activity-empty">Your top-ups, openings and item activity will appear here.</p>';
   }
