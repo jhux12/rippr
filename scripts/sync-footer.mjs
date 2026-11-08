@@ -2,7 +2,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const partial=(await readFile(new URL('partials/footer.html',root),'utf8')).trim();
 const block='<!-- rippr-footer:start -->\n'+partial+'\n<!-- rippr-footer:end -->';
-for(const file of ['help-center.html','about.html','contact-support.html','index.html','auth.html','opening.html','profile.html','rewards.html','how-it-works.html','shipping.html','order-tracking.html','account-settings.html']){
+for(const file of ['landing.html','help-center.html','about.html','contact-support.html','index.html','auth.html','opening.html','profile.html','rewards.html','how-it-works.html','shipping.html','order-tracking.html','account-settings.html']){
   const target=new URL(file,root);
   let html=await readFile(target,'utf8');
   if(html.includes('<!-- rippr-footer:start -->'))html=html.replace(/<!-- rippr-footer:start -->[\s\S]*?<!-- rippr-footer:end -->/,()=>block);

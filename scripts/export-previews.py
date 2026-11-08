@@ -165,8 +165,18 @@ for page in ['shipping', 'order-tracking', 'account-settings','help-center','abo
     content=re.sub(r'src="(assets/(?:shipping|fulfillment|support)/[^\"]+\.png)"',lambda m:'src="'+uri(ROOT/m[1],'image/png')+'"',content)
     (OUT / ('rippr-'+page+'.html')).write_text(common(content))
 
+landing = (ROOT / 'landing.html').read_text()
+for css in ['how-it-works.css','landing.css']:
+    landing=landing.replace('<link rel="stylesheet" href="'+css+'">','<style>'+(ROOT/css).read_text()+'</style>')
+landing=landing.replace('<script src="packs.js" defer></script>','')
+landing=landing.replace('<script src="landing.js" defer></script>','')
+landing=re.sub(r'src="(assets/[^\"]+\.png)"',lambda m:'src="'+uri(ROOT/m[1],'image/png')+'"',landing)
+landing=re.sub(r'src="(assets/pack-[^\"]+\.svg)"',lambda m:'data-asset="'+m[1]+'"',landing)
+landing=landing.replace('</body>','<script>'+bootstrap+'</script><script>'+(ROOT/'landing.js').read_text()+'</script></body>')
+(OUT/'rippr-landing.html').write_text(common(landing))
+
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-    source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
+    source_files = ['landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'referral-model.js','referrals.js','referrals.css','catalog.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
@@ -176,9 +186,9 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
         for path in sorted((ROOT / folder).rglob('*')):
             if path.is_file() and not any(part in path.parts for part in ['__pycache__', 'node_modules']) and not path.name.startswith('.env'):
                 archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
-    for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html']:
+    for name in ['rippr-landing.html','rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html']:
         archive.write(OUT / name, 'previews/' + name)
 with zipfile.ZipFile(OUT / 'rippr-site.zip') as archive:
     assert archive.testzip() is None
-for name in ['rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html', 'rippr-site.zip']:
+for name in ['rippr-landing.html','rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html', 'rippr-site.zip']:
     print(f'{name}: {(OUT / name).stat().st_size:,} bytes')

@@ -44,6 +44,10 @@
     {
       "source": "/contact-support",
       "destination": "/contact-support.html"
+    },
+    {
+      "source": "/landing",
+      "destination": "/landing.html"
     }
   ]
 }

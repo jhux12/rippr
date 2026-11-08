@@ -2,6 +2,10 @@
 
 A responsive five-tier pack-opening site with Firebase accounts, Pip branding, an owner-only pack editor, a collection profile, and balance-funded openings using **free test credit**.
 
+## Landing page
+
+`/landing` is a separate responsive landing page with the shared header/footer, five live pack links, saved homepage grails, and shipping/sign-up links. The hero uses a transparent Charizard slab cutout derived from the supplied reference. It builds into `dist/landing.html`; Firebase and Vercel route configurations are included. No backend or rules changes are required.
+
 ## Development
 
 Node.js 22+ and Python 3 are required.

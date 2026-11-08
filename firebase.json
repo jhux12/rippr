@@ -52,6 +52,10 @@
       {
         "source": "/contact-support",
         "destination": "/contact-support.html"
+      },
+      {
+        "source": "/landing",
+        "destination": "/landing.html"
       }
     ],
     "headers": [
@@ -90,6 +94,13 @@
             "value": "nosniff"
           }
         ]
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/landing/",
+        "destination": "/landing",
+        "type": 302
       }
     ]
   },

@@ -1,0 +1,44 @@
+(() => {
+ 'use strict';const $=s=>document.querySelector(s),modal=$('#landing-preview'),motion=matchMedia('(prefers-reduced-motion: reduce)'),carousels=[];
+ let navigationOpen=false,returnFocus=null,grails=[],source='default',request=0;
+ const asset=path=>window.RIPPR_ASSET_URLS?.[path]||path,money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
+ const arrow='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16 16 4M4 4h12v12"/></svg>';
+ const packs=window.RIPPR_PACKS||[];
+ for(const pack of packs){
+  const card=document.createElement('article');card.className='landing-tier';card.style.setProperty('--tier-accent',pack.accent);
+  const art=document.createElement('a');art.className='landing-tier-art';art.href='opening.html?pack='+encodeURIComponent(pack.id);art.setAttribute('aria-label','View '+pack.name+' pack');
+  const img=document.createElement('img');img.src=asset(pack.image);img.alt=pack.name+' Pokémon pack';img.loading='lazy';img.width=250;img.height=390;art.append(img);
+  const tier=document.createElement('p');tier.className='landing-tier-number';tier.textContent='TIER '+String(pack.tier).padStart(2,'0');
+  const name=document.createElement('h3');name.textContent=pack.name;const link=document.createElement('a');link.className='landing-outline';link.href=art.href;link.innerHTML='View pack '+arrow;link.setAttribute('aria-label','View '+pack.name+' pack');card.append(art,tier,name,link);$('#landing-packs').append(card);
+ }
+ document.querySelectorAll('[data-pack-art]').forEach(img=>{const pack=packs.find(p=>p.id===img.dataset.packArt);if(pack)img.src=asset(pack.image)});
+ function carousel(section){
+  const track=section.querySelector('.landing-track'),controls=section.querySelector('.landing-carousel-controls'),toggle=controls.querySelector('[data-rotation]');let timer=null,paused=motion.matches,hover=false,focus=false,visible=false;
+  const max=()=>Math.max(0,track.scrollWidth-track.clientWidth);
+  function stop(){clearTimeout(timer);timer=null}
+  function move(direction,auto=false){const first=track.firstElementChild;if(!first)return;const step=first.getBoundingClientRect().width+(parseFloat(getComputedStyle(track).gap)||0);let left=track.scrollLeft+direction*step,wrap=false;if(left>max()+2){left=0;wrap=true}if(left< -2){left=max();wrap=true}track.scrollTo({left:Math.min(max(),Math.max(0,left)),behavior:motion.matches||auto&&wrap?'instant':'smooth'})}
+  function schedule(){stop();const overflow=max()>2;controls.hidden=!overflow;toggle.textContent=paused?'Play':'Pause';toggle.setAttribute('aria-label',(paused?'Start ':'Pause ')+section.dataset.carousel+' rotation');if(overflow&&!paused&&!hover&&!focus&&visible&&!document.hidden&&!modal.open&&!navigationOpen)timer=setTimeout(()=>{move(1,true);schedule()},5000)}
+  controls.querySelectorAll('[data-move]').forEach(b=>b.addEventListener('click',()=>{paused=true;move(Number(b.dataset.move));schedule()}));toggle.addEventListener('click',()=>{paused=!paused;schedule()});
+  section.addEventListener('pointerenter',()=>{hover=true;schedule()});section.addEventListener('pointerleave',()=>{hover=false;schedule()});section.addEventListener('focusin',()=>{focus=true;schedule()});section.addEventListener('focusout',e=>{if(!section.contains(e.relatedTarget)){focus=false;schedule()}});
+  track.addEventListener('pointerdown',()=>{paused=true;schedule()});track.addEventListener('keydown',e=>{if(e.target===track&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();paused=true;move(e.key==='ArrowLeft'?-1:1);schedule()}});
+  new ResizeObserver(schedule).observe(track);if('IntersectionObserver'in window)new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;schedule()},{threshold:.1}).observe(section);else visible=true;
+  motion.addEventListener('change',()=>{if(motion.matches)paused=true;schedule()});document.addEventListener('visibilitychange',schedule);window.addEventListener('pagehide',stop);window.addEventListener('pageshow',schedule);schedule();return{refresh:schedule};
+ }
+ document.querySelectorAll('[data-carousel]').forEach(section=>carousels.push(carousel(section)));
+ const refresh=()=>carousels.forEach(c=>c.refresh());
+ document.addEventListener('rippr:navigationchange',e=>{navigationOpen=Boolean(e.detail.menuOpen||e.detail.dialogOpen);refresh()});
+ let status=$('#landing-grails').firstElementChild;
+ function grailMessage(text,retry=false){const track=$('#landing-grails');track.replaceChildren();status=document.createElement('p');status.className='landing-status';status.setAttribute('role','status');status.textContent=text;track.append(status);if(retry){const button=document.createElement('button');button.type='button';button.className='landing-outline landing-retry';button.textContent='Try again';button.addEventListener('click',loadGrails);track.append(button)}track.setAttribute('aria-busy','false');refresh()}
+ async function loadGrails(){const ticket=++request;let timeout;$('#landing-grails').setAttribute('aria-busy','true');$('#landing-grail-caption').hidden=true;grailMessage('Loading grails…');$('#landing-grails').setAttribute('aria-busy','true');try{const saved=window.RIPPR_AUTH_OFFLINE?window.RipprCatalog.defaultHomepageGrails():await Promise.race([window.RipprFirebase.loadHomepageGrails(),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Grail timeout')),6000)})]);if(ticket!==request)return;if(window.RipprCatalog.validateHomepageGrails(saved).length)throw new Error('Invalid grails');grails=saved.items;source=saved.source||'firebase';if(!grails.length){grailMessage('Grails coming soon.');return}const track=$('#landing-grails');track.replaceChildren();for(const [index,grail]of grails.entries()){
+    const button=document.createElement('button');button.type='button';button.className='landing-grail-card';button.dataset.grail=String(index);button.setAttribute('aria-label','Preview '+grail.name+(source==='default'?'':', '+money.format(grail.valueCents/100)));
+    const img=document.createElement('img');img.src=asset(grail.image);img.alt=grail.name;img.loading='lazy';img.addEventListener('error',()=>{img.src='assets/card-placeholder.svg'},{once:true});
+    const text=document.createElement('span'),tag=document.createElement('span'),name=document.createElement('strong');tag.className='landing-grail-tag';tag.textContent='Grail preview';name.className='landing-grail-name';name.textContent=grail.name;text.append(tag,name);
+    if(source!=='default'){const value=document.createElement('span');value.className='landing-grail-value';value.textContent=money.format(grail.valueCents/100);text.append(value)}button.append(img,text);track.append(button);
+   }track.setAttribute('aria-busy','false');$('#landing-grail-caption').hidden=source!=='default';requestAnimationFrame(refresh);
+  }catch{if(ticket===request)grailMessage('Grails couldn’t load right now.',true)}finally{clearTimeout(timeout)}}
+ $('#landing-grails').addEventListener('click',e=>{const button=e.target.closest('[data-grail]');if(!button)return;const grail=grails[Number(button.dataset.grail)];if(!grail)return;returnFocus=button;$('#landing-preview-title').textContent=grail.name;$('#landing-preview-image').src=asset(grail.image);$('#landing-preview-image').alt=grail.name;$('#landing-preview-value').textContent=source==='default'?'':money.format(grail.valueCents/100);modal.showModal();refresh();document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:false,dialogOpen:true}}))});
+ $('#landing-preview-image').addEventListener('error',e=>{if(!e.target.src.endsWith('/assets/card-placeholder.svg'))e.target.src='assets/card-placeholder.svg'});
+ $('.landing-preview-close').addEventListener('click',()=>modal.close());modal.addEventListener('close',()=>{returnFocus?.focus({preventScroll:true});document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:false,dialogOpen:false}}));refresh()});modal.addEventListener('click',e=>{if(e.target!==modal)return;const r=modal.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)modal.close()});
+ function accountLinks(){const link=$('[data-landing-join]'),signedIn=Boolean(window.RIPPR_ACCOUNT?.user);link.href=signedIn?'profile.html':'auth.html?mode=signup';link.replaceChildren(document.createTextNode(signedIn?'View my items':'Join rippr'));link.insertAdjacentHTML('beforeend','<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>');$('#landing-join-copy').textContent=signedIn?'Your collection is ready for its next favorite.':'Create your account and start exploring.'}
+ document.addEventListener('rippr:authchange',accountLinks);accountLinks();loadGrails();
+})();
