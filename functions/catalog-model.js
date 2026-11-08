@@ -5,7 +5,7 @@ export const RARITIES = [
   { name: 'Common', color: '#adbdcf' },
   { name: 'Uncommon', color: '#63dcad' },
   { name: 'Rare', color: '#69b9ff' },
-  { name: 'Ultra rare', color: '#8298ff' },
+  { name: 'Ultra rare', color: '#ff5c63' },
   { name: 'Special rare', color: '#ecb6df' },
   { name: 'Epic', color: '#cf83ff' },
   { name: 'Legendary', color: '#ffcf70' }
