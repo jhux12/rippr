@@ -66,6 +66,17 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     text = re.sub(r'\s+src="assets/mascot/pip-(?:hover|welcome|celebrate)\.png"', '', text)
     text = text.replace('<link rel="stylesheet" href="mascot.css">', '<style>' + (ROOT / 'mascot.css').read_text() + '</style>')
     text = text.replace('</head>', '<script>' + offline_auth + '</script></head>')
+    journey_model=(ROOT/'journey-model.js').read_text()
+    for path in (['assets/mascot/pip-welcome.png','assets/mascot/pip-celebrate.png','assets/rewards/pip-winter.png'] if 'id="cosmetics-dialog"' in text else []):
+        journey_model=journey_model.replace(path,uri(ROOT/path,'image/png'))
+    text=text.replace('<script src="journey-model.js" defer></script>','<script>'+journey_model+'</script>')
+    for script in ['cosmetics.js','journey.js']:
+        if '<script src="'+script+'" defer></script>' in text:
+            text=text.replace('<script src="'+script+'" defer></script>','')
+            text=text.replace('</body>','<script>'+(ROOT/script).read_text()+'</script></body>')
+    text=text.replace('<link rel="stylesheet" href="journey.css">','<style>'+(ROOT/'journey.css').read_text()+'</style>')
+    text=re.sub(r'src="(assets/rewards/pip-(?:milestones|referral|winter)\.png)"',lambda m:'src="'+uri(ROOT/m[1],'image/png')+'"',text)
+
     text = text.replace('<link rel="stylesheet" href="footer.css">', '<style>' + (ROOT / 'footer.css').read_text() + '</style>')
     text = text.replace('<script src="phone-auth.js" defer></script>', '<script>' + (ROOT / 'phone-auth.js').read_text() + '</script>')
     text = text.replace('<script src="footer-config.js" defer></script>', '<script>' + (ROOT / 'footer-config.js').read_text() + '</script>')
@@ -163,7 +174,7 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
-                    'catalog.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
+                    'journey-model.js','journey.js','journey.css','cosmetics.js','catalog.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
     for folder in ['scripts', 'src', 'assets', 'admin', 'tests', 'functions', 'partials']:

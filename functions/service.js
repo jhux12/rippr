@@ -1,3 +1,4 @@
+import {JOURNEY_ACTIONS,journeyService,collectProgress,readJourney} from './journey-service.js';
 import {SUPPORT_ACTIONS,supportService} from './support-service.js';
 import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
@@ -25,6 +26,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
     const { action, operationId, accountUid, ...data } = input || {};
     if(accountUid && accountUid!==uid) fail('unauthenticated','Your sign-in changed. Please retry from your current account.');
     if(SUPPORT_ACTIONS.includes(action))return supportService(db,uid,input,claims,now);
+    if(JOURNEY_ACTIONS.includes(action))return journeyService(db,uid,input,claims,now,initial);
     const account = db.doc(`testAccounts/${uid}`);
     if (['adminShipments','adminShipment','updateShipment'].includes(action)) {
       if(!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage shipping.');
@@ -145,12 +147,23 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         if ((action==='purchase'&&price !== data.expectedPriceCents) || pack.version !== data.expectedVersion) fail('failed-precondition','The pack price or contents changed. Reload the page before opening.');
         const total = ownedRef ? 0 : price * data.quantity;
         if (wallet.balanceCents < total) fail('resource-exhausted','Not enough balance. Add free test credit to continue.');
+        const journey=readJourney(await tx.get(db.doc('rewardSettings/journey')));
+        let referralAccount,referrer;
+        if(action==='purchase'&&total>=journey.referralMinimumCents&&journey.referralEnabled&&wallet.referrerUid&&!wallet.referralAwarded){referralAccount=db.doc(`testAccounts/${wallet.referrerUid}`);referrer=await tx.get(referralAccount)}
         const cards = Array.from({ length:data.quantity }, (_, i) => {
           const pulled = drawItem(pack.items, randomInt(10000) / 10000);
           const { chanceBps, symbol, ...card } = pulled;
           return { ...card, catalogItemId:card.id, id:`${operationId}-${i}`, packId:data.packId, status:'available', testItem:true, pack:i+1 };
         });
         patch = { balanceCents:wallet.balanceCents-total, packsOpened:wallet.packsOpened+cards.length, cardsCollected:wallet.cardsCollected+cards.length, grailsFound:wallet.grailsFound+cards.filter(c=>c.grail).length };
+        Object.assign(patch,collectProgress(wallet,cards));
+        if(action==='purchase'&&total>0)patch.paidOpenings=(wallet.paidOpenings||0)+cards.length;
+        if(referrer?.exists&&(referrer.data().referralCount||0)<journey.referralLimit&&referrer.data().balanceCents+journey.referralCreditCents<=100000000&&patch.balanceCents+journey.referralCreditCents<=100000000){
+          patch.balanceCents+=journey.referralCreditCents;patch.referralAwarded=true;
+          tx.update(referralAccount,{balanceCents:referrer.data().balanceCents+journey.referralCreditCents,referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});
+          tx.create(referralAccount.collection('activity').doc(operationId),{type:'referral',label:'Referral bonus · test credit',amountCents:journey.referralCreditCents,createdAt:stamp(),testOnly:true});
+          tx.create(account.collection('activity').doc('referral-'+operationId),{type:'referral',label:'Welcome referral bonus · test credit',amountCents:journey.referralCreditCents,createdAt:stamp(),testOnly:true});
+        }
         if(ownedRef)tx.update(ownedRef,{status:'opened',openedAt:stamp(),cardIds:cards.map(c=>c.id)});
         for (const card of cards) tx.create(account.collection('items').doc(card.id), { ...card, wonAt:stamp() });
         result = { cards, balanceCents:patch.balanceCents, totalCents:total };
@@ -182,6 +195,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         }
       } else if (action === 'settings') {
         try { patch=cleanSettingsPatch(data,wallet); } catch(error){ fail('invalid-argument',error.message); }
+        if(Object.prototype.hasOwnProperty.call(patch,'photoURL'))patch.equippedCosmetics={...wallet.equippedCosmetics,avatar:'photo'};
         result={settings:patch};
       } else if (action === 'profile') {
         patch = cleanProfile(data);

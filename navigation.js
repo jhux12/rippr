@@ -93,7 +93,7 @@
     function identity(link){
       const img=document.createElement('img');const photo=window.RIPPR_ACCOUNT?.wallet?.photoURL||user?.photoURL;img.src=photo&&/^https:\/\//.test(photo)?photo:(window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png');img.onerror=()=>{img.onerror=null;img.src='assets/mascot/pip-welcome.png'};img.alt='';img.width=32;img.height=32;
       const name=document.createElement('span');name.className='nav-display-name';name.textContent=displayName;
-      link.replaceChildren(img,name);link.setAttribute('aria-label',`${displayName} — Your profile`);link.title=displayName;
+      window.RipprCosmetics?.image(img,window.RIPPR_ACCOUNT?.wallet,user);link.replaceChildren(img,name);link.setAttribute('aria-label',`${displayName} — Your profile`);link.title=displayName;
     }
     if(user){identity(signup);}
     else {signup.textContent='Sign up';signup.removeAttribute('aria-label');signup.removeAttribute('title');}

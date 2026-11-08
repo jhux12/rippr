@@ -90,3 +90,5 @@
 
 @media(max-width:760px){.site-navigation .nav-actions .nav-signup.nav-profile{display:none}}
 .site-navigation .nav-balance[hidden]{display:none!important}
+
+img[data-reward-frame="cyan"]{border:3px solid #00dfe9!important;box-shadow:0 0 12px #00dfe940}img[data-reward-frame="violet"]{border:3px solid #bd8bff!important;box-shadow:0 0 12px #bd8bff40}img[data-reward-frame="gold"]{border:3px double #ffcf70!important;box-shadow:0 0 14px #ffcf7040}img[data-reward-frame="ice"]{border:3px double #a4e9ff!important;box-shadow:0 0 14px #9de9ff55}.profile-identity[data-reward-background="aurora"]{background:radial-gradient(ellipse at 70% 20%,#6236a680,transparent 60%),linear-gradient(120deg,#071d2d,#07424a)}.profile-identity[data-reward-background="winter"]{background:radial-gradient(ellipse at 80% 10%,#8bc9ec55,transparent 55%),linear-gradient(120deg,#091e36,#173d59)}
