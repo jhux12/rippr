@@ -26,15 +26,46 @@ const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDig
 const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 const rarityBadge=name=>`<span class="rarity-badge" style="--rarity-color:${catalog.RARITIES.find(rarity=>rarity.name===name).color}"><span class="rarity-dot" aria-hidden="true"></span>${escape(name)}</span>`;
 function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||state!=='idle';label()}
+let grailCards=[],grailTrigger=null,grailStops=[];
+const grailTrack=$('.grail-grid'),grailDialog=$('#grail-preview');
+function updateGrailControls(){
+ const max=Math.max(0,grailTrack.scrollWidth-grailTrack.clientWidth),overflow=max>2;
+ $('.grail-carousel-controls').hidden=!overflow;$('.grail-pagination').hidden=!overflow;
+ $('#grail-prev').disabled=grailTrack.scrollLeft<2;$('#grail-next').disabled=grailTrack.scrollLeft>=max-2;
+ const width=grailTrack.firstElementChild?.getBoundingClientRect().width||1,gap=parseFloat(getComputedStyle(grailTrack).gap)||0,unit=width+gap,stops=[0];
+ if(overflow&&grailCards.length){for(let left=unit;left<max-2;left+=unit)stops.push(left);stops.push(max)}
+ const pages=$('.grail-pagination');
+ if(stops.length!==grailStops.length||stops.some((v,i)=>Math.abs(v-grailStops[i])>1)){
+  grailStops=stops;pages.replaceChildren();
+  if(stops.length<=8){stops.forEach((left,i)=>{const button=document.createElement('button');button.type='button';button.setAttribute('aria-label',`Grail gallery position ${i+1} of ${stops.length}`);button.addEventListener('click',()=>grailTrack.scrollTo({left,behavior:reduced()?'instant':'smooth'}));pages.append(button)})}else{const count=document.createElement('span');count.className='grail-position';pages.append(count)}
+ }
+ let index=0;stops.forEach((left,i)=>{if(Math.abs(left-grailTrack.scrollLeft)<Math.abs(stops[index]-grailTrack.scrollLeft))index=i});
+ pages.querySelectorAll('button').forEach((button,i)=>button.setAttribute('aria-pressed',String(i===index)));
+ const count=pages.querySelector('.grail-position');if(count)count.textContent=`${index+1} / ${stops.length}`;
+}
+function renderGrails(items){
+ grailCards=items;$('.grail-count').textContent=items.length?`${items.length} ${items.length===1?'grail':'grails'}`:'';
+ const expand='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 3h5v5M17 3l-6 6M8 17H3v-5M3 17l6-6"/></svg>';
+ grailTrack.innerHTML=items.map((card,index)=>{const color=catalog.RARITIES.find(r=>r.name===card.rarity)?.color||'#adbdcf',parts=card.name.split(/\s+[-–—]\s+/),name=parts[0],subtitle=parts.slice(1).join(' · ');return `<article class="grail-card" role="listitem" style="--grail:${color}"><div class="grail-art"><img src="${escape(cardImage(card))}" alt="${escape(card.name)}" loading="lazy"><button type="button" class="grail-expand" data-grail="${index}" aria-label="Preview ${escape(card.name)}">${expand}</button></div><div class="grail-copy"><h3 title="${escape(card.name)}">${escape(name)}</h3><p class="grail-subtitle" title="${escape(subtitle)}">${escape(subtitle)}</p><div class="grail-footer">${rarityBadge(card.rarity)}<p class="grail-value">${money.format(card.valueCents/100)}</p></div></div></article>`}).join('')||'<p class="empty-grails" role="listitem">No grails in this pack.</p>';
+ grailTrack.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{img.src='assets/card-placeholder.svg'},{once:true}));
+ grailStops=[];$('.grail-pagination').replaceChildren();
+ $('.grail-gallery-caption').hidden=!items.length;grailTrack.setAttribute('aria-busy','false');grailTrack.scrollLeft=0;requestAnimationFrame(updateGrailControls);
+}
+function moveGrails(direction){grailTrack.scrollBy({left:direction*grailTrack.clientWidth,behavior:reduced()?'instant':'smooth'})}
+$('#grail-prev').addEventListener('click',()=>moveGrails(-1));$('#grail-next').addEventListener('click',()=>moveGrails(1));
+grailTrack.addEventListener('scroll',updateGrailControls,{passive:true});new ResizeObserver(updateGrailControls).observe(grailTrack);
+grailTrack.addEventListener('keydown',event=>{if(event.target!==grailTrack)return;if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();moveGrails(event.key==='ArrowLeft'?-1:1)}});
+grailTrack.addEventListener('click',event=>{const button=event.target.closest('[data-grail]');if(!button)return;const card=grailCards[Number(button.dataset.grail)];if(!card)return;grailTrigger=button;$('#grail-preview-image').src=cardImage(card);$('#grail-preview-image').alt=card.name;$('#grail-preview-name').textContent=card.name;$('#grail-preview-details').innerHTML=rarityBadge(card.rarity)+`<strong>${money.format(card.valueCents/100)}</strong>`;grailDialog.showModal();document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:false,dialogOpen:true}}))});
+$('#grail-preview-image').addEventListener('error',event=>{if(!event.target.src.endsWith('/assets/card-placeholder.svg'))event.target.src='assets/card-placeholder.svg'});
+$('.grail-preview-close').addEventListener('click',()=>grailDialog.close());grailDialog.addEventListener('close',()=>{grailTrigger?.focus({preventScroll:true});document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:false,dialogOpen:false}}))});
+grailDialog.addEventListener('click',event=>{if(event.target!==grailDialog)return;const r=grailDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)grailDialog.close()});
 function renderContents(note){
  const table=$('.odds-table-panel table');
  table.querySelector('thead').innerHTML='<tr><th scope="col">Rarity</th><th scope="col">Chance</th><th scope="col" aria-label="Minimum to maximum item value">Value</th></tr>';
  table.querySelector('tbody').innerHTML=catalog.summarizeRarities(contents.items).map(group=>{const min=money.format(group.minValueCents/100),max=money.format(group.maxValueCents/100);return `<tr><th scope="row">${rarityBadge(group.rarity)}</th><td>${formatChance(group.chanceBps)}</td><td class="odds-value-range" aria-label="Minimum ${min}, maximum ${max}">${min}${group.minValueCents===group.maxValueCents?'':`<span aria-hidden="true">–</span><wbr>${max}`}</td></tr>`}).join('');
  table.querySelector('caption').textContent=note;
  table.setAttribute('aria-busy','false');
- $('.grails-panel h2>span').textContent='';
- $('.grail-grid').innerHTML=contents.items.filter(card=>card.grail&&card.chanceBps>0).slice(0,6).map(card=>{const color=catalog.RARITIES.find(r=>r.name===card.rarity).color;return `<article class="grail-card" style="--grail:${color}"><div class="grail-art"><img src="${escape(cardImage(card))}" alt="${escape(card.name)}" loading="lazy"></div><h3>${escape(card.name)}</h3>${rarityBadge(card.rarity)}<p class="grail-value">${money.format(card.valueCents/100)}</p></article>`}).join('')||'<p class="empty-grails">No grails in this pack.</p>';
- $('.grail-grid').setAttribute('aria-busy','false');
+ renderGrails(contents.items.filter(card=>card.grail&&card.chanceBps>0));
  label();
 }
 async function loadContents(){
