@@ -1,4 +1,4 @@
-import { cleanSettingsPatch } from './account-settings-model.js';
+import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -24,6 +24,37 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
     const { action, operationId, accountUid, ...data } = input || {};
     if(accountUid && accountUid!==uid) fail('unauthenticated','Your sign-in changed. Please retry from your current account.');
     const account = db.doc(`testAccounts/${uid}`);
+    if (['adminShipments','adminShipment','updateShipment'].includes(action)) {
+      if(!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage shipping.');
+      const queue=db.doc('shippingQueue/root').collection('requests');
+      if(action==='adminShipments'){
+        const found=await queue.orderBy('createdAt','desc').limit(100).get();
+        return {requests:found.docs.map(s=>({...timestampJSON(s.data()),queueId:s.id}))};
+      }
+      if(typeof data.customerUid!=='string'||!data.customerUid||data.customerUid.length>128||data.customerUid.includes('/')||!/^[-a-zA-Z0-9]{16,80}$/.test(data.shipmentId||''))fail('invalid-argument','Enter a customer UID and full request ID.');
+      const target=db.doc(`testAccounts/${data.customerUid}/shipments/${data.shipmentId}`);
+      if(action==='adminShipment'){
+        const found=await db.runTransaction(tx=>tx.get(target));if(!found.exists)fail('not-found','Shipping request not found.');
+        return {request:{...timestampJSON(found.data()),id:data.shipmentId,customerUid:data.customerUid}};
+      }
+      if(!/^[-a-zA-Z0-9]{16,80}$/.test(operationId||''))fail('invalid-argument','A valid operation ID is required.');
+      const statuses=['test-request','review','packing','shipped','delivered'];
+      if(!statuses.includes(data.status)||!Number.isInteger(data.expectedVersion))fail('invalid-argument','Choose a valid status and reload the saved version.');
+      const carrier=typeof data.carrier==='string'?data.carrier.trim():'',trackingNumber=typeof data.trackingNumber==='string'?data.trackingNumber.trim():'';
+      if(carrier.length>80||trackingNumber.length>160||(['shipped','delivered'].includes(data.status)&&(!carrier||!trackingNumber)))fail('invalid-argument','Add carrier and tracking details before marking shipped or delivered.');
+      const op=account.collection('operations').doc(operationId),fingerprint=JSON.stringify({action,data});
+      return db.runTransaction(async tx=>{
+        const [prior,found]=await Promise.all([tx.get(op),tx.get(target)]);
+        if(prior.exists){if(prior.data().fingerprint!==fingerprint)fail('already-exists','Operation ID already used.');return prior.data().result}
+        if(!found.exists)fail('not-found','Shipping request not found.');const request=found.data();
+        if((request.version||0)!==data.expectedVersion)fail('failed-precondition','This request changed. Reload before saving.');
+        const patch={status:data.status,carrier,trackingNumber,version:(request.version||0)+1,updatedAt:stamp(),updatedBy:uid};
+        tx.update(target,patch);
+        tx.set(queue.doc(data.customerUid+'_'+data.shipmentId),{...request,...patch,id:data.shipmentId,customerUid:data.customerUid});
+        tx.create(db.doc(`testAccounts/${data.customerUid}/activity/${operationId}`),{type:'shipping-update',label:'Shipping update · '+data.status,amountCents:0,createdAt:stamp(),testOnly:true});
+        const result={version:patch.version};tx.create(op,{fingerprint,result,createdAt:stamp()});return result;
+      });
+    }
     if (action === 'snapshot') {
       const snapshot = await db.runTransaction(async tx => {
         const found = await tx.get(account);
@@ -138,7 +169,12 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         } else {
           // Record a request and optional saved delivery details; never initiate dispatch or charge shipping.
           refs.forEach(ref=>tx.update(ref,{ status:'shipping', shipmentId:operationId, requestedAt:stamp() }));
-          tx.create(account.collection('shipments').doc(operationId),{ itemIds:ids, items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents}}), address:wallet.address||null, status:'test-request', createdAt:stamp(), testOnly:true });
+          let address=wallet.address||null;
+          if(data.address!==undefined){try{address=cleanAddress(data.address)}catch(error){fail('invalid-argument',error.message)}}
+          if(data.requireAddress===true&&!address)fail('invalid-argument','Add a delivery address before submitting.');
+          const shipment={itemIds:ids,items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents}}),address,status:'test-request',version:0,shippingMethod:'standard-tracked',estimateCents:null,quoteStatus:'unavailable',createdAt:stamp(),testOnly:true};
+          tx.create(account.collection('shipments').doc(operationId),shipment);
+          tx.create(db.doc(`shippingQueue/root/requests/${uid}_${operationId}`),{...shipment,id:operationId,customerUid:uid});
           result = { count:ids.length, shipmentId:operationId };
           activity = { type:'shipping', label:`Test shipping request · ${ids.length} item${ids.length===1?'':'s'}`, amountCents:0 };
         }

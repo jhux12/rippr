@@ -231,3 +231,11 @@ npx firebase deploy --only functions:ripprAccount,firestore:rules,storage --proj
 ```
 
 Publish the static build through the existing hosting workflow. This development session does not deploy Firebase or publish the environment.
+
+### Shipping request popup and admin tracking
+
+My items → Ship opens the responsive request dialog with selected card images, the account's saved address or an address entered for this request, and a pending quote summary. No shipping provider, quote, insurance coverage, delivery promise or shipping charge is created. Submit saves the chosen address snapshot and takes the customer to tracking.
+
+Admin → Shipping requests shows the latest 100 new requests with search/status filters, item and address details, and manual status/carrier/tracking updates. Older requests can be opened using the customer UID and full request ID; saving indexes them in the queue. Shipped/delivered require carrier and tracking fields. Concurrent edits require reloading; repeated submissions cannot duplicate a request or status update. The queue and updates are served only through the verified-owner callable Function, and customer records remain private. This does not book shipping or buy labels, and test requests remain tests.
+
+Deploy `functions:ripprAccount` after pulling this change. Existing Firestore/Storage rules already deny access to the private queue; no rules edits are required for this feature. Connecting a shipping provider and a final quote/payment confirmation remains future work.

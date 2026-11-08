@@ -118,6 +118,10 @@ auth = auth.replace('</body>', '<script>' + bootstrap + '</script><script>' + au
 (OUT / 'rippr-auth.html').write_text(common(auth))
 
 profile = (ROOT / 'profile.html').read_text()
+profile=profile.replace('<script src="settings-model.js" defer></script>','<script>'+(ROOT/'settings-model.js').read_text()+'</script>')
+profile=profile.replace('<script src="shipping-request.js" defer></script>','')
+profile=profile.replace('</body>','<script>'+(ROOT/'shipping-request.js').read_text()+'</script></body>')
+profile=profile.replace('src="assets/shipping/pip-parcel.png"','src="'+uri(ROOT/'assets/shipping/pip-parcel.png','image/png')+'"')
 profile = profile.replace('<link rel="stylesheet" href="profile.css">', '<style>' + (ROOT / 'profile.css').read_text() + '</style>')
 profile = profile.replace('<script src="catalog.js" defer></script>', '<script>' + (ROOT / 'catalog.js').read_text() + '</script>')
 profile = profile.replace('<script src="profile.js" defer></script>', '')
@@ -157,7 +161,7 @@ for page in ['shipping', 'order-tracking', 'account-settings']:
 
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
     source_files = ['README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
-                    'shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
+                    'shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'catalog.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:

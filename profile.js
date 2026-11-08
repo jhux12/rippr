@@ -64,6 +64,7 @@
   function confirm(type,ids){
     if(busy)return;
     const items=account().items.filter(item=>ids.includes(item.id)&&item.status==='available');if(!items.length)return;
+    if(type==='ship'){window.RipprShipping.open(items);return}
     pending={type,ids:items.map(item=>item.id)};
     const amount=money(items.reduce((a,b)=>a+b.valueCents,0));
     $('#item-dialog-title').textContent=type==='sell'?`Sell ${items.length===1?'item':items.length+' items'}?`:'Request test shipping?';

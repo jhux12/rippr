@@ -103,3 +103,23 @@ test('settings protect wallet fields, persist preferences and snapshot shipping 
  saved=await snapshot(uid);const request=saved.shipments.find(s=>s.id===shipped.shipmentId);assert.equal(request.address.line1,'123 Example St');assert.equal(request.items[0].name,opened.cards[0].name);assert.equal(request.status,'test-request');assert.equal(saved.account.address.line1,'456 New Address');
  await assert.rejects(()=>act(uid,'settings',{emailForUpdates:''}),code('invalid-argument'));
 });
+
+test('shipping queue is owner-only and manual tracking updates are versioned, atomic and private',async()=>{
+ const uid=user(),owner='shipping-owner',claims={sub:owner,phone_number:'+17654794230'};
+ const admin=(action,data={},id=randomUUID())=>run(owner,{action,...data,operationId:id},claims);
+ await act(uid,'topup',{amountCents:1000});const cards=(await purchase(uid)).cards;
+ await assert.rejects(()=>act(uid,'ship',{itemIds:[cards[0].id],requireAddress:true}),code('invalid-argument'));
+ assert.equal((await snapshot(uid)).items[0].status,'available');
+ const address={fullName:'Test Person',line1:'123 Example St',city:'Example',region:'IN',postalCode:'46000',country:'US'};
+ const request=await act(uid,'ship',{itemIds:[cards[0].id],address,requireAddress:true,estimateCents:1});
+ for(const action of ['adminShipments','adminShipment','updateShipment'])await assert.rejects(()=>act(uid,action,{customerUid:uid,shipmentId:request.shipmentId}),code('permission-denied'));
+ const rows=(await admin('adminShipments')).requests;assert.ok(rows.some(r=>r.id===request.shipmentId&&r.customerUid===uid));
+ const data={customerUid:uid,shipmentId:request.shipmentId};
+ let saved=(await admin('adminShipment',data)).request;assert.equal(saved.address.line1,address.line1);assert.equal(saved.estimateCents,null);
+ await assert.rejects(()=>admin('updateShipment',{...data,status:'shipped',carrier:'',trackingNumber:'',expectedVersion:0}),code('invalid-argument'));
+ const op=randomUUID(),patch={...data,status:'shipped',carrier:'Test Carrier',trackingNumber:'TEST-123',expectedVersion:0};
+ await admin('updateShipment',patch,op);await admin('updateShipment',patch,op);
+ await assert.rejects(()=>admin('updateShipment',{...patch,status:'delivered'}),code('failed-precondition'));
+ const customer=await snapshot(uid);saved=customer.shipments.find(s=>s.id===request.shipmentId);assert.equal(saved.status,'shipped');assert.equal(saved.trackingNumber,'TEST-123');assert.equal(saved.version,1);assert.equal(customer.account.balanceCents,801);assert.equal(customer.activity.filter(a=>a.type==='shipping-update').length,1);
+ await admin('updateShipment',{...patch,status:'delivered',expectedVersion:1});saved=(await admin('adminShipment',data)).request;assert.equal(saved.status,'delivered');assert.equal(saved.version,2);
+});
