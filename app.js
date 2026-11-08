@@ -144,6 +144,7 @@
     returnFocus = trigger;
     content.innerHTML = html;
     modal.showModal();
+    scheduleGrails();
     schedule();
     heroSchedule();
   }
@@ -172,6 +173,27 @@
   }));
 
   const grailGrid = document.querySelector('#homepage-grails');
+  const grailSection=grailGrid.closest('.grails'),grailMotion=matchMedia('(prefers-reduced-motion: reduce)');
+  let grailPaused=grailMotion.matches,grailHover=false,grailFocus=false,grailVisible=true,grailTimer=null;
+  const grailToggle=document.querySelector('#home-grail-toggle');
+  function stopGrailTimer(){clearTimeout(grailTimer);grailTimer=null}
+  function scheduleGrails(){
+    stopGrailTimer();const overflow=grailGrid.scrollWidth>grailGrid.clientWidth+2;
+    document.querySelector('.homepage-grail-controls').hidden=!overflow;
+    grailToggle.textContent=grailPaused?'Play':'Pause';grailToggle.setAttribute('aria-label',grailPaused?'Start grail rotation':'Pause grail rotation');
+    if(overflow&&!grailPaused&&!grailHover&&!grailFocus&&grailVisible&&!document.hidden&&!modal.open&&!navigationBusy){grailTimer=setTimeout(()=>{const max=grailGrid.scrollWidth-grailGrid.clientWidth;if(grailGrid.scrollLeft>=max-2)grailGrid.scrollTo({left:0,behavior:'instant'});else moveGrails(1);scheduleGrails()},5000)}
+  }
+  function moveGrails(direction){const card=grailGrid.querySelector('.grail-preview');if(!card)return;const unit=card.getBoundingClientRect().width+(parseFloat(getComputedStyle(grailGrid).gap)||0),max=grailGrid.scrollWidth-grailGrid.clientWidth;let target=grailGrid.scrollLeft+direction*unit;if(target>max+2)target=0;if(target< -2)target=max;grailGrid.scrollTo({left:Math.max(0,Math.min(max,target)),behavior:grailMotion.matches?'instant':'smooth'})}
+  document.querySelector('#home-grail-prev').addEventListener('click',()=>{grailPaused=true;moveGrails(-1);scheduleGrails()});
+  document.querySelector('#home-grail-next').addEventListener('click',()=>{grailPaused=true;moveGrails(1);scheduleGrails()});
+  grailToggle.addEventListener('click',()=>{grailPaused=!grailPaused;scheduleGrails()});
+  grailSection.addEventListener('pointerenter',()=>{grailHover=true;scheduleGrails()});grailSection.addEventListener('pointerleave',()=>{grailHover=false;scheduleGrails()});
+  grailSection.addEventListener('focusin',()=>{grailFocus=true;scheduleGrails()});grailSection.addEventListener('focusout',event=>{if(!grailSection.contains(event.relatedTarget)){grailFocus=false;scheduleGrails()}});
+  grailGrid.addEventListener('pointerdown',()=>{grailPaused=true;scheduleGrails()});grailGrid.addEventListener('keydown',event=>{if(event.target===grailGrid&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();grailPaused=true;moveGrails(event.key==='ArrowLeft'?-1:1);scheduleGrails()}});
+  grailMotion.addEventListener('change',()=>{if(grailMotion.matches)grailPaused=true;scheduleGrails()});document.addEventListener('visibilitychange',scheduleGrails);
+  document.addEventListener('rippr:navigationchange',()=>scheduleGrails());modal.addEventListener('close',scheduleGrails);
+  if('IntersectionObserver' in window)new IntersectionObserver(entries=>{grailVisible=entries[0].isIntersecting;scheduleGrails()},{threshold:.1}).observe(grailSection);
+  new ResizeObserver(scheduleGrails).observe(grailGrid);window.addEventListener('pagehide',stopGrailTimer);window.addEventListener('pageshow',scheduleGrails);
   const grailMoney = new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'});
   const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const grailImage = image => window.RIPPR_ASSET_URLS?.[image] || image;
@@ -179,7 +201,7 @@
   function grailStatus(message) {
     homepageGrails = [];
     const text = document.createElement('p'); text.className = 'homepage-grails-status'; text.setAttribute('role','status'); text.textContent = message;
-    grailGrid.replaceChildren(text); grailGrid.setAttribute('aria-busy','false');
+    grailGrid.replaceChildren(text); grailGrid.setAttribute('aria-busy','false');scheduleGrails();
   }
   function renderHomepageGrails(saved) {
     const catalog = window.RipprCatalog;
@@ -198,7 +220,7 @@
       const value = document.createElement('span'); value.className = 'homepage-grail-value'; value.textContent = grailMoney.format(grail.valueCents / 100);
       button.append(art,name,value); fragment.append(button);
     });
-    grailGrid.replaceChildren(fragment); grailGrid.setAttribute('aria-busy','false');
+    grailGrid.replaceChildren(fragment); grailGrid.setAttribute('aria-busy','false');grailGrid.scrollLeft=0;requestAnimationFrame(scheduleGrails);
   }
   async function loadHomepageGrails() {
     try {
@@ -209,7 +231,7 @@
   grailGrid.addEventListener('click', event => {
     const button = event.target.closest('[data-grail]'); if (!button || !grailGrid.contains(button)) return;
     const grail = homepageGrails[Number(button.dataset.grail)]; if (!grail) return;
-    show(`<div class="modal-kicker">GRAIL PREVIEW</div><h2 id="modal-title">${escapeHTML(grail.name)}</h2><img class="modal-grail" src="${escapeHTML(grailImage(grail.image))}" alt="${escapeHTML(grail.name)}"><p class="homepage-modal-value">${grailMoney.format(grail.valueCents / 100)}</p>${grailSource === 'default' ? '<p>Original concept artwork.</p>' : ''}`, button);
+    stopGrailTimer();show(`<div class="modal-kicker">GRAIL PREVIEW</div><h2 id="modal-title">${escapeHTML(grail.name)}</h2><img class="modal-grail" src="${escapeHTML(grailImage(grail.image))}" alt="${escapeHTML(grail.name)}"><p class="homepage-modal-value">${grailMoney.format(grail.valueCents / 100)}</p>${grailSource === 'default' ? '<p>Original concept artwork.</p>' : ''}`, button);
     content.querySelector('.modal-grail').addEventListener('error', event => { event.currentTarget.hidden = true; const text = document.createElement('p'); text.textContent = 'Image unavailable.'; event.currentTarget.after(text); }, {once:true});
   });
   loadHomepageGrails();

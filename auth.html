@@ -50,7 +50,9 @@
             <input id="verification-code" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" aria-describedby="verification-code-error">
             <p id="verification-code-error" class="field-error" hidden></p>
           </div>
+          <div id="invite-code-group" class="field-group"><label for="invite-code">Invite code (optional)</label><input id="invite-code" name="inviteCode" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="RIPPR-…" aria-describedby="invite-code-help invite-code-error"><p id="invite-code-help" class="password-help">For new collectors before their first pack opening.</p><p id="invite-code-error" class="field-error" hidden></p></div>
           <button id="auth-submit" class="submit-button" type="submit" disabled>Send code</button>
+          <button type="button" id="skip-invite" class="text-link phone-invite-skip" hidden>Continue without invite code</button>
           <div id="code-actions" class="phone-code-actions" hidden><button id="change-phone" class="text-link" type="button">Change number</button><button id="resend-code" class="text-link" type="button" disabled>Resend code</button></div>
           <p class="phone-consent">By continuing, you agree to the <button type="button" class="text-link" data-policy="terms">Terms</button> and <button type="button" class="text-link" data-policy="privacy">Privacy Policy</button>. We’ll text a sign-in code. SMS rates may apply.</p>
           <div id="phone-recaptcha" class="phone-recaptcha"></div>

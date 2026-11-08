@@ -3,9 +3,13 @@
   const $ = selector => document.querySelector(selector);
   const client = window.RipprFirebase, phoneModel = window.RipprPhone;
   const form = $('#auth-form'), phone = $('#phone'), code = $('#verification-code');
+  const invite=$('#invite-code');
   const legacyEmail = $('#legacy-email'), legacyPassword = $('#legacy-password');
   const destination=phoneModel.safeAuthReturn(new URLSearchParams(location.search).get('next'),location.origin)||phoneModel.safeAuthReturn(document.referrer,location.origin)||'/';
-  let redirecting=false;
+  let redirecting=false,referralPending=false,finishAttempt=null;
+  invite.value=(new URLSearchParams(location.search).get('ref')||new URL(destination,location.origin).searchParams.get('ref')||'').slice(0,32).trim().toUpperCase();
+  function rememberInvite(){const url=new URL(location.href),value=invite.value.trim().toUpperCase();if(value)url.searchParams.set('ref',value);else url.searchParams.delete('ref');history.replaceState(null,'',url)}
+  invite.addEventListener('input',rememberInvite);
   const sentAt = new Map();
   let ready = false, busy = false, operation = '', step = 'phone', sentNumber = '', user = null, generation = 0, policyTrigger;
   const errors = {
@@ -53,35 +57,53 @@
   function resetPasswordVisibility() { legacyPassword.value=''; legacyPassword.type='password'; $('#password-toggle').setAttribute('aria-pressed','false'); $('#password-toggle').setAttribute('aria-label','Show password'); }
   function remaining(number=sentNumber) { return Math.max(0,Math.ceil(((sentAt.get(number)||0)+60000-Date.now())/1000)); }
   function controls() {
-    for(const id of ['phone','verification-code','auth-submit','change-phone','legacy-email','legacy-password','legacy-submit','password-toggle','reset-password','link-signout']) $('#'+id).disabled=busy||!ready;
+    for(const id of ['phone','verification-code','auth-submit','change-phone','legacy-email','legacy-password','legacy-submit','password-toggle','reset-password','link-signout','invite-code','skip-invite']) $('#'+id).disabled=busy||!ready;
     $('#resend-code').disabled=busy||!ready||step!=='code'||remaining()>0;
     $('#resend-code').textContent=remaining()>0?`Resend in ${remaining()}s`:'Resend code';
-    $('#auth-submit').textContent=busy&&operation==='verify'?'Verifying…':busy&&operation==='send'?'Sending…':step==='code'?'Verify & continue':'Send code';
+    $('#auth-submit').textContent=busy&&operation==='referral'?'Applying invite…':referralPending?'Apply invite & continue':busy&&operation==='verify'?'Verifying…':busy&&operation==='send'?'Sending…':step==='code'?'Verify & continue':'Send code';
     $('#legacy-submit').textContent=busy&&operation==='legacy'?'Signing in…':'Continue with existing account';
     form.setAttribute('aria-busy',String(busy)); $('#legacy-form').setAttribute('aria-busy',String(busy));
   }
   function setBusy(value,kind='') { busy=value; operation=value?kind:''; controls(); }
   function renderStep() {
-    $('#phone-step').hidden=step!=='phone'; $('#code-step').hidden=step!=='code'; $('#code-actions').hidden=step!=='code';
-    phone.required=step==='phone'; code.required=step==='code';
-    $('#auth-title').textContent=step==='code'?'Enter your code':user?'Link your phone':'Welcome to rippr';
-    $('#phone-intro').textContent=step==='code'?`Code sent to ${sentNumber}`:user?'Verify a number for this account.':'Sign in or sign up with your phone.';
-    $('#link-account-note').hidden=!user; $('#legacy-access').hidden=Boolean(user)||step==='code';
+    $('#phone-step').hidden=referralPending||step!=='phone'; $('#code-step').hidden=referralPending||step!=='code'; $('#code-actions').hidden=referralPending||step!=='code';$('#skip-invite').hidden=!referralPending;
+    phone.required=!referralPending&&step==='phone'; code.required=!referralPending&&step==='code';
+    $('#auth-title').textContent=referralPending?'Check your invite code':step==='code'?'Enter your code':user?'Link your phone':'Welcome to rippr';
+    $('#phone-intro').textContent=referralPending?'Retry your invite or continue without one.':step==='code'?`Code sent to ${sentNumber}`:user?'Verify a number for this account.':'Sign in or sign up with your phone.';
+    $('#link-account-note').hidden=referralPending||!user; $('#legacy-access').hidden=referralPending||Boolean(user)||step==='code';
     controls();
   }
   function resetPhoneRequest() { generation++; client?.cancelPhoneSignIn?.(); step='phone'; sentNumber=''; code.value=''; [phone,code].forEach(clearError); clearStatus(); }
-  function showUser(next) {
+  function redirect(){if(!redirecting){redirecting=true;referralPending=false;resetPhoneRequest();resetPasswordVisibility();location.replace(destination)}}
+  async function showUser(next){
     user=next;
     if(next?.phoneNumber){
-      if(!redirecting){redirecting=true;resetPhoneRequest();resetPasswordVisibility();location.replace(destination)}
+      if(redirecting||finishAttempt?.uid===next.uid)return;
+      const attempt={uid:next.uid,ticket:generation};finishAttempt=attempt;
+      const current=()=>finishAttempt===attempt&&attempt.ticket===generation&&client.currentUser()?.uid===attempt.uid;
+      const value=invite.value.trim().toUpperCase();
+      if(!value){finishAttempt=null;redirect();return}
+      setBusy(true,'referral');clearError(invite);
+      try{
+        if(!/^RIPPR-[A-F0-9]{16}$/.test(value))throw Object.assign(new Error('Enter a valid invite code, or continue without one.'),{code:'invite/invalid'});
+        const state=await client.accountAction('referralState',{accountUid:next.uid});if(!current())return;
+        if(state.canApply){
+          if(!state.config.enabled)throw Object.assign(new Error('Referral bonuses are paused. You can continue without a code.'),{code:'invite/paused'});
+          await window.RipprAccount.act('bindReferral',{code:value,expectedVersion:state.config.version});if(!current())return;
+        }
+        finishAttempt=null;redirect();
+      }catch(error){
+        if(!current())return;referralPending=true;renderStep();fieldError(invite,error.code?.startsWith('invite/')?error.message:window.RipprAccount.errorMessage(error));
+      }finally{if(finishAttempt===attempt){finishAttempt=null;setBusy(false);if(referralPending)invite.focus()}}
       return;
     }
-    $('#auth-panel').hidden=false;renderStep();document.title='Sign in or sign up — rippr';
+    referralPending=false;$('#auth-panel').hidden=false;renderStep();document.title='Sign in or sign up — rippr';
   }
 
   async function sendCode() {
     if(busy||!ready)return;
-    clearStatus(); clearError(phone); clearError(code);
+    clearStatus(); clearError(phone); clearError(code);clearError(invite);
+    invite.value=invite.value.trim().toUpperCase();rememberInvite();if(invite.value&&!/^RIPPR-[A-F0-9]{16}$/.test(invite.value)){fieldError(invite,'Enter the complete RIPPR- invite code, or leave it blank.');return}
     const number=phoneModel.normalizePhoneNumber(step==='code'?sentNumber:phone.value);
     if(!number){fieldError(phone,errors['auth/invalid-phone-number']);return}
     if(remaining(number)>0){message(`Wait ${remaining(number)} seconds before requesting another code.`);return}
@@ -96,6 +118,7 @@
   }
   form.addEventListener('submit',async event=>{
     event.preventDefault(); if(busy||!ready)return;
+    if(referralPending){await showUser(client.currentUser());return}
     if(step==='phone'){sendCode();return}
     clearStatus(); clearError(code);
     if(!phoneModel.validVerificationCode(code.value)){fieldError(code,'Enter the six-digit code from your text.');return}
@@ -103,14 +126,14 @@
     try {
       const next=await client.confirmPhoneSignIn(code.value);
       if(ticket!==generation)return;
-      code.value=''; setBusy(false); showUser(next);
+      code.value=''; setBusy(false); await showUser(next);
     } catch(error) {
       if(ticket!==generation)return;
       code.value='';
       if(['auth/code-expired','auth/session-expired','auth/invalid-verification-id','auth/invalid-link-session'].includes(error.code)) {
         client.cancelPhoneSignIn(); step='phone'; renderStep(); message(errorMessage(error));
       } else if(error.code==='auth/invalid-verification-code')fieldError(code,errorMessage(error));
-      else if(client.currentUser()?.phoneNumber) { setBusy(false);showUser(client.currentUser()); }
+      else if(client.currentUser()?.phoneNumber) { setBusy(false);await showUser(client.currentUser()); }
       else message(errorMessage(error));
     } finally { if(ticket===generation||!busy)setBusy(false); }
   });
@@ -122,7 +145,7 @@
     if(!legacyEmail.value||!legacyEmail.validity.valid){fieldError(legacyEmail,'Enter your existing email address.');return}
     if(!legacyPassword.value){fieldError(legacyPassword,'Enter your existing password.');return}
     const ticket=++generation; client.cancelPhoneSignIn(); setBusy(true,'legacy');
-    try { const next=await client.signInEmail(legacyEmail.value,legacyPassword.value); if(ticket!==generation)return;resetPhoneRequest();setBusy(false);showUser(next);if(!next?.phoneNumber)phone.focus(); }
+    try { const next=await client.signInEmail(legacyEmail.value,legacyPassword.value); if(ticket!==generation)return;resetPhoneRequest();setBusy(false);await showUser(next);if(!next?.phoneNumber)phone.focus(); }
     catch(error){if(ticket===generation)message(errorMessage(error))}
     finally {if(ticket===generation||!busy){resetPasswordVisibility();setBusy(false)}}
   });
@@ -136,19 +159,20 @@
   });
   async function signOut() {
     if(busy||!ready)return; resetPhoneRequest();setBusy(true,'signout');
-    try{await client.signOut();phone.value='';setBusy(false);showUser(null);phone.focus()}
+    try{await client.signOut();phone.value='';invite.value='';rememberInvite();referralPending=false;finishAttempt=null;setBusy(false);await showUser(null);phone.focus()}
     catch(error){message(errorMessage(error))}finally{setBusy(false)}
   }
   $('#link-signout').addEventListener('click',signOut);
-  for(const input of [phone,code,legacyEmail,legacyPassword])input.addEventListener('input',()=>{clearError(input);clearStatus()});
+  $('#skip-invite').addEventListener('click',()=>{if(busy)return;if(client.currentUser()?.phoneNumber){invite.value='';rememberInvite();finishAttempt=null;redirect()}});
+  for(const input of [phone,code,invite,legacyEmail,legacyPassword])input.addEventListener('input',()=>{clearError(input);clearStatus()});
   document.addEventListener('rippr:authchange',event=>{
     const next=event.detail.user;
     if(busy){
       const expected=next?.uid===user?.uid||(operation==='verify'&&!user&&next?.phoneNumber===sentNumber)||(operation==='legacy'&&next?.email?.toLowerCase()===legacyEmail.value.trim().toLowerCase())||(operation==='signout'&&!next);
       if(expected)return;
-      resetPhoneRequest();resetPasswordVisibility();setBusy(false);
+      invite.value='';rememberInvite();clearError(invite);resetPhoneRequest();resetPasswordVisibility();setBusy(false);
     }
-    if(next?.uid!==user?.uid)resetPhoneRequest();showUser(next);
+    if(next?.uid!==user?.uid){if(user?.uid){invite.value='';rememberInvite();clearError(invite)}resetPhoneRequest();finishAttempt=null;referralPending=false}showUser(next);
   });
   const dialog=$('#policy-dialog');
   document.querySelectorAll('[data-policy]').forEach(button=>button.addEventListener('click',()=>{
@@ -162,6 +186,6 @@
   window.addEventListener('pagehide',()=>{clearInterval(cooldown);cooldown=null;resetPhoneRequest()});
   window.addEventListener('pageshow',event=>{if(event.persisted){redirecting=false;setBusy(false);showUser(client?.currentUser());if(!cooldown)cooldown=setInterval(controls,1000)}});
   renderStep();
-  if(client)client.ready.then(()=>{ready=true;setBusy(false);showUser(client.currentUser())}).catch(()=>message('Sign-in could not load. Please reload the page.'));
+  if(client)client.ready.then(async()=>{ready=true;if(!finishAttempt)setBusy(false);await showUser(client.currentUser())}).catch(()=>message('Sign-in could not load. Please reload the page.'));
   else message('Sign-in could not load. Please reload the page.');
 })();

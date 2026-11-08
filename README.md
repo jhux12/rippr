@@ -281,3 +281,7 @@ npx firebase deploy --only functions:ripprAccount --project rippr-2b01c
 ```
 
 No new Firestore or Storage rules are needed. Validation: `npm run test:referrals`, `npm run test:accounts`, `npm run test:rewards`, and responsive browser tests with an isolated account database.
+
+Invite entry now lives in the shared phone sign-up form as an optional field. Shared invites open `auth.html?mode=signup&ref=CODE`; older Rewards-page invite links still carry the code into sign-up. After successful phone verification, the page fetches current referral settings and binds an eligible code before returning to the original page. Invalid or unavailable codes can be corrected without another SMS, or skipped. Existing accounts that already opened a pack or already applied an invite sign in normally. The Rewards page retains invite sharing and referral status, without an invite-entry form. No backend or rules deployment is needed for this change.
+
+Homepage Grails worth discovering uses a single horizontal row instead of stacked rows. When there are more cards than fit, it advances every five seconds and loops. Previous/Next and Play/Pause controls, native touch scrolling and keyboard arrow navigation are supported. Automatic rotation pauses on hover, keyboard focus, offscreen placement, hidden tabs, navigation overlays and card previews. Manual controls and touch interaction pause rotation until restarted; reduced-motion preferences start it paused. Saved admin images, names, values and full-card previews remain unchanged.
