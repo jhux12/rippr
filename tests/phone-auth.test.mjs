@@ -31,3 +31,10 @@ test('diagnostic references never echo raw error data or arbitrary strings',()=>
   assert.equal(authErrorReference({code:'auth/operation-not-allowed'}),'auth/operation-not-allowed');
   for(const code of ['auth/token-012345','<script>','auth/internal-error?token=secret',123,null])assert.equal(authErrorReference({code}),'');
 });
+
+test('sign-in return destinations preserve same-site queries and hashes and reject external URLs and auth loops',async()=>{
+ const {safeAuthReturn}=await import('../src/phone-auth.js'),origin='https://rippr.example';
+ for(const path of ['/opening.html?pack=elite#odds','/contact-support.html?request=abc','/admin','/profile.html','/'])assert.equal(safeAuthReturn(path,origin),path);
+ assert.equal(safeAuthReturn('https://rippr.example/rewards.html#prizes',origin),'/rewards.html#prizes');
+ for(const path of ['https://evil.example/','//evil.example','javascript:alert(1)','/auth','auth.html?mode=signup','/auth.html#top','/%61uth.html','https://user@rippr.example/profile.html',null,''])assert.equal(safeAuthReturn(path,origin),null);
+});

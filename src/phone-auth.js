@@ -34,3 +34,12 @@ export function phoneSetupMessage(error) {
   };
   return messages[code] || '';
 }
+
+// Only return to this site's pages; never loop back to the sign-in screen.
+export function safeAuthReturn(value,origin){
+ if(typeof value!=='string'||!value.trim())return null;
+ try{const url=new URL(value,origin+'/');const path=decodeURIComponent(url.pathname);
+  if(url.origin!==origin||!['http:','https:'].includes(url.protocol)||url.username||url.password||/^\/auth(?:\.html)?(?:\/|$)/i.test(path))return null;
+  return url.pathname+url.search+url.hash;
+ }catch{return null}
+}

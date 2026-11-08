@@ -9,6 +9,15 @@
   const mobile = matchMedia('(max-width: 760px)');
   const packsTarget = document.querySelector('#packs') ? '#packs' : 'index.html#packs';
   let dialogTrigger;
+  // Capture the full origin page, including pack queries and anchors.
+  document.addEventListener('click',event=>{
+    const link=event.target.closest('a[href]');if(!link)return;
+    const target=new URL(link.href,location.href);
+    if(target.origin===location.origin&&/^\/auth(?:\.html)?\/?$/i.test(target.pathname)&&!target.searchParams.has('next')&&!/^\/auth(?:\.html)?\/?$/i.test(location.pathname)){
+      target.searchParams.set('next',location.pathname+location.search+location.hash);link.href=target.href;
+    }
+  },true);
+
 
   header.querySelectorAll('[data-nav-packs]').forEach(link => link.setAttribute('href', packsTarget));
   function announceState() {
@@ -196,7 +205,7 @@
       input.focus();
       return;
     }
-    if(!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login';return;}
+    if(!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);return;}
     const submit=dialog.querySelector('.topup-continue');
     submit.disabled=true;input.disabled=true;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=true);
     notice.textContent='Adding test credit…';

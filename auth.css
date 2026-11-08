@@ -24,3 +24,17 @@
 .legacy-access{border-top:1px solid #284152;margin-top:22px;padding-top:15px;font-size:11px;color:#a9c5d7}.legacy-access summary{cursor:pointer;line-height:1.7}.legacy-access>p{font-size:11px;line-height:1.8;margin:12px 0 16px;color:#99b0c5}.legacy-access .field-group label{font-size:11px}.legacy-access .submit-button{font-size:12px}
 .auth-form-panel .account-actions-row button:disabled{opacity:.5;cursor:default}
 @media(max-width:680px){.phone-intro{font-size:12px;margin:8px 0 20px}.phone-consent{font-size:10px;margin-top:14px}.legacy-access{margin-top:18px;padding-top:13px}#verification-code{font-size:23px;letter-spacing:7px}.phone-code-actions{font-size:11px}.phone-link-note{margin-bottom:18px}}
+/* Compact mobile rhythm: one clear form below a small welcome illustration. */
+@media(max-width:680px){
+ .auth-layout{width:calc(100% - 24px);margin:16px auto 22px;border-radius:14px}
+ .auth-visual{height:88px}.visual-heading{top:24px;left:18px;max-width:60%}.visual-heading h2{font-size:20px;line-height:1.25}
+ .auth-form-panel{padding:22px 20px 20px}.auth-form-panel h1{font-size:24px;line-height:1.25}
+ .phone-intro{margin:8px 0 18px;line-height:1.5}.field-group label{margin-bottom:7px}
+ .field-group input{height:48px;font-size:16px}.submit-button{height:46px;margin-top:14px}
+ .phone-consent{margin-top:14px;font-size:10px;line-height:1.7}.phone-code-actions{margin-top:14px;gap:8px;min-height:28px}
+ .phone-code-actions button{min-height:32px}.legacy-access{margin-top:18px;padding-top:14px}.legacy-access summary{padding:3px 0;line-height:1.5}
+ .legacy-access>p{margin:12px 0 14px}.legacy-access .field-group+.field-group{margin-top:14px}
+ .phone-link-note{margin:0 0 16px}.auth-status{margin-top:14px;padding:10px 12px}
+}
+@media(max-width:350px){.auth-layout{width:calc(100% - 20px);margin-top:12px}.auth-form-panel{padding:20px 16px}.visual-heading{left:16px;max-width:56%}.visual-heading h2{font-size:18px}.auth-form-panel h1{font-size:22px}}
+@media(max-width:680px){body.has-site-footer>.auth-layout{margin-top:16px;margin-bottom:20px}.auth-visual .visual-heading{top:18px;max-width:calc(100% - 140px)}}

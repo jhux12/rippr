@@ -41,3 +41,4 @@
 @media(prefers-reduced-motion:reduce) {
   .hero-pip,.results.visible .result-pip { animation:none; translate:0 0; }
 }
+@media(max-width:680px){.auth-visual .auth-pack-fan{right:10px;top:4px;width:112px;height:84px}.auth-visual .auth-pip{width:86px;height:86px;top:-1px}.auth-visual .auth-pack{height:64px;top:12px}}

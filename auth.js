@@ -4,6 +4,8 @@
   const client = window.RipprFirebase, phoneModel = window.RipprPhone;
   const form = $('#auth-form'), phone = $('#phone'), code = $('#verification-code');
   const legacyEmail = $('#legacy-email'), legacyPassword = $('#legacy-password');
+  const destination=phoneModel.safeAuthReturn(new URLSearchParams(location.search).get('next'),location.origin)||phoneModel.safeAuthReturn(document.referrer,location.origin)||'/';
+  let redirecting=false;
   const sentAt = new Map();
   let ready = false, busy = false, operation = '', step = 'phone', sentNumber = '', user = null, generation = 0, policyTrigger;
   const errors = {
@@ -46,12 +48,12 @@
   }
   function clearError(input) { input.removeAttribute('aria-invalid'); const error=$('#'+input.id+'-error'); error.hidden=true; error.textContent=''; }
   function fieldError(input,text) { input.setAttribute('aria-invalid','true'); const error=$('#'+input.id+'-error'); error.textContent=text; error.hidden=false; input.focus(); }
-  function message(text,account=false) { const target=$(account?'#account-status':'#auth-status'); target.textContent=text; target.hidden=false; target.focus(); }
+  function message(text) { const target=$('#auth-status'); target.textContent=text; target.hidden=false; target.focus(); }
   function clearStatus() { $('#auth-status').hidden=true; $('#auth-status').textContent=''; }
   function resetPasswordVisibility() { legacyPassword.value=''; legacyPassword.type='password'; $('#password-toggle').setAttribute('aria-pressed','false'); $('#password-toggle').setAttribute('aria-label','Show password'); }
   function remaining(number=sentNumber) { return Math.max(0,Math.ceil(((sentAt.get(number)||0)+60000-Date.now())/1000)); }
   function controls() {
-    for(const id of ['phone','verification-code','auth-submit','change-phone','legacy-email','legacy-password','legacy-submit','password-toggle','reset-password','link-signout','sign-out']) $('#'+id).disabled=busy||!ready;
+    for(const id of ['phone','verification-code','auth-submit','change-phone','legacy-email','legacy-password','legacy-submit','password-toggle','reset-password','link-signout']) $('#'+id).disabled=busy||!ready;
     $('#resend-code').disabled=busy||!ready||step!=='code'||remaining()>0;
     $('#resend-code').textContent=remaining()>0?`Resend in ${remaining()}s`:'Resend code';
     $('#auth-submit').textContent=busy&&operation==='verify'?'Verifying…':busy&&operation==='send'?'Sending…':step==='code'?'Verify & continue':'Send code';
@@ -69,14 +71,14 @@
   }
   function resetPhoneRequest() { generation++; client?.cancelPhoneSignIn?.(); step='phone'; sentNumber=''; code.value=''; [phone,code].forEach(clearError); clearStatus(); }
   function showUser(next) {
-    user=next; const signedIn=Boolean(next?.phoneNumber);
-    $('#auth-panel').hidden=signedIn; $('#account-panel').hidden=!signedIn; $('#open-admin').hidden=!next?.isAdmin;
-    if(signedIn) {
-      resetPhoneRequest(); resetPasswordVisibility();
-      $('#account-phone').textContent=next.phoneNumber; document.title='Your account — rippr';
-      if(next.isAdmin&&new URLSearchParams(location.search).get('next')==='/admin'){location.replace('/admin');return}
-    } else { renderStep(); document.title='Sign in or sign up — rippr'; }
+    user=next;
+    if(next?.phoneNumber){
+      if(!redirecting){redirecting=true;resetPhoneRequest();resetPasswordVisibility();location.replace(destination)}
+      return;
+    }
+    $('#auth-panel').hidden=false;renderStep();document.title='Sign in or sign up — rippr';
   }
+
   async function sendCode() {
     if(busy||!ready)return;
     clearStatus(); clearError(phone); clearError(code);
@@ -101,14 +103,14 @@
     try {
       const next=await client.confirmPhoneSignIn(code.value);
       if(ticket!==generation)return;
-      code.value=''; setBusy(false); showUser(next); $('#account-title').focus();
+      code.value=''; setBusy(false); showUser(next);
     } catch(error) {
       if(ticket!==generation)return;
       code.value='';
       if(['auth/code-expired','auth/session-expired','auth/invalid-verification-id','auth/invalid-link-session'].includes(error.code)) {
         client.cancelPhoneSignIn(); step='phone'; renderStep(); message(errorMessage(error));
       } else if(error.code==='auth/invalid-verification-code')fieldError(code,errorMessage(error));
-      else if(client.currentUser()?.phoneNumber) { setBusy(false);showUser(client.currentUser()); message('You’re signed in. Your phone number is verified.',true); }
+      else if(client.currentUser()?.phoneNumber) { setBusy(false);showUser(client.currentUser()); }
       else message(errorMessage(error));
     } finally { if(ticket===generation||!busy)setBusy(false); }
   });
@@ -120,7 +122,7 @@
     if(!legacyEmail.value||!legacyEmail.validity.valid){fieldError(legacyEmail,'Enter your existing email address.');return}
     if(!legacyPassword.value){fieldError(legacyPassword,'Enter your existing password.');return}
     const ticket=++generation; client.cancelPhoneSignIn(); setBusy(true,'legacy');
-    try { const next=await client.signInEmail(legacyEmail.value,legacyPassword.value); if(ticket!==generation)return;resetPhoneRequest();setBusy(false);showUser(next);(next?.phoneNumber?$('#account-title'):phone).focus(); }
+    try { const next=await client.signInEmail(legacyEmail.value,legacyPassword.value); if(ticket!==generation)return;resetPhoneRequest();setBusy(false);showUser(next);if(!next?.phoneNumber)phone.focus(); }
     catch(error){if(ticket===generation)message(errorMessage(error))}
     finally {if(ticket===generation||!busy){resetPasswordVisibility();setBusy(false)}}
   });
@@ -134,10 +136,10 @@
   });
   async function signOut() {
     if(busy||!ready)return; resetPhoneRequest();setBusy(true,'signout');
-    try{await client.signOut();phone.value='';$('#account-status').hidden=true;setBusy(false);showUser(null);phone.focus()}
-    catch(error){message(errorMessage(error),Boolean(user?.phoneNumber))}finally{setBusy(false)}
+    try{await client.signOut();phone.value='';setBusy(false);showUser(null);phone.focus()}
+    catch(error){message(errorMessage(error))}finally{setBusy(false)}
   }
-  $('#sign-out').addEventListener('click',signOut);$('#link-signout').addEventListener('click',signOut);
+  $('#link-signout').addEventListener('click',signOut);
   for(const input of [phone,code,legacyEmail,legacyPassword])input.addEventListener('input',()=>{clearError(input);clearStatus()});
   document.addEventListener('rippr:authchange',event=>{
     const next=event.detail.user;
@@ -158,7 +160,7 @@
   dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()});
   let cooldown=setInterval(controls,1000);
   window.addEventListener('pagehide',()=>{clearInterval(cooldown);cooldown=null;resetPhoneRequest()});
-  window.addEventListener('pageshow',event=>{if(event.persisted){setBusy(false);showUser(client?.currentUser());if(!cooldown)cooldown=setInterval(controls,1000)}});
+  window.addEventListener('pageshow',event=>{if(event.persisted){redirecting=false;setBusy(false);showUser(client?.currentUser());if(!cooldown)cooldown=setInterval(controls,1000)}});
   renderStep();
   if(client)client.ready.then(()=>{ready=true;setBusy(false);showUser(client.currentUser())}).catch(()=>message('Sign-in could not load. Please reload the page.'));
   else message('Sign-in could not load. Please reload the page.');

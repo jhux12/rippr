@@ -162,7 +162,7 @@
     } else if (button.dataset.dialog === 'collection') {
       location.href='profile.html'; return;
     } else {
-      location.href = 'auth.html?mode=login';
+      location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);
       return;
     }
     content.querySelector('[data-explore]').addEventListener('click', () => {

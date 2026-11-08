@@ -42,7 +42,7 @@ async function load(){
 }
 function sparkle(){if(reduced())return;for(let i=0;i<18;i++){const p=document.createElement('i');p.className='confetti';const angle=Math.PI*2*i/18;p.style.setProperty('--x',Math.cos(angle)*160+'px');p.style.setProperty('--y',Math.sin(angle)*120-50+'px');p.style.setProperty('--r',i*30+'deg');$('#case-panel').append(p);p.addEventListener('animationend',()=>p.remove(),{once:true})}}
 async function spin(){
- if(mode==='guest'){location.href='auth.html?mode=login';return}if(mode!=='ready')return;
+ if(mode==='guest'){location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);return}if(mode!=='ready')return;
  const uid=window.RIPPR_ACCOUNT.user.uid,ticket=generation;
  pendingResult=null;document.querySelectorAll('.winner').forEach(el=>el.classList.remove('winner'));mode='purchasing';$('#open-case').disabled=true;$('#open-case').textContent='Opening…';$('#status-text').textContent='Opening…';error('');$('#result').hidden=true;document.querySelector('.reward-result-link')?.remove();
  try{
