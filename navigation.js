@@ -53,6 +53,7 @@
   }
   header.querySelectorAll('[data-nav-dialog]').forEach(button => button.addEventListener('click', () => {
     if(button.dataset.navDialog==='collection'){ location.href='profile.html'; return; }
+    if(button.dataset.navDialog==='how'){ location.href='how-it-works.html'; return; }
     dialogTrigger = button;
     setMenu(false);
     content.innerHTML = '<h2 id="nav-dialog-title">How it works</h2><ol><li>Add free test credit to your account.</li><li>Choose a pack and open it using your balance.</li><li>Rip the foil. Your card is saved to your items.</li></ol><p>Test credit has no cash value. Shipping requests are tests.</p>';

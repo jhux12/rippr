@@ -141,7 +141,7 @@ The opening page uses the compact desktop showcase: the existing pack artwork on
 
 The showcase keeps its original footprint throughout purchase, ripping, charge and flip. The sidebar, odds and grails stay in place; purchase controls remain visible and disabled while opening. The reveal is contained inside the original stage: the card stays horizontally centered, with the landed rarity above and a compact name/value row and two keep/sell buttons below. It does not expand to full width, increase stage height or automatically scroll the page. **Slide to rip** appears above a dashed perforation at the actual 9% foil seam. The 44px target follows the seam, and the line fills as the user slides. **Skip animation** is available after the server awards the card, through zoom/rip/unseal/extraction/color cycle/settling/flip; it cancels pending animation timers and shows that same card immediately. It never makes another purchase, draws a different card or skips the keep/sell decision. Each pack in a batch retains its own reveal. Offline exports include the same layout, helper and skip control.
 
-The shared header balance pill is hidden while signed out or restoring an unknown session. It appears for authenticated users and keeps the existing test top-up behavior. Signing out closes an open top-up dialog and hides the pill across all five customer pages.
+The shared header balance pill is hidden while signed out or restoring an unknown session. It appears for authenticated users and keeps the existing test top-up behavior. Signing out closes an open top-up dialog and hides the pill across all six customer pages.
 
 The reveal uses the navy rippr card back, outlined landed-rarity capsule, traced edge, soft halo, sparse particles and low oval platform. Batch openings retain a small pack counter. `assets/reveal/rippr-card-back.png` is generated full-bleed artwork; the border, glow, particles and flip are live CSS/SVG effects. The card back preloads during page setup and is embedded in offline exports. The winning image remains the actual catalog artwork, fully contained, with a graceful missing-art fallback. After the flip, its wrapping name, value and two separate actions appear. Keep/sell actions sit in a centered row below the card on desktop and mobile. Long card names scroll within their allotted area and can receive keyboard focus, preserving the full name without moving the controls or changing the page height.
 
@@ -161,7 +161,7 @@ The trust row links to phone sign-in, actual pack odds and the account collectio
 
 ## Shared footer
 
-All five customer pages share the desktop/mobile footer in `partials/footer.html`. `npm run build` synchronizes that partial into the pages; edit the partial rather than individual copies. `footer.css` controls the layout and `footer.js` provides accessible information dialogs and Back to top.
+All six customer pages share the desktop/mobile footer in `partials/footer.html`. `npm run build` synchronizes that partial into the pages; edit the partial rather than individual copies. `footer.css` controls the layout and `footer.js` provides accessible information dialogs and Back to top.
 
 Set `discordUrl`, `instagramUrl` and `supportEmail` in `footer-config.js` when the public destinations are available. Social buttons remain disabled until configured, and Contact explains that support details are coming soon. Help and Shipping describe the current test features; Terms and Privacy remain clearly marked as being prepared and need finalized policies before public launch. Offline previews include the same footer, images and interactions.
 
@@ -203,6 +203,13 @@ Vercel uses the repository root, `npm ci`, `npm run build` and output directory 
 python3 scripts/export-previews.py /workspace/downloads
 ```
 
-Exports five standalone HTML previews and `rippr-site.zip`. Keep the previews together. Offline previews do not contact Firebase; pack reveals are explicitly offline design previews and the profile shows the sign-in gate. The source ZIP includes Functions source/lockfile but excludes dependency directories, environment files, credentials, CLI logs and deployment outputs.
+Exports six standalone HTML previews and `rippr-site.zip`. Keep the previews together. Offline previews do not contact Firebase; pack reveals are explicitly offline design previews and the profile shows the sign-in gate. The source ZIP includes Functions source/lockfile but excludes dependency directories, environment files, credentials, CLI logs and deployment outputs.
 
 Manrope and its OFL license are bundled locally. Pack/grail SVGs contain the approved raster art, not vector masters.
+
+
+## How it works page
+
+`/how-it-works` and `how-it-works.html` serve the illustrated four-step guide. The compact Pip intro, connected step cards, CTA row, keyboard-accessible FAQ and compact shared-footer presentation follow the approved mockup, with the testing strip omitted. Actual Basic/Premium/Ultimate pack assets compose the pack illustration. The other three transparent illustrations are in `assets/how-it-works/`; SVG presentation viewports fit the original images without modifying their pixels. Mobile uses compact illustrated rows. All existing customer headers link to the guide; shared authentication, profile, balance and top-up behavior remain in place. The build includes the clean route for Vercel and Firebase Hosting. No Functions or rules deployment is required.
+
+The preview exporter now creates `rippr-how-it-works.html`, embeds its artwork, fonts, Pip and pack images, rewrites sibling links, and includes the page in the source ZIP. Browser checks cover 320–1920px layouts, keyboard FAQ controls, desktop/mobile navigation, guest/member header state and support/legal dialogs using a read-only SDK fixture.

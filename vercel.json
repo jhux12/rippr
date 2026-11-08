@@ -16,6 +16,10 @@
     {
       "source": "/rewards",
       "destination": "/rewards.html"
+    },
+    {
+      "source": "/how-it-works",
+      "destination": "/how-it-works.html"
     }
   ]
 }

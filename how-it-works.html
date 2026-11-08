@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080e15">
+<meta name="description" content="Your guide to rippr: top up, choose a pack, rip the foil and manage your collection.">
+<title>How it works — rippr</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="navigation.css?v=2"><link rel="stylesheet" href="mascot.css"><link rel="stylesheet" href="footer.css">
+<script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="account-state.js" defer></script><script src="navigation.js" defer></script><script src="footer-config.js" defer></script><script src="footer.js" defer></script>
+</head><body class="guide-page has-site-footer" id="top"><a class="skip-link" href="#main">Skip to content</a>
+<header class="site-navigation">
+    <div class="nav-shell">
+      <a class="nav-brand" href="index.html" aria-label="rippr home"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg><span>rippr</span></a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a class="nav-link" href="index.html#packs" data-nav-packs>Packs</a>
+        <button class="nav-link" type="button" data-nav-dialog="collection">Collection</button>
+        <a class="nav-link" href="how-it-works.html" data-nav-how aria-current="page">How it works</a>
+      <a class="nav-link" href="rewards.html">Rewards</a></nav>
+      <div class="nav-actions">
+        <a class="nav-login" href="auth.html?mode=login">Log in</a>
+        <a class="nav-signup" href="auth.html?mode=signup">Sign up</a>
+        <button class="nav-toggle" id="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-navigation" aria-label="Open navigation menu" hidden><svg class="nav-hamburger" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="nav-close-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
+      </div>
+    </div>
+    <nav id="mobile-navigation" class="mobile-navigation" aria-label="Mobile navigation" hidden>
+      <a href="index.html#packs" data-nav-packs>Packs</a>
+      <button type="button" data-nav-dialog="collection">Collection</button>
+      <a href="how-it-works.html" data-nav-how aria-current="page">How it works</a>
+      <a href="rewards.html">Rewards</a><a href="auth.html?mode=login">Log in</a>
+    </nav>
+    <dialog id="nav-dialog" class="nav-dialog" aria-labelledby="nav-dialog-title"><button class="nav-dialog-close" type="button" aria-label="Close dialog">×</button><div id="nav-dialog-content"></div></dialog>
+  </header>
+<main id="main" class="guide-shell">
+<section class="guide-intro" aria-labelledby="guide-title"><div><p class="guide-eyebrow">The rippr guide</p><h1 id="guide-title">Your first rip starts here.</h1><p class="guide-description">Pick a pack. Reveal a card. Build your collection.</p></div><img class="guide-pip" data-pip="welcome" src="assets/mascot/pip-welcome.png" alt="Pip, the rippr mascot, waves hello" width="1254" height="1254" draggable="false"></section>
+<ol class="guide-steps" aria-label="Four steps to your first rip">
+<li class="guide-step"><span class="step-number" aria-hidden="true">01</span><div class="guide-art" aria-hidden="true"><svg viewBox="50 100 1180 1110"><image href="assets/how-it-works/wallet.png" width="1280" height="1280"/></svg></div><div class="step-copy"><h2>Top up</h2><p>Add balance to get started.</p></div></li>
+<li class="guide-step"><span class="step-number" aria-hidden="true">02</span><div class="guide-art guide-pack-fan" aria-hidden="true"><img class="guide-pack guide-pack-left" src="assets/pack-basic.svg" alt="" width="340" height="605" draggable="false"><img class="guide-pack guide-pack-right" src="assets/pack-ultimate.svg" alt="" width="340" height="605" draggable="false"><img class="guide-pack guide-pack-center" src="assets/pack-premium.svg" alt="" width="340" height="605" draggable="false"></div><div class="step-copy"><h2>Choose your pack</h2><p>Check the odds and pick your tier.</p></div></li>
+<li class="guide-step"><span class="step-number" aria-hidden="true">03</span><div class="guide-art" aria-hidden="true"><svg viewBox="120 0 1040 1180"><image href="assets/how-it-works/rip-reveal.png" width="1280" height="1280"/></svg></div><div class="step-copy"><h2>Rip &amp; reveal</h2><p>Slide across the foil to reveal one card.</p></div></li>
+<li class="guide-step"><span class="step-number" aria-hidden="true">04</span><div class="guide-art" aria-hidden="true"><svg viewBox="0 150 1240 930"><image href="assets/how-it-works/collection.png" width="1280" height="1280"/></svg></div><div class="step-copy"><h2>Make it yours</h2><p>Keep it, sell for balance, or request shipping.</p></div></li>
+</ol>
+<div class="guide-actions"><a class="guide-primary" href="index.html#packs">Explore packs</a><a class="guide-items" href="profile.html">View my items <span aria-hidden="true">→</span></a></div>
+<section class="guide-faq" aria-labelledby="guide-faq-title"><h2 id="guide-faq-title">A few things to know.</h2><div class="guide-faq-grid">
+<details><summary>How many cards are in a pack?<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14"/><path class="faq-vertical" d="M10 3v14"/></svg></summary><p>Every pack reveals one card. Open multiple packs to add more cards to your collection.</p></details>
+<details><summary>Where do my cards go?<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14"/><path class="faq-vertical" d="M10 3v14"/></svg></summary><p>Your winning card is saved to your account before the reveal. Choose Add to inventory to continue, then find it in <a href="profile.html">My items</a>.</p></details>
+<details><summary>Where can I see the odds?<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14"/><path class="faq-vertical" d="M10 3v14"/></svg></summary><p>Each <a href="index.html#packs">pack page</a> shows rarity odds, item value ranges and grail previews before you open.</p></details>
+<details><summary>How does selling work?<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14"/><path class="faq-vertical" d="M10 3v14"/></svg></summary><p>Choose Sell for on the reveal or sell an available card from My items. Confirm the displayed value to add it to your site balance and remove that card from your available inventory.</p></details>
+</div></section>
+</main>
+<!-- rippr-footer:start -->
+<footer class="rippr-footer" aria-label="Site footer">
+  <div class="rippr-footer-inner">
+    <div class="footer-main-grid">
+      <div class="footer-brand-block">
+        <div class="footer-brand-copy">
+          <a class="footer-brand" href="index.html" aria-label="rippr home"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg><span>rippr</span></a>
+          <p class="footer-tagline">Collect the unexpected.</p>
+          <div class="footer-socials" aria-label="Social links">
+            <button class="footer-social" type="button" data-footer-social="discord" disabled aria-label="Discord — coming soon" title="Discord — coming soon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.7 5.1a18 18 0 0 0-4.4-1.4l-.5 1a16.4 16.4 0 0 0-5.6 0l-.5-1a18 18 0 0 0-4.4 1.4C1.5 9.4.8 13.6 1.2 17.7a18 18 0 0 0 5.4 2.7l1.1-1.8-1.7-.8.4-.3a12.8 12.8 0 0 0 11.2 0l.4.3-1.7.8 1.1 1.8a18 18 0 0 0 5.4-2.7c.5-4.8-.8-9-3.1-12.6ZM8.5 14.9c-1 0-1.7-.9-1.7-2s.7-2 1.7-2 1.7.9 1.7 2-.8 2-1.7 2Zm7 0c-1 0-1.7-.9-1.7-2s.7-2 1.7-2 1.7.9 1.7 2-.8 2-1.7 2Z"/></svg></button>
+            <button class="footer-social" type="button" data-footer-social="instagram" disabled aria-label="Instagram — coming soon" title="Instagram — coming soon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+        </div>
+        <img class="footer-pip" data-pip="welcome" src="assets/mascot/pip-welcome.png" alt="" width="1254" height="1254" loading="lazy" draggable="false">
+      </div>
+      <nav class="footer-link-group" aria-labelledby="footer-explore-title"><h2 id="footer-explore-title">Explore</h2><a href="index.html#packs">Packs</a><a href="rewards.html">Rewards</a><a href="profile.html">My items</a></nav>
+      <nav class="footer-link-group" aria-labelledby="footer-support-title"><h2 id="footer-support-title">Support</h2><button type="button" data-footer-dialog="help">Help center</button><button type="button" data-footer-dialog="contact">Contact</button><button type="button" data-footer-dialog="shipping">Shipping</button></nav>
+      <nav class="footer-link-group footer-legal-column" aria-labelledby="footer-legal-title"><h2 id="footer-legal-title">Legal</h2><button type="button" data-footer-dialog="terms">Terms</button><button type="button" data-footer-dialog="privacy">Privacy</button></nav>
+    </div>
+    <div class="footer-bottom-row">
+      <nav class="footer-mobile-legal" aria-label="Legal"><button type="button" data-footer-dialog="terms">Terms</button><button type="button" data-footer-dialog="privacy">Privacy</button></nav>
+      <p class="footer-copyright">© <span data-footer-year>2026</span> rippr. All rights reserved.</p>
+      <a class="footer-back-top" href="#top" data-footer-top>Back to top <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V4m-6 6 6-6 6 6"/></svg></a>
+    </div>
+  </div>
+  <dialog class="footer-info-dialog" id="footer-info-dialog" aria-labelledby="footer-info-title"><button class="footer-dialog-close" type="button" aria-label="Close information">×</button><h2 id="footer-info-title"></h2><div id="footer-info-copy"></div></dialog>
+</footer>
+<!-- rippr-footer:end -->
+
+</body></html>
