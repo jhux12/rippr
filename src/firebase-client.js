@@ -7,7 +7,7 @@ import {
   RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, PhoneAuthProvider, updatePhoneNumber, reauthenticateWithCredential
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
-import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL, getBytes } from 'firebase/storage';
 import { defaultRewards, readRewards } from './reward-model.js';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 import { DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack, defaultHomepageGrails, validateHomepageGrails, cleanHomepageGrailsItems, readHomepageGrails } from './catalog-model.js';
@@ -292,4 +292,20 @@ export async function confirmPhoneChange(code){
   await user.getIdToken(true);changeAttempt=null;
   for(const listener of authObservers)listener(userInfo(user));
   return{verifiedCurrent:a.verifyCurrent,user:userInfo(user)};
+}
+
+export async function uploadSupportScreenshot(file,ticketId){
+ await ready;const uid=auth.currentUser?.uid,types={'image/png':'png','image/jpeg':'jpg'};
+ if(!uid)throw phoneError('auth/user-signed-out','Sign in to send a screenshot.');
+ if(!/^[a-zA-Z0-9-]{16,80}$/.test(ticketId)||!file||!types[file.type]||file.size<1||file.size>5*1024*1024)throw phoneError('support/invalid-image','Choose a PNG or JPG up to 5 MB.');
+ const path=`support-attachments/${uid}/${ticketId}/screenshot.${types[file.type]}`;
+ await uploadBytes(ref(getImageStorage(),path),file,{contentType:file.type,cacheControl:'private,max-age=0'});
+ if(auth.currentUser?.uid!==uid)throw phoneError('auth/user-signed-out','Your sign-in changed.');return path;
+}
+export async function readSupportScreenshot(path){
+ await ready;const uid=auth.currentUser?.uid;
+ if(!uid||typeof path!=='string'||!/^support-attachments\/[^/]+\/[a-zA-Z0-9-]{16,80}\/screenshot\.(png|jpg)$/.test(path))throw phoneError('support/invalid-image','Screenshot unavailable.');
+ const bytes=await getBytes(ref(getImageStorage(),path),5*1024*1024);
+ if(auth.currentUser?.uid!==uid)throw phoneError('auth/user-signed-out','Your sign-in changed.');
+ return new Blob([bytes],{type:path.endsWith('.png')?'image/png':'image/jpeg'});
 }

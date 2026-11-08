@@ -123,3 +123,33 @@ test('shipping queue is owner-only and manual tracking updates are versioned, at
  const customer=await snapshot(uid);saved=customer.shipments.find(s=>s.id===request.shipmentId);assert.equal(saved.status,'shipped');assert.equal(saved.trackingNumber,'TEST-123');assert.equal(saved.version,1);assert.equal(customer.account.balanceCents,801);assert.equal(customer.activity.filter(a=>a.type==='shipping-update').length,1);
  await admin('updateShipment',{...patch,status:'delivered',expectedVersion:1});saved=(await admin('adminShipment',data)).request;assert.equal(saved.status,'delivered');assert.equal(saved.version,2);
 });
+
+test('private support tickets persist, enforce owner access and reject stale or cross-account replies',async()=>{
+ const uid=user(),other=user(),owner='support-owner',claims={sub:owner,phone_number:'+17654794230'};
+ const admin=(action,data={},id=randomUUID())=>run(owner,{action,...data,operationId:id},claims);
+ const ticketId=randomUUID(),op=randomUUID(),payload={ticketId,name:'Test Collector',email:'test@example.com',topic:'shipping',requestNumber:'#RP-TEST',message:'Please help with my request.',attachment:`support-attachments/${uid}/${ticketId}/screenshot.png`};
+ await act(uid,'supportCreate',payload,op);await act(uid,'supportCreate',payload,op);
+ let list=await act(uid,'supportList');assert.equal(list.tickets.length,1);assert.equal(list.tickets[0].messages.length,1);assert.equal(list.tickets[0].version,1);
+ assert.equal((await act(other,'supportList')).tickets.length,0);
+ await assert.rejects(()=>act(other,'supportReply',{id:ticketId,expectedVersion:1,message:'Read another account'}),code('not-found'));
+ for(const action of ['adminSupportList','adminSupportUpdate'])await assert.rejects(()=>act(uid,action,{customerUid:other,id:ticketId,status:'resolved'}),code('permission-denied'));
+ await assert.rejects(()=>act(other,'supportCreate',{...payload,ticketId:randomUUID()}),code('invalid-argument'));
+ await assert.rejects(()=>act(other,'supportCreate',{...payload,attachment:null}),code('already-exists'));
+ await assert.rejects(()=>act(uid,'supportCreate',{...payload,ticketId:randomUUID(),attachment:null}),code('resource-exhausted'));
+ assert.equal((await admin('adminSupportList')).tickets.find(t=>t.id===ticketId).email,payload.email);
+ const reply={customerUid:uid,id:ticketId,status:'pending',expectedVersion:1,message:'We are looking into this.'},replyOp=randomUUID();
+ await admin('adminSupportUpdate',reply,replyOp);await admin('adminSupportUpdate',reply,replyOp);
+ await assert.rejects(()=>admin('adminSupportUpdate',reply),code('failed-precondition'));
+ list=await act(uid,'supportList');assert.equal(list.tickets[0].messages.length,2);assert.equal(list.tickets[0].messages[1].author,'support');assert.equal(list.tickets[0].status,'pending');
+ const snapshotData=await snapshot(uid);assert.equal(snapshotData.account.balanceCents,0);assert.ok(snapshotData.account.handle,'Creating support before snapshot must not create a partial wallet');
+});
+
+test('support replies reopen resolved requests, retain author identity and respect message cooldown',async()=>{
+ let time=Date.now(),uid=user(),owner='support-reply-owner';const service=accountService(db,{now:()=>time});
+ const send=(actor,action,data={},claims={})=>service(actor,{action,...data,operationId:randomUUID()},claims);
+ const ticketId=randomUUID();await send(uid,'supportCreate',{ticketId,name:'Collector',email:'member@example.com',topic:'account',message:'Need help.'});
+ await send(owner,'adminSupportUpdate',{customerUid:uid,id:ticketId,expectedVersion:1,message:'Issue resolved.',status:'resolved'},{sub:owner,phone_number:'+17654794230'});
+ await assert.rejects(()=>send(uid,'supportReply',{id:ticketId,expectedVersion:2,message:'Not yet fixed.'}),code('resource-exhausted'));
+ time+=6000;await send(uid,'supportReply',{id:ticketId,expectedVersion:2,message:'Still need help.',author:'support',status:'resolved'});
+ const ticket=(await send(uid,'supportList')).tickets[0];assert.equal(ticket.status,'open');assert.equal(ticket.version,3);assert.equal(ticket.messages[2].author,'customer');
+});

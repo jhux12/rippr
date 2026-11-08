@@ -1,3 +1,4 @@
+import {SUPPORT_ACTIONS,supportService} from './support-service.js';
 import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -23,6 +24,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
     if (!uid) fail('unauthenticated', 'Log in to use your account.');
     const { action, operationId, accountUid, ...data } = input || {};
     if(accountUid && accountUid!==uid) fail('unauthenticated','Your sign-in changed. Please retry from your current account.');
+    if(SUPPORT_ACTIONS.includes(action))return supportService(db,uid,input,claims,now);
     const account = db.doc(`testAccounts/${uid}`);
     if (['adminShipments','adminShipment','updateShipment'].includes(action)) {
       if(!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage shipping.');

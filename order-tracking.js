@@ -39,6 +39,6 @@
  async function refresh(){const user=state()?.user?.uid;$('#refresh-tracking').disabled=true;try{await window.RipprAccount.refresh();if(user===state()?.user?.uid)await load()}finally{$('#refresh-tracking').disabled=false}}
  $('#refresh-tracking').addEventListener('click',refresh);$('#gate-retry').addEventListener('click',refresh);
  document.addEventListener('rippr:authchange',()=>{generation++;$('#request-items').replaceChildren();$('#request-address').replaceChildren();void load()});document.addEventListener('rippr:walletchange',load);
- document.querySelectorAll('.support-trigger').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();(document.querySelector('.rippr-footer [data-footer-dialog="contact"]')||document.querySelector('.rippr-footer a[href^="mailto:"]'))?.click()}));
+ document.querySelectorAll('.support-trigger').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();location.href='contact-support.html?request='+encodeURIComponent(new URLSearchParams(location.search).get('request')||'')}));
  load();
 })();

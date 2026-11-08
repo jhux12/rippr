@@ -32,6 +32,18 @@
     {
       "source": "/account-settings",
       "destination": "/account-settings.html"
+    },
+    {
+      "source": "/help-center",
+      "destination": "/help-center.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/contact-support",
+      "destination": "/contact-support.html"
     }
   ]
 }

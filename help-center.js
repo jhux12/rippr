@@ -1,0 +1,5 @@
+(() => {
+ const search=document.querySelector('#help-search'),buttons=[...document.querySelectorAll('[data-help-category]')],details=[...document.querySelectorAll('.help-faq details')];let category='';
+ function filter(){const query=search.value.trim().toLocaleLowerCase();let count=0;for(const item of details){const show=(!category||item.dataset.category===category)&&(!query||item.textContent.toLocaleLowerCase().includes(query));item.hidden=!show;if(show){count++;if(query)item.open=true}}document.querySelector('#help-empty').hidden=count>0;document.querySelector('#help-count').textContent=count+' answers';document.querySelector('#help-clear').hidden=!category&&!query;buttons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.helpCategory===category)))}
+ search.addEventListener('input',filter);buttons.forEach(b=>b.addEventListener('click',()=>{category=category===b.dataset.helpCategory?'':b.dataset.helpCategory;filter()}));document.querySelector('#help-clear').addEventListener('click',()=>{category='';search.value='';filter();search.focus()});filter();
+})();

@@ -162,3 +162,15 @@ test('profile photos are immutable uploads owned by the authenticated member',as
  await assertFails(uploadBytes(ref(own.storage(),'profile-images/photo-member/unsafe.png'),bytes,{contentType:'text/html'}));
  await assertFails(uploadBytes(ref(own.storage(),'profile-images/photo-member/oversized.png'),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
 });
+
+test('support screenshots are private to their sender and verified owner',async()=>{
+ const member=env.authenticatedContext('support-member'),other=env.authenticatedContext('support-other'),anonymous=env.unauthenticatedContext(),owner=context(OWNER_PHONE);
+ const bytes=new Uint8Array([1,2,3]),path='support-attachments/support-member/12345678-1234-1234-1234-123456789012/screenshot.png';
+ await assertSucceeds(uploadBytes(ref(member.storage(),path),bytes,{contentType:'image/png'}));
+ await assertSucceeds(getBytes(ref(member.storage(),path)));await assertSucceeds(getBytes(ref(owner.storage(),path)));
+ await assertFails(getBytes(ref(other.storage(),path)));await assertFails(getBytes(ref(anonymous.storage(),path)));
+ await assertFails(uploadBytes(ref(other.storage(),path),bytes,{contentType:'image/png'}));
+ await assertFails(uploadBytes(ref(member.storage(),path),bytes,{contentType:'image/png'}));await assertFails(deleteObject(ref(member.storage(),path)));
+ await assertFails(uploadBytes(ref(member.storage(),path.replace('screenshot.png','screenshot.svg')),bytes,{contentType:'image/svg+xml'}));
+ await assertFails(uploadBytes(ref(member.storage(),path.replace('12345678-1234-1234-1234-123456789012','another-test-id-1234')),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
+});

@@ -239,3 +239,23 @@ My items → Ship opens the responsive request dialog with selected card images,
 Admin → Shipping requests shows the latest 100 new requests with search/status filters, item and address details, and manual status/carrier/tracking updates. Older requests can be opened using the customer UID and full request ID; saving indexes them in the queue. Shipped/delivered require carrier and tracking fields. Concurrent edits require reloading; repeated submissions cannot duplicate a request or status update. The queue and updates are served only through the verified-owner callable Function, and customer records remain private. This does not book shipping or buy labels, and test requests remain tests.
 
 Deploy `functions:ripprAccount` after pulling this change. Existing Firestore/Storage rules already deny access to the private queue; no rules edits are required for this feature. Connecting a shipping provider and a final quote/payment confirmation remains future work.
+
+### Help Center, About and Contact Support
+
+`/help-center` provides searchable answers with topic filters and links to the real account, packs, rewards and shipping pages. `/about` contains the brand story and pack/guide links. Both are public, with original Pip illustrations extracted as separate artwork from the approved mockups. Shared footer links now open these pages and `/contact-support`; the main navigation remains Packs, Rewards, My items, How it works.
+
+Contact Support requires sign-in to submit and maintains a private in-site conversation. Members can send a topic, contact email, message, optional shipping reference and one optional PNG/JPG screenshot up to 5 MB. The form saves a ticket and displays it under Your support requests. Admin → Support inbox lists the newest 100 tickets, supports search, replies and Open/Pending/Resolved statuses. Members see their newest 50 threads and can refresh/reply. Notifications are delivered in the website only; no email, SMS or external helpdesk integration is enabled. Contact email is stored for support context, not used as a delivery promise.
+
+Tickets live under `testAccounts/{uid}/supportTickets`; the admin index at `supportQueue/root/requests` is accessible only through verified-owner Functions. Attachments at `support-attachments/{uid}/{ticketId}/screenshot.png` (or `.jpg`) require the sender's or verified owner's authentication to read, are immutable, and are never exposed using public download-token URLs. Conversations are bounded to 40 messages, submissions have a one-minute cooldown and replies have a short cooldown. Duplicate retries are idempotent and stale conversation versions must refresh. Old orphan uploads are not automatically cleaned up.
+
+After pulling, deploy the account Function **and Storage rules** from an authenticated terminal:
+
+```sh
+cd ~/rippr
+git pull origin main
+npm ci
+npm ci --prefix functions
+npx firebase deploy --only functions:ripprAccount,storage --project rippr-2b01c
+```
+
+No new Firestore rule changes are required. Publish the static build through your normal hosting workflow. Private screenshot viewing uses authenticated Storage SDK downloads; if your bucket restricts CORS, allow your actual website origins for GET downloads in the bucket's CORS configuration. Security Rules still require authentication regardless of CORS. The official Firestore/Storage emulator suite requires its downloadable emulator artifacts; the current environment cannot fetch the Firestore JAR, so rule tests should be run in an environment with those artifacts available.

@@ -29,6 +29,15 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
       allow update, delete: if false;
     }
+    match /support-attachments/{uid}/{ticketId}/{filename} {
+      allow read: if request.auth != null && (request.auth.uid == uid || owner());
+      allow create: if request.auth != null && request.auth.uid == uid
+        && ticketId.matches('[a-zA-Z0-9-]{16,80}')
+        && ((filename == 'screenshot.png' && request.resource.contentType == 'image/png')
+          || (filename == 'screenshot.jpg' && request.resource.contentType == 'image/jpeg'))
+        && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024;
+      allow update, delete: if false;
+    }
     match /{path=**} { allow read, write: if false; }
   }
 }
