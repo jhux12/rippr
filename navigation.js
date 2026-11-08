@@ -4,10 +4,6 @@
   if (!header) return;
   const toggle = header.querySelector('#nav-menu-toggle');
   const menu = header.querySelector('#mobile-navigation');
-  const accountLink=menu.querySelector('a:last-child');
-  const settingsLink=document.createElement('a');settingsLink.href='account-settings.html';settingsLink.textContent='Account settings';
-  const trackingLink=document.createElement('a');trackingLink.href='order-tracking.html';trackingLink.textContent='Order tracking';
-  accountLink.before(trackingLink,settingsLink);
   const dialog = header.querySelector('#nav-dialog');
   const content = header.querySelector('#nav-dialog-content');
   const mobile = matchMedia('(max-width: 760px)');
@@ -78,7 +74,7 @@
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
   });
   function updateAccountLinks() {
-    const user = window.RIPPR_ACCOUNT?.user;settingsLink.hidden=!user;trackingLink.hidden=!user;
+    const user = window.RIPPR_ACCOUNT?.user;
     const login = header.querySelector('.nav-login');
     const signup = header.querySelector('.nav-signup');
     login.hidden = Boolean(user);
