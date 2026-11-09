@@ -175,6 +175,8 @@ function completeCardReveal(instant){
  syncRevealActions();$('#next').focus({preventScroll:true});
 }
 function advanceReveal(){if(cursor<deck.length-1){cursor++;prepareRip()}else finish()}
+function salePreferenceKey(uid){return 'rippr:skip-sale-confirmation:'+uid}
+function skipSaleConfirmation(uid){try{return localStorage.getItem(salePreferenceKey(uid))==='true'}catch{return false}}
 function confirmRevealSale(){
  if(state!=='revealing'||selling||window.RIPPR_AUTH_OFFLINE||!window.RIPPR_ACCOUNT?.user)return;
  const c=deck[cursor];if(savedCardStatus(c)!=='available')return;
@@ -182,24 +184,30 @@ function confirmRevealSale(){
  $('#reveal-sale-name').textContent=c.name;
  $('#reveal-sale-description').textContent=`${money.format(c.valueCents/100)} will be added to your test balance. This card will leave your available inventory.`;
  $('#confirm-reveal-sale').textContent=`Sell for ${money.format(c.valueCents/100)}`;
- $('#reveal-sale-error').hidden=true;saleDialog.showModal();revealNavigation();
+ $('#skip-sale-confirmation').checked=skipSaleConfirmation(pendingSale.uid);
+ $('#reveal-sale-error').hidden=true;
+ if($('#skip-sale-confirmation').checked){submitRevealSale();return}
+ saleDialog.showModal();revealNavigation();
 }
-$('#confirm-reveal-sale').addEventListener('click',async()=>{
+async function submitRevealSale(){
  if(selling||!pendingSale)return;
- const target=pendingSale;if(target.uid!==window.RIPPR_ACCOUNT?.user?.uid||target.session!==openingSession)return;
- selling=true;$('#confirm-reveal-sale').disabled=true;$('#cancel-reveal-sale').disabled=true;syncRevealActions();
+ const target=pendingSale,remember=$('#skip-sale-confirmation').checked;if(target.uid!==window.RIPPR_ACCOUNT?.user?.uid||target.session!==openingSession)return;
+ selling=true;$('#skip-sale-confirmation').disabled=true;$('#confirm-reveal-sale').disabled=true;$('#cancel-reveal-sale').disabled=true;syncRevealActions();
  try{
   const result=await window.RipprAccount.act('sell',{itemIds:[target.card.id]});
   if(target.uid!==window.RIPPR_ACCOUNT?.user?.uid||target.session!==openingSession)return;
   target.card.status='sold';target.card.soldCents=result.soldCents;
-  selling=false;saleDialog.close();sound.play('click');advanceReveal();
+  if(remember){try{localStorage.setItem(salePreferenceKey(target.uid),'true')}catch{}}
+  selling=false;if(saleDialog.open)saleDialog.close();else pendingSale=null;sound.play('click');advanceReveal();
  }catch(error){
   if(target.uid!==window.RIPPR_ACCOUNT?.user?.uid||target.session!==openingSession)return;
+  if(!saleDialog.open){saleDialog.showModal();revealNavigation()}
   $('#reveal-sale-error').textContent=window.RipprAccount.errorMessage(error);$('#reveal-sale-error').hidden=false;
  }finally{
-  if(target.session===openingSession){selling=false;$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;syncRevealActions()}
+  if(target.session===openingSession){selling=false;$('#skip-sale-confirmation').disabled=false;$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;syncRevealActions()}
  }
-});
+}
+$('#confirm-reveal-sale').addEventListener('click',submitRevealSale);
 $('#cancel-reveal-sale').addEventListener('click',()=>{if(!selling)saleDialog.close()});
 saleDialog.addEventListener('cancel',event=>{if(selling)event.preventDefault()});
 saleDialog.addEventListener('close',()=>{pendingSale=null;revealNavigation()});
@@ -269,7 +277,7 @@ openButton.addEventListener('click',async()=>{
   if(error.code==='functions/resource-exhausted')document.querySelector('.topup-trigger')?.click();
  }
 });
-function resetOpening(){skipBatchAnimations=false;sound.stop();openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');clearRevealEffects();stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
+function resetOpening(){skipBatchAnimations=false;sound.stop();openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#skip-sale-confirmation').disabled=false;$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');clearRevealEffects();stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
 $('#again').addEventListener('click',()=>{if(inventoryPackId){location.href='profile.html';return}resetOpening();sound.play('click');openButton.focus({preventScroll:true});window.scrollTo({top:0,left:0,behavior:reduced()?'instant':'smooth'})});
 
 // Ambient animation runs only while the stage is visible and navigation is clear.

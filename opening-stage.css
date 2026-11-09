@@ -273,3 +273,7 @@
 .stage-mute .sound-off,.stage-mute.is-muted .sound-on{display:none}.stage-mute.is-muted .sound-off{display:block}
 .stage-mute.is-muted{color:#859fad}
 @media(prefers-reduced-motion:reduce){.reveal-art-stage{transition:none}}
+
+.reveal-sale-preference{display:flex;align-items:center;gap:10px;min-height:44px;color:#c5dce9;font-size:12px;cursor:pointer}
+.reveal-sale-preference input{width:17px;height:17px;margin:0;accent-color:#00d9e7;flex:none}
+.reveal-sale-preference input:focus-visible{outline:2px solid #83edf6;outline-offset:4px}
