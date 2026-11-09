@@ -342,3 +342,9 @@ On narrow/tablet screens the museum shows one complete exhibit, followed by inde
 Card selection now keeps card, thumbnail and avatar DOM nodes mounted, with short transitions, adjacent image decoding and horizontal swipe/keyboard navigation. Mobile captions reserve three lines to keep controls stationary. Likes respond immediately and roll back on failure; server counts remain authoritative. The mobile editor is a native bottom sheet with focus handling and page scroll lock. Reduced motion removes transitions, and loading placeholders are decorative until real data arrives. The room uses a preloaded 96 KB WebP (95% smaller than the retained PNG original).
 
 Museum selections now accept kept cards in available, shipping, shipped or delivered status. Sold cards remain excluded and ownership is still checked on the server. Deploy the updated `ripprMuseum` function for shipped-card eligibility; the interaction improvements otherwise require only the frontend update.
+
+## Separate sign-up and login screens
+
+`auth.html?mode=signup` shows account creation with an optional referral code before sending the phone code. Supplied codes are checked through the read-only public `ripprAccount` validateReferral action before SMS; binding remains authenticated, versioned and subject to the original referral restrictions. The entered code is fixed for verification; failures can retry that code or continue without it. Login (`mode=login`) never shows/applies referral codes. Both screens link to each other and preserve the same-site return destination.
+
+Login's **Remember me** sets Firebase local persistence when checked and tab-session persistence when unchecked, before phone sign-in or legacy email sign-in. Sign-up keeps persistent sign-in by default. Existing signed-in accounts and verified phone linking are preserved. Deploy the updated `functions:ripprAccount` to enable the pre-signup referral check; no rules change is required.

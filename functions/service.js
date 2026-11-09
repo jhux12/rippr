@@ -1,4 +1,4 @@
-import {REFERRAL_ACTIONS,referralService,readReferralConfig} from './referral-service.js';
+import {REFERRAL_ACTIONS,referralService,readReferralConfig,validateSignupReferral} from './referral-service.js';
 import {SUPPORT_ACTIONS,supportService} from './support-service.js';
 import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
@@ -22,6 +22,7 @@ const initial = uid => ({ balanceCents:0, packsOpened:0, cardsCollected:0, grail
 // Never migrate it into a real-money wallet or physical fulfillment automatically.
 export function accountService(db, { freeTopups = () => true, now = () => Date.now() } = {}) {
   return async function operate(uid, input, claims = {}) {
+    if(input?.action==='validateReferral')return validateSignupReferral(db,input);
     if (!uid) fail('unauthenticated', 'Log in to use your account.');
     const { action, operationId, accountUid, ...data } = input || {};
     if(accountUid && accountUid!==uid) fail('unauthenticated','Your sign-in changed. Please retry from your current account.');

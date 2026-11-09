@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
-  initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver,
+  initializeAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver,
   connectAuthEmulator, onAuthStateChanged, createUserWithEmailAndPassword,
   signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut,
   sendEmailVerification, sendPasswordResetEmail, reload, getIdTokenResult,
@@ -48,7 +48,8 @@ export async function createAccount(email, password) {
   try { await sendEmailVerification(user); verificationSent = true; } catch { /* Account was created; verification can be retried separately. */ }
   return { user: userInfo(user), verificationSent };
 }
-export async function signInEmail(email, password) {
+export async function signInEmail(email, password, {remember = true} = {}) {
+  await ready;await setPersistence(auth,remember?browserLocalPersistence:browserSessionPersistence);
   const { user } = await signInWithEmailAndPassword(auth, email, password);
   return userInfo(user);
 }
@@ -65,13 +66,14 @@ let phoneVerifier = null, phoneAttempt = null, phoneGeneration = 0;
 const phoneError = (code, message) => Object.assign(new Error(message), { code });
 function clearPhoneVerifier() { phoneVerifier?.clear(); phoneVerifier = null; }
 export function cancelPhoneSignIn() { phoneGeneration++; phoneAttempt = null; clearPhoneVerifier(); }
-export async function startPhoneSignIn(value, { link = false } = {}) {
+export async function startPhoneSignIn(value, { link = false, remember = true } = {}) {
   await ready;
   const phoneNumber = normalizePhoneNumber(value);
   if (!phoneNumber) throw phoneError('auth/invalid-phone-number', 'Enter a valid phone number.');
   const user = auth.currentUser;
   if (link && (!user || user.phoneNumber)) throw phoneError('auth/invalid-link-session', 'Sign in to the existing account before linking a phone.');
   if (!link && user) throw phoneError('auth/already-signed-in', 'Sign out before using another account.');
+  if(!link)await setPersistence(auth,remember?browserLocalPersistence:browserSessionPersistence);
   cancelPhoneSignIn();
   const generation = phoneGeneration;
   const verifier = phoneVerifier = new RecaptchaVerifier(auth, 'phone-recaptcha', { size:'invisible' });
@@ -329,4 +331,10 @@ export async function museumAction(action, data = {}) {
   }
   const call = httpsCallable(functions, 'ripprMuseum', { timeout:30000 });
   return (await call({action,...data,...(actorRequired ? {accountUid:actorUid} : {})})).data;
+}
+
+export async function validateSignupReferral(code){
+ await ready;
+ if(!functions){functions=getFunctions(app,'us-central1');if(window.RIPPR_FUNCTIONS_EMULATOR_URL){const url=localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);connectFunctionsEmulator(functions,url.hostname,Number(url.port))}}
+ return (await httpsCallable(functions,'ripprAccount',{timeout:30000})({action:'validateReferral',code})).data;
 }

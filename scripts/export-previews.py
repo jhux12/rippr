@@ -53,7 +53,7 @@ def common(text):
 window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>null,observe:cb=>{queueMicrotask(()=>cb(null));return()=>{}},
 createAccount:()=>Promise.reject({code:'auth/offline-preview'}),signInEmail:()=>Promise.reject({code:'auth/offline-preview'}),
 signInGoogle:()=>Promise.reject({code:'auth/offline-preview'}),resetPassword:()=>Promise.reject({code:'auth/offline-preview'}),
-signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'}),startPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),confirmPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),cancelPhoneSignIn:()=>{},museumAction:action=>action==='browse'?Promise.resolve({museums:[],nextCursor:null}):Promise.reject({code:'functions/not-found'})};"""
+signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'}),startPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),confirmPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),cancelPhoneSignIn:()=>{},validateSignupReferral:()=>Promise.reject({code:'auth/offline-preview'}),museumAction:action=>action==='browse'?Promise.resolve({museums:[],nextCursor:null}):Promise.reject({code:'functions/not-found'})};"""
     mascot_poses = ['hover', 'welcome'] + [pose for pose in ['celebrate'] if 'data-pip="' + pose + '"' in text]
     mascot_urls = {pose: uri(ROOT / ('assets/mascot/pip-' + pose + '.png'), 'image/png') for pose in mascot_poses}
     if 'id="reveal-stage"' in text:

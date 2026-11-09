@@ -42,3 +42,18 @@ export async function referralService(db,uid,input,claims,initial){
   if(action!=='referralState')tx.create(op,{fingerprint,result,createdAt:stamp()});return result;
  });
 }
+
+// Public pre-signup check: no wallet creation, binding or referrer identity disclosure.
+export async function validateSignupReferral(db,input){
+ const code=typeof input?.code==='string'?input.code.trim().toUpperCase():'';
+ if(!/^RIPPR-[A-F0-9]{16}$/.test(code))fail('invalid-argument','Enter a valid referral code.');
+ return db.runTransaction(async tx=>{
+  const config=await readReferralConfig(tx,db),found=await tx.get(db.doc('referralCodes/'+code));
+  if(!config.enabled||!found.exists)fail('failed-precondition','This referral code is unavailable. Check it or leave it blank.');
+  const uid=found.data().uid;
+  if(typeof uid!=='string'||!uid||uid.includes('/'))fail('failed-precondition','This referral code is unavailable.');
+  const sponsor=await tx.get(db.doc('testAccounts/'+uid));
+  if(!sponsor.exists||(sponsor.data().referralCount||0)>=config.limit)fail('failed-precondition','This referral code is unavailable.');
+  return {valid:true};
+ });
+}
