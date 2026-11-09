@@ -14,7 +14,7 @@ if(selectedPack){
 }
 
 const quantityButtons=[...document.querySelectorAll('[data-qty]')],openButton=$('#open'),display=$('#display'),arena=$('.arena'),stage=$('#reveal-stage'),controls=$('.controls'),results=$('#results'),cards=$('#cards'),announcement=$('#announcement'),phase=$('#phase'),skipOpening=$('#skip-opening');
-let quantity=1,state='idle',deck=[],cursor=0,openingTimer,openingSession=0,selling=false,pendingSale=null;
+let quantity=1,state='idle',deck=[],cursor=0,openingTimer,openingSession=0,selling=false,pendingSale=null,skipBatchAnimations=false;
 const sound=window.RipprOpeningAudio||{play:()=>false,stop:()=>{}};
 const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 const catalog=window.RipprCatalog;
@@ -219,6 +219,8 @@ packImage.onerror=()=>{phase.textContent='Pack image could not load. Please relo
 packImage.src=selectedPack.image;
 function setRip(value){progress=Math.max(0,Math.min(1,value));shell.style.setProperty('--rip',progress);ripButton.setAttribute('aria-label',`Rip top foil: ${Math.round(progress*100)} percent. Drag across, or press Enter`)}
 function prepareRip(){
+ // Skip applies to this entire purchased batch while preserving each card's actions.
+ if(skipBatchAnimations){state='zooming';showReveal(true);return}
  sound.stop('motion');sound.stop('reveal');sound.stop('foil');
  const previousBounds=shell.getBoundingClientRect();
  clearTimeout(openingTimer);state='zooming';stage.hidden=true;skipOpening.hidden=false;arena.classList.remove('is-revealing','skip-reveal-motion');clearRevealEffects();display.style.visibility='';
@@ -238,7 +240,7 @@ function showReveal(instant){
  shell.getAnimations().forEach(animation=>animation.cancel());
  arena.classList.add('is-revealing');arena.classList.toggle('skip-reveal-motion',instant);stage.hidden=false;renderCard(instant);
 }
-skipOpening.addEventListener('click',()=>{sound.stop();if(['extracting','cycling','settling','flipping'].includes(state))completeCardReveal(true);else showReveal(true)});
+skipOpening.addEventListener('click',()=>{skipBatchAnimations=true;sound.stop();if(['extracting','cycling','settling','flipping'].includes(state))completeCardReveal(true);else showReveal(true)});
 ripButton.addEventListener('pointerdown',event=>{if(state!=='ripping'||(event.pointerType==='mouse'&&event.button!==0))return;event.preventDefault();drag={x:event.clientX,id:event.pointerId};ripButton.setPointerCapture(event.pointerId);setRip(0)});
 ripButton.addEventListener('pointermove',event=>{if(!drag||event.pointerId!==drag.id)return;setRip(Math.abs(event.clientX-drag.x)/(ripButton.getBoundingClientRect().width*.75))});
 ripButton.addEventListener('pointerup',event=>{if(!drag||event.pointerId!==drag.id)return;drag=null;if(progress>=.8)completeRip();else setRip(0)});
@@ -260,14 +262,14 @@ openButton.addEventListener('click',async()=>{
    if(uid!==window.RIPPR_ACCOUNT?.user?.uid||session!==openingSession)return;
    deck=purchase.cards.map(card=>({...card,tone:catalog.RARITIES.find(r=>r.name===card.rarity).color}));
   }
-  cursor=0;prepareRip();
+  cursor=0;skipBatchAnimations=false;prepareRip();
  }catch(error){
   if(uid!==window.RIPPR_ACCOUNT?.user?.uid||session!==openingSession)return;
   state='idle';quantityButtons.forEach(b=>b.disabled=false);controls.classList.remove('is-busy');phase.textContent=window.RipprAccount?.errorMessage(error)||'Opening is unavailable.';updateOpen();
   if(error.code==='functions/resource-exhausted')document.querySelector('.topup-trigger')?.click();
  }
 });
-function resetOpening(){sound.stop();openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');clearRevealEffects();stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
+function resetOpening(){skipBatchAnimations=false;sound.stop();openingSession++;selling=false;pendingSale=null;if(saleDialog.open)saleDialog.close();$('#confirm-reveal-sale').disabled=false;$('#cancel-reveal-sale').disabled=false;clearTimeout(openingTimer);$('.showcase').hidden=false;$('.showcase').classList.remove('opening-focus');drag=null;setRip(0);ripButton.hidden=true;skipOpening.hidden=true;arena.classList.remove('zoomed','skip-reveal-motion');shell.classList.remove('ripping','unsealed');state='idle';deck=[];cursor=0;results.classList.remove('visible');cards.innerHTML='';controls.classList.remove('is-busy');display.style.visibility='';display.classList.remove('opening');arena.classList.remove('is-revealing');clearRevealEffects();stage.hidden=true;stage.innerHTML='';quantityButtons.forEach(b=>b.disabled=false);phase.textContent='';updateOpen();announcement.textContent='Ready for another opening.';}
 $('#again').addEventListener('click',()=>{if(inventoryPackId){location.href='profile.html';return}resetOpening();sound.play('click');openButton.focus({preventScroll:true});window.scrollTo({top:0,left:0,behavior:reduced()?'instant':'smooth'})});
 
 // Ambient animation runs only while the stage is visible and navigation is clear.
