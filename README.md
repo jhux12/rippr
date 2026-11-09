@@ -289,3 +289,18 @@ No new Firestore or Storage rules are needed. Validation: `npm run test:referral
 Invite entry now lives in the shared phone sign-up form as an optional field. Shared invites open `auth.html?mode=signup&ref=CODE`; older Rewards-page invite links still carry the code into sign-up. After successful phone verification, the page fetches current referral settings and binds an eligible code before returning to the original page. Invalid or unavailable codes can be corrected without another SMS, or skipped. Existing accounts that already opened a pack or already applied an invite sign in normally. The Rewards page retains invite sharing and referral status, without an invite-entry form. No backend or rules deployment is needed for this change.
 
 Homepage Grails worth discovering uses a single horizontal row instead of stacked rows. When there are more cards than fit, it advances every five seconds and loops. Previous/Next and Play/Pause controls, native touch scrolling and keyboard arrow navigation are supported. Automatic rotation pauses on hover, keyboard focus, offscreen placement, hidden tabs, navigation overlays and card previews. Manual controls and touch interaction pause rotation until restarted; reduced-motion preferences start it paused. Saved admin images, names, values and full-card previews remain unchanged.
+
+## Limited-time packs and tier stages
+
+The homepage keeps its existing pack stack and sizing. **Core packs / Limited time** switches between the five core tiers and Icy Rush; a collection remembers its selected pack during switching. A one-pack collection is centered and disables its unnecessary rotation controls. Core prices and catalogs are unchanged. The separate `/landing` page continues to present the five core tiers.
+
+Icy Rush (`icy-rush`) uses `assets/seasonal/pack-icy-rush.png`. Its initial catalog is disabled and unpriced; it becomes purchasable only after the owner sets its cards, odds and price in **Admin → Packs → Icy Rush**, enables it, and saves. No seasonal price, expiry or inventory count is fabricated. Daily reward settings can also award Icy Rush, with its image and name retained in account inventory. One pack still yields one card.
+
+For live catalog editing and balance purchases, deploy the updated backend and rules from an authenticated checkout (not performed by this workspace):
+
+```sh
+git pull origin main
+npx firebase deploy --only functions:ripprAccount,firestore:rules --project rippr-2b01c
+```
+
+Stage atmospheres share the same geometry and reveal controls: Basic silver studio, Plus cyan currents, Premium purple prism, Elite coral energy, Ultimate gold celestial rings, and Icy Rush frost/snowflakes. Actual card rarity controls reveal colors. Mute, reduced motion, ambient pausing, batch skip, and per-card sell/keep actions are retained. Unconfigured prices render as a dash, not a free offer. Catalog/account/reward tests and browser checks cover the seasonal flow; the rules emulator download remains blocked by the environment's network policy for `storage.googleapis.com`.

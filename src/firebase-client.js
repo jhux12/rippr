@@ -172,7 +172,7 @@ export async function savePackContents(packId, pack, expectedVersion) {
   const owner = await requireAdmin();
   const issues = validateItems(pack.items);
   if (issues.length || typeof pack.enabled !== 'boolean') throw Object.assign(new Error(issues[0] || 'Choose whether the pack is enabled.'), { code: 'catalog/invalid-data' });
-  if (!validPackPrice(pack.priceCents ?? null)) throw Object.assign(new Error('Enter a pack price from $0 to $1,000,000 with up to two decimal places.'), { code:'catalog/invalid-data' });
+  if (!validPackPrice(pack.priceCents ?? null) || (packId === 'icy-rush' && pack.enabled && !Number.isSafeInteger(pack.priceCents))) throw Object.assign(new Error('Enter a pack price from $0 to $1,000,000 with up to two decimal places.'), { code:'catalog/invalid-data' });
   const items = pack.items.map(({ id, name, image, rarity, valueCents, chanceBps, grail }) => ({ id, name: name.trim(), image, rarity, valueCents, chanceBps, grail }));
   const target = doc(getDatabase(), 'packContents', packId);
   return runTransaction(getDatabase(), async transaction => {

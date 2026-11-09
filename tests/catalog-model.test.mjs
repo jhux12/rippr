@@ -100,3 +100,11 @@ test('pack prices accept unset or integer cents and preserve legacy catalogs', (
   assert.throws(()=>readStoredPack({...legacy,priceCents:-1}));
   assert.throws(()=>readStoredPack({...legacy,priceCents:'4.99'}));
 });
+
+test('Icy Rush is recognized but unavailable until the owner configures it', () => {
+  assert.ok(PACK_IDS.includes('icy-rush'));
+  const seasonal = defaultPack('icy-rush');
+  assert.equal(seasonal.enabled, false);
+  assert.equal(seasonal.priceCents, null);
+  assert.deepEqual(validateItems(seasonal.items), []);
+});

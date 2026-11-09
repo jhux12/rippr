@@ -3,7 +3,7 @@
  let navigationOpen=false,returnFocus=null,grails=[],source='default',request=0;
  const asset=path=>window.RIPPR_ASSET_URLS?.[path]||path,money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
  const arrow='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16 16 4M4 4h12v12"/></svg>';
- const packs=window.RIPPR_PACKS||[];
+ const packs=(window.RIPPR_PACKS||[]).filter(pack=>!pack.limited);
  for(const pack of packs){
   const card=document.createElement('article');card.className='landing-tier';card.style.setProperty('--tier-accent',pack.accent);
   const art=document.createElement('a');art.className='landing-tier-art';art.href='opening.html?pack='+encodeURIComponent(pack.id);art.setAttribute('aria-label','View '+pack.name+' pack');

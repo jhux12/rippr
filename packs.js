@@ -1,4 +1,4 @@
-// Shared five-tier catalog.
+// Shared core and limited-time pack catalog.
 window.RIPPR_PACKS = [
   {
     "id": "basic",
@@ -34,5 +34,13 @@ window.RIPPR_PACKS = [
     "image": "assets/pack-ultimate.svg",
     "accent": "#ffcf70",
     "tier": 5
+  },
+  {
+    "id": "icy-rush",
+    "name": "Icy Rush",
+    "image": "assets/seasonal/pack-icy-rush.png",
+    "accent": "#8feaff",
+    "tier": 3,
+    "limited": true
   }
 ];

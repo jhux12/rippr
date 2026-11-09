@@ -34,7 +34,7 @@ catalog = json.loads((ROOT / 'packs.js').read_text().split('=', 1)[1].strip().rs
 bootstrap = '''(() => {
   const rasters = RASTERS;
   const recipes = RECIPES;
-  const urls = {};
+  const urls = SEASONAL;
   for (const [path, recipe] of Object.entries(recipes)) {
     const svg = recipe.replace(/__RIPPR_RASTER_(\\d+)__/g, (_, i) => rasters[Number(i)]);
     urls[path] = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
@@ -42,7 +42,7 @@ bootstrap = '''(() => {
   window.RIPPR_ASSET_URLS = urls;
   window.RIPPR_PACKS = CATALOG.map(pack => ({...pack, image:urls[pack.image]}));
   document.querySelectorAll('[data-asset]').forEach(img => { img.src = urls[img.dataset.asset]; });
-})();'''.replace('RASTERS', json.dumps(rasters)).replace('RECIPES', json.dumps(recipes)).replace('CATALOG', json.dumps(catalog))
+})();'''.replace('RASTERS', json.dumps(rasters)).replace('RECIPES', json.dumps(recipes)).replace('CATALOG', json.dumps(catalog)).replace('SEASONAL', json.dumps({'assets/seasonal/pack-icy-rush.png':uri(ROOT/'assets/seasonal/pack-icy-rush.png','image/png')}))
 
 
 def common(text):

@@ -277,3 +277,62 @@
 .reveal-sale-preference{display:flex;align-items:center;gap:10px;min-height:44px;color:#c5dce9;font-size:12px;cursor:pointer}
 .reveal-sale-preference input{width:17px;height:17px;margin:0;accent-color:#00d9e7;flex:none}
 .reveal-sale-preference input:focus-visible{outline:2px solid #83edf6;outline-offset:4px}
+
+/* Tier settings share the existing arena footprint and intrinsic pack sizing. */
+.arena[data-pack]:not(.is-revealing){
+ --stage-light:var(--pack-stage-light);
+ border-color:color-mix(in srgb,var(--stage-light) 30%,#263c4f);
+ background:
+  radial-gradient(ellipse at var(--stage-glow-x,50%) 32%,color-mix(in srgb,var(--stage-light) 11%,transparent),transparent 64%),
+  radial-gradient(ellipse at 50% 100%,color-mix(in srgb,var(--stage-light) 7%,transparent),transparent 58%),
+  linear-gradient(145deg,#07121e,#030b14 76%);
+}
+.arena[data-pack="basic"]{--pack-stage-light:#b8c8d8}
+.arena[data-pack="plus"]{--pack-stage-light:#55d9ff}
+.arena[data-pack="premium"]{--pack-stage-light:#b798ef;--stage-glow-x:35%}
+.arena[data-pack="elite"]{--pack-stage-light:#ff766e;--stage-glow-x:65%}
+.arena[data-pack="ultimate"]{--pack-stage-light:#ffcf70}
+.arena[data-pack="icy-rush"]{--pack-stage-light:#a4efff}
+.stage-signature{position:absolute;inset:0;pointer-events:none;opacity:.58}
+.stage-signature svg{display:block;width:100%;height:100%;fill:none;stroke:var(--stage-light);stroke-width:1;vector-effect:non-scaling-stroke}
+.stage-signature .signature-detail{opacity:.36}
+.arena[data-pack] .stage-orbit-light{stroke:color-mix(in srgb,var(--stage-light) 55%,white);filter:drop-shadow(0 0 3px var(--stage-light))}
+.arena[data-pack] .stage-orbit-line{stroke:color-mix(in srgb,var(--stage-light) 25%,transparent)}
+.arena[data-pack] .stage-spark{stroke:var(--stage-light);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--stage-light) 30%,transparent))}
+.arena[data-pack] .pack-shell{filter:drop-shadow(0 0 1px color-mix(in srgb,var(--stage-light) 50%,white)) drop-shadow(0 0 9px color-mix(in srgb,var(--stage-light) 14%,transparent)) drop-shadow(0 15px 12px #0008)}
+.arena[data-pack="basic"] .stage-beam{left:30%;width:40%;filter:blur(14px);opacity:.5}
+.arena[data-pack="basic"] .stage-particles{opacity:.28}
+.arena[data-pack="basic"] .stage-orbits{opacity:.12}
+.arena[data-pack="basic"] .stage-spark{display:none}
+.arena[data-pack="basic"] .stage-platform{box-shadow:0 0 9px #b8c8d822,inset 0 0 12px #b8c8d80a}
+.arena[data-pack="basic"] .stage-signature{opacity:.16}
+.arena[data-pack="plus"] .stage-signature{opacity:.27}
+.arena[data-pack="plus"] .signature-current{stroke-dasharray:90 20 3 20;animation:stage-current-flow 16s linear infinite}
+.arena[data-pack="premium"] .stage-signature{opacity:.25}
+.arena[data-pack="premium"] .stage-atmosphere{inset:0;background:conic-gradient(from 220deg at 50% 43%,transparent 0 7%,#b798ef0e 7% 13%,transparent 13% 37%,#b798ef0c 37% 44%,transparent 44% 66%,#b798ef09 66% 72%,transparent 72%)}
+.arena[data-pack="premium"] .stage-beam{left:5%;width:90%;transform:rotate(-18deg);animation-duration:10s}
+.arena[data-pack="premium"] .stage-orbits{opacity:.15}
+.arena[data-pack="elite"] .stage-signature{opacity:.46}
+.arena[data-pack="elite"] .signature-streak{stroke-width:2;stroke-dasharray:120 290;animation:stage-energy-flow 7s ease-in-out infinite}
+.arena[data-pack="elite"] .stage-beam{left:1%;width:95%;transform:skewX(-24deg);animation-duration:5s}
+.arena[data-pack="elite"] .stage-atmosphere{background:linear-gradient(135deg,transparent 20%,#ff766e08 20% 23%,transparent 23% 74%,#ff766e0a 74% 77%,transparent 77%)}
+.arena[data-pack="elite"] .stage-orbits{opacity:.12}
+.arena[data-pack="ultimate"] .stage-signature{opacity:.25}
+.arena[data-pack="ultimate"] .signature-star{fill:var(--stage-light);stroke:none;animation:stage-star-twinkle 6s ease-in-out infinite}
+.arena[data-pack="ultimate"] .stage-beam{left:25%;width:50%;animation-duration:10s}
+.arena[data-pack="ultimate"] .stage-orbits{opacity:.22}
+.arena[data-pack="ultimate"] .stage-particles{opacity:.55}
+.arena[data-pack="icy-rush"] .stage-signature{opacity:.42}
+.arena[data-pack="icy-rush"] .signature-ice{fill:#92e8ff05;stroke:#a4efff;opacity:.45}
+.arena[data-pack="icy-rush"] .signature-snow{stroke-width:1.4;stroke-linecap:round;animation:stage-snow-drift 12s ease-in-out infinite alternate}
+.arena[data-pack="icy-rush"] .stage-atmosphere{inset:0;background:linear-gradient(125deg,#a4efff08,transparent 20% 78%,#a4efff08),radial-gradient(ellipse at 50% 100%,#8eefff0d,transparent 52%)}
+.arena[data-pack="icy-rush"] .stage-orbits{opacity:.1}
+.arena[data-pack="icy-rush"] .stage-particles{fill:#e1f9ff;opacity:.7}
+.arena[data-pack="icy-rush"] .stage-particles .particle-drift{animation-duration:14s;animation-name:stage-snow-drift}
+.arena[data-pack="icy-rush"] .stage-beam{left:5%;width:90%;filter:blur(18px);opacity:.6}
+/* The pack atmosphere yields to the winning card's actual rarity. */
+.arena[data-pack].is-revealing{--stage-light:var(--reveal-tone)}
+@keyframes stage-current-flow{to{stroke-dashoffset:-266}}
+@keyframes stage-energy-flow{0%,100%{stroke-dashoffset:60;opacity:.3}50%{stroke-dashoffset:-150;opacity:.8}}
+@keyframes stage-snow-drift{from{transform:translate(0,-8px);opacity:.4}to{transform:translate(5px,14px);opacity:.8}}
+@media(prefers-reduced-motion:reduce){.stage-signature *{animation:none!important}}

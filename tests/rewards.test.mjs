@@ -69,3 +69,34 @@ test('admin testing bypass allows repeat claims without waiting and can be turne
  await f.call('member','claimReward',{expectedVersion:3});
  await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:3}),code('failed-precondition'));
 });
+
+test('Icy Rush rewards retain seasonal art and open exactly once after catalog setup',async()=>{
+ const f=fixture();
+ const seasonalPrize={id:'winter-pack',kind:'pack',packId:'icy-rush',chanceBps:10000};
+ await f.config([seasonalPrize]);
+ const reward=await f.call('member','claimReward',{expectedVersion:1});
+ let saved=await f.call('member','snapshot');
+ assert.equal(saved.packs[0].image,'assets/seasonal/pack-icy-rush.png');
+ assert.equal(saved.packs[0].name,'Icy Rush pack');
+ const data={packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:0};
+ await assert.rejects(()=>f.call('member','openInventoryPack',data),code('failed-precondition'));
+ const catalog={...defaultPack('icy-rush'),enabled:true,priceCents:1500,version:1};
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),catalog));
+ const result=await f.call('member','openInventoryPack',{...data,expectedVersion:1});
+ assert.equal(result.cards.length,1);assert.equal(result.cards[0].packId,'icy-rush');assert.equal(result.totalCents,0);
+ await assert.rejects(()=>f.call('member','openInventoryPack',{...data,expectedVersion:1}),code('failed-precondition'));
+ saved=await f.call('member','snapshot');assert.equal(saved.packs[0].status,'opened');
+});
+
+test('Icy Rush purchases require an enabled priced catalog and use its exact price',async()=>{
+ const f=fixture();await f.call('member','topup',{amountCents:10000});
+ const data={packId:'icy-rush',quantity:2,expectedPriceCents:null,expectedVersion:0};
+ await assert.rejects(()=>f.call('member','purchase',data),code('failed-precondition'));
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),{...defaultPack('icy-rush'),enabled:true,version:1}));
+ await assert.rejects(()=>f.call('member','purchase',{...data,expectedVersion:1}),code('failed-precondition'));
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),{...defaultPack('icy-rush'),enabled:true,priceCents:1500,version:2}));
+ await assert.rejects(()=>f.call('member','purchase',{...data,expectedVersion:2,expectedPriceCents:1}),code('failed-precondition'));
+ const result=await f.call('member','purchase',{...data,expectedVersion:2,expectedPriceCents:1500});
+ assert.equal(result.totalCents,3000);assert.equal(result.cards.length,2);assert.equal(result.balanceCents,7000);
+ assert.ok(result.cards.every(card=>card.packId==='icy-rush'));
+});

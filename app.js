@@ -1,6 +1,8 @@
 (() => {
   'use strict';
-  const packs = window.RIPPR_PACKS;
+  const allPacks = window.RIPPR_PACKS;
+  let collection = 'core', packs = allPacks.filter(pack => !pack.limited), slides = [], tierButtons = [];
+  const collectionPositions = {core:0, limited:0};
   const grid = document.querySelector('#pack-grid');
   const carousel = document.querySelector('#pack-carousel');
   const status = document.querySelector('#catalog-status');
@@ -11,6 +13,8 @@
   let current = 0, paused = motion.matches, hovered = false, timer, returnFocus;
   let navigationBusy = false;
   const selectors = document.querySelector('#tier-selectors');
+  function renderPacks(){
+  grid.replaceChildren();selectors.replaceChildren();
   packs.forEach((pack, i) => {
     const card = document.createElement('article');
     card.className = 'tier-slide';
@@ -18,7 +22,7 @@
     card.setAttribute('role', 'group');
     card.setAttribute('aria-roledescription', 'slide');
     card.setAttribute('aria-label', `${i+1} of ${packs.length}: ${pack.name}`);
-    card.innerHTML = `<button type="button" class="tier-art" aria-label="Select ${pack.name}"><img src="${pack.image}" alt="Pokémon-themed ${pack.name} rippr pack" width="250" height="390"></button><div class="tier-info"><p class="tier-number">TIER 0${pack.tier}</p><h3>${pack.name}</h3><p class="tier-card-count"><span class="tier-price" hidden></span><span>1 card</span></p><a class="view-pack" href="opening.html?pack=${pack.id}">View pack <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a></div>`;
+    card.innerHTML = `<button type="button" class="tier-art" aria-label="Select ${pack.name}"><img src="${pack.image}" alt="Pokémon-themed ${pack.name} rippr pack" width="250" height="390"></button><div class="tier-info"><p class="tier-number">${pack.limited?'LIMITED EDITION':`TIER 0${pack.tier}`}</p><h3>${pack.name}</h3><p class="tier-card-count"><span class="tier-price" hidden></span><span>1 card</span></p><a class="view-pack" href="opening.html?pack=${pack.id}">View pack <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg></a></div>`;
     card.querySelector('button').addEventListener('click', () => move(i, true));
     grid.append(card);
     const button = document.createElement('button');
@@ -26,29 +30,32 @@
     button.addEventListener('click', () => move(i, true));
     selectors.append(button);
   });
-  const slides = [...grid.children], tierButtons = [...selectors.children];
+  slides = [...grid.children]; tierButtons = [...selectors.children];
   if (!window.RIPPR_AUTH_OFFLINE && window.RipprFirebase?.loadPackContents) {
     const money = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' });
     packs.forEach((pack, index) => {
+      const slide=slides[index];
       window.RipprFirebase.loadPackContents(pack.id).then(saved => {
-        const price = slides[index].querySelector('.tier-price');
+        const price = slide.querySelector('.tier-price');
         if (Number.isSafeInteger(saved.priceCents) && saved.priceCents >= 0) {
           price.textContent = money.format(saved.priceCents / 100); price.hidden = false;
         }
       }).catch(() => {});
     });
   }
+  }
   function schedule() {
     clearInterval(timer);
     toggle.textContent = paused ? 'Play' : 'Pause';
     toggle.setAttribute('aria-label', paused ? 'Start rotation' : 'Pause rotation');
     status.setAttribute('aria-live', paused ? 'polite' : 'off');
-    if (!paused && !hovered && !document.hidden && !modal.open && !navigationBusy) timer = setInterval(() => move(current + 1), 4500);
+    if (packs.length > 1 && !paused && !hovered && !document.hidden && !modal.open && !navigationBusy) timer = setInterval(() => move(current + 1), 4500);
   }
   function move(index, manual = false) {
     current = (index + packs.length) % packs.length;
     slides.forEach((slide, i) => {
-      const offset = ((i-current+packs.length+2)%packs.length)-2;
+      const half = Math.floor(packs.length/2);
+      const offset = ((i-current+packs.length+half)%packs.length)-half;
       slide.style.setProperty('--offset', offset);
       slide.dataset.distance = Math.abs(offset);
       slide.classList.toggle('is-active', offset === 0);
@@ -58,7 +65,10 @@
     });
     tierButtons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === current)));
     carousel.style.setProperty('--accent', packs[current].accent);
-    status.textContent = `${packs[current].name}, tier ${current+1} of ${packs.length}, one card per pack`;
+    status.textContent = `${packs[current].name}, ${collection==='limited'?'limited edition':`tier ${packs[current].tier}`}, ${current+1} of ${packs.length}, one card per pack`;
+    collectionPositions[collection]=current;
+    carousel.setAttribute('aria-label',collection==='limited'?'Limited time packs':'Five core pack tiers');
+    for(const control of document.querySelectorAll('.carousel-controls button'))control.disabled=packs.length<2;
     if (manual) paused = true;
     schedule();
   }
@@ -83,7 +93,13 @@
   }, {passive:true});
   document.addEventListener('visibilitychange', schedule);
   motion.addEventListener('change', () => { if(motion.matches) paused = true; schedule(); });
-  move(0);
+  document.querySelectorAll('[data-collection]').forEach(button=>button.addEventListener('click',()=>{
+    if(button.dataset.collection===collection)return;
+    collection=button.dataset.collection;packs=allPacks.filter(pack=>collection==='limited'?pack.limited:!pack.limited);
+    document.querySelectorAll('[data-collection]').forEach(option=>option.setAttribute('aria-pressed',String(option===button)));
+    renderPacks();move(Math.min(collectionPositions[collection],packs.length-1));
+  }));
+  renderPacks();move(0);
 
   const hero = document.querySelector('.hero');
   const heroDots = document.querySelector('#hero-dots');

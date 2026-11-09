@@ -174,3 +174,13 @@ test('support screenshots are private to their sender and verified owner',async(
  await assertFails(uploadBytes(ref(member.storage(),path.replace('screenshot.png','screenshot.svg')),bytes,{contentType:'image/svg+xml'}));
  await assertFails(uploadBytes(ref(member.storage(),path.replace('12345678-1234-1234-1234-123456789012','another-test-id-1234')),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
 });
+
+test('Icy Rush is public catalog data but only owner can configure and enable a priced pack', async () => {
+  const target = doc(context(OWNER_PHONE).firestore(),'packContents/icy-rush');
+  await assertFails(setDoc(target,payload()));
+  await assertSucceeds(setDoc(target,{...payload(),enabled:false}));
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'packContents/icy-rush')));
+  await assertFails(setDoc(target,{...payload('owner',2),priceCents:null}));
+  await assertSucceeds(setDoc(target,{...payload('owner',2),priceCents:1500}));
+  await assertFails(setDoc(doc(context('+12025550123').firestore(),'packContents/icy-rush'),{...payload('member',3),priceCents:1}));
+});

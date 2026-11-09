@@ -8,6 +8,7 @@ if(selectedPack){
  $('.heading h1').textContent=selectedPack.name;
  $('.showcase').setAttribute('aria-label',`${selectedPack.name} pack showcase`);
  $('.arena').setAttribute('aria-label',`Rippr ${selectedPack.name} pack`);
+ $('.arena').dataset.pack=selectedPack.id;
  $('.pack.artwork').setAttribute('aria-label',`Rippr ${selectedPack.name} booster pack`);
  document.documentElement.style.setProperty('--pack-image',`url("${selectedPack.image}")`);
  for(const part of document.querySelectorAll('.pack.artwork, .tear-strip, .foil-piece'))part.style.backgroundImage=`url("${selectedPack.image}")`;
@@ -15,6 +16,18 @@ if(selectedPack){
 
 const quantityButtons=[...document.querySelectorAll('[data-qty]')],openButton=$('#open'),display=$('#display'),arena=$('.arena'),stage=$('#reveal-stage'),controls=$('.controls'),results=$('#results'),cards=$('#cards'),announcement=$('#announcement'),phase=$('#phase'),skipOpening=$('#skip-opening');
 let quantity=1,state='idle',deck=[],cursor=0,openingTimer,openingSession=0,selling=false,pendingSale=null,skipBatchAnimations=false;
+// Decorative geometry gives each tier its own setting without changing stage layout.
+const stageSignatures={
+ basic:'<path d="M220 58h-88v422h88m560-422h88v422h-88"/><path class="signature-detail" d="M185 88v362m630-362v362"/>',
+ plus:'<ellipse class="signature-current" cx="500" cy="284" rx="344" ry="154" transform="rotate(-26 500 284)"/><ellipse class="signature-detail" cx="500" cy="284" rx="344" ry="154" transform="rotate(26 500 284)"/>',
+ premium:'<path d="m500 42 352 420H148Z"/><path class="signature-detail" d="m500 98 298 354H202Zm-290 27 580 320m0-320L210 445"/>',
+ elite:'<path class="signature-streak" d="M76 380 286 170m-175 280 245-245m288 130 245-245m-175 280 210-210"/><path class="signature-detail" d="M88 430 370 148m260 244L912 110"/>',
+ ultimate:'<circle cx="500" cy="270" r="214"/><circle class="signature-detail" cx="500" cy="270" r="240"/><path class="signature-detail" d="M500 22v18m0 460v18M252 270h18m460 0h18"/><path class="signature-star" d="m500 37 4 11 11 4-11 4-4 11-4-11-11-4 11-4Zm-243 81 3 8 8 3-8 3-3 8-3-8-8-3 8-3Zm482 280 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/>',
+ 'icy-rush':'<path class="signature-ice" d="m112 474 76-104 45 67 65-28 52 65m300 0 58-79 54 27 47-59 79 111"/><g class="signature-snow"><path d="M181 107v30m-13-23 26 15m0-15-26 15M811 169v24m-10-18 20 12m0-12-20 12M752 75v20m-9-15 18 10m0-10-18 10M251 303v24m-10-18 20 12m0-12-20 12"/></g>'
+};
+const signature=document.createElement('div');signature.className='stage-signature';signature.setAttribute('aria-hidden','true');
+signature.innerHTML=`<svg viewBox="0 0 1000 540" preserveAspectRatio="xMidYMid slice">${stageSignatures[selectedPack.id]||stageSignatures.basic}</svg>`;
+$('.stage-effects').append(signature);
 const sound=window.RipprOpeningAudio||{play:()=>false,stop:()=>{}};
 const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 const catalog=window.RipprCatalog;
@@ -25,7 +38,7 @@ const cardImage=card=>window.RIPPR_ASSET_URLS?.[card.image]||card.image;
 const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDigits:2})+'%';
 const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 const rarityBadge=name=>`<span class="rarity-badge" style="--rarity-color:${catalog.RARITIES.find(rarity=>rarity.name===name).color}"><span class="rarity-dot" aria-hidden="true"></span>${escape(name)}</span>`;
-function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||state!=='idle';label()}
+function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||(!inventoryPackId&&!Number.isSafeInteger(contents.priceCents))||state!=='idle';label()}
 let grailCards=[],grailTrigger=null,grailStops=[];
 const grailTrack=$('.grail-grid'),grailDialog=$('#grail-preview');
 function updateGrailControls(){
@@ -75,14 +88,14 @@ async function loadContents(){
   renderContents('One card per pack · free test balance');
   contentsReady=true;
  }catch{loadError=true;phase.textContent='Pack contents could not load. Reload to try again.';const table=oddsPanel.querySelector('table');table.setAttribute('aria-busy','false');table.querySelector('caption').textContent='Contents unavailable';table.querySelector('tbody').innerHTML='<tr><td colspan="3" class="odds-loading">Odds unavailable. Reload to try again.</td></tr>';$('.grail-grid').innerHTML='<p class="empty-grails">Grails could not load.</p>';$('.grail-grid').setAttribute('aria-busy','false')}
- finally{if(!contents.enabled)phase.textContent='This pack is currently unavailable.';updateOpen()}
+ finally{if(!contents.enabled&&!loadError)phase.textContent='';updateOpen()}
 }
 document.addEventListener('DOMContentLoaded',loadContents,{once:true});
 function label(){
  if(state!=='idle')return;
- $('#pack-price').textContent=inventoryPackId?'Owned pack':contentsReady?money.format(contents.priceCents/100):'—';$('#price-suffix').hidden=Boolean(inventoryPackId);
+ $('#pack-price').textContent=inventoryPackId?'Owned pack':contentsReady&&Number.isSafeInteger(contents.priceCents)?money.format(contents.priceCents/100):'—';$('#price-suffix').hidden=Boolean(inventoryPackId);
  if(!contentsReady){openButton.textContent=loadError?'Pack unavailable':'Loading pack…';return}
- if(!contents.enabled){openButton.textContent='Pack unavailable';return}
+ if(!contents.enabled||(!inventoryPackId&&!Number.isSafeInteger(contents.priceCents))){openButton.textContent='Pack unavailable';return}
  if(inventoryPackId){openButton.textContent=window.RIPPR_ACCOUNT?.user?'Open reward pack':'Log in to open reward pack';return}
  const packs=`${quantity} pack${quantity===1?'':'s'}`;
  openButton.textContent=(window.RIPPR_AUTH_OFFLINE?'Preview':window.RIPPR_ACCOUNT?.user?'Open':'Log in to open')+' '+packs+' · '+money.format(contents.priceCents*quantity/100);

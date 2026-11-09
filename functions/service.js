@@ -5,7 +5,7 @@ import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS } from './reward-model.js';
-import { isAdminToken, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem } from './catalog-model.js';
+import { isAdminToken, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem, packImage } from './catalog-model.js';
 
 const fail = (code, message) => { throw new HttpsError(code, message); };
 const stamp = () => FieldValue.serverTimestamp();
@@ -116,7 +116,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           patch.balanceCents=wallet.balanceCents+prize.amountCents;
         }else{
           const packId=prize.packId;
-          tx.create(account.collection('packs').doc(operationId),{id:operationId,packId,name:rewardLabel(prize),image:`assets/pack-${packId}.svg`,status:'available',source:'daily-reward',testItem:true,wonAt:stamp()});
+          tx.create(account.collection('packs').doc(operationId),{id:operationId,packId,name:rewardLabel(prize),image:packImage(packId),status:'available',source:'daily-reward',testItem:true,wonAt:stamp()});
         }
         result={prize,nextClaimAtMs:patch.nextRewardAtMs,balanceCents:patch.balanceCents??wallet.balanceCents,...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};
         activity={type:'reward',label:`Daily reward · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
@@ -143,6 +143,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         catch { fail('failed-precondition','This pack needs its catalog corrected before it can open.'); }
         if (!pack.enabled) fail('failed-precondition','This pack is currently unavailable.');
         const price = pack.priceCents ?? DEFAULT_PRICES[data.packId];
+        if (!Number.isSafeInteger(price) || price < 0) fail('failed-precondition','This pack needs a price configured before it can open.');
         // User sees and authorizes this exact price; a changed admin price requires a new click.
         if ((action==='purchase'&&price !== data.expectedPriceCents) || pack.version !== data.expectedVersion) fail('failed-precondition','The pack price or contents changed. Reload the page before opening.');
         const total = ownedRef ? 0 : price * data.quantity;

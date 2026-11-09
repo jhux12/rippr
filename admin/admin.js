@@ -119,6 +119,7 @@
     clearOddsPreview(); oddsUndo = null; $('#undo-odds').hidden = true;
     $('#selected-pack-title').firstChild.textContent = `${tiers.find(tier => tier.id === selectedPack).name} pack `;
     $('#pack-enabled').checked = pack().enabled;
+    $('#pack-price').placeholder = tiers.find(tier=>tier.id===selectedPack).limited ? 'Set seasonal price' : 'Tier default';
     $('#pack-price').value = priceInputs.get(selectedPack) ?? (pack().priceCents == null ? '' : (pack().priceCents / 100).toFixed(2));
     $('#pack-price-error').hidden = true;
     $('#pack-price').removeAttribute('aria-invalid');
@@ -151,9 +152,9 @@
   function stagePrice() {
     const input = $('#pack-price');
     const price = input.value.trim() ? model.decimalToUnits(input.value) : null;
-    if (!model.validPackPrice(price)) {
+    if (!model.validPackPrice(price) || (selectedPack==='icy-rush' && $('#pack-enabled').checked && price===null)) {
       chooseTab(true);
-      $('#pack-price-error').textContent = 'Enter a price from $0 to $1,000,000 with up to two decimal places.';
+      $('#pack-price-error').textContent = selectedPack==='icy-rush' && price===null ? 'Set a pack price before enabling Icy Rush.' : 'Enter a price from $0 to $1,000,000 with up to two decimal places.';
       $('#pack-price-error').hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus();
       return false;
     }

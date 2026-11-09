@@ -4,7 +4,7 @@ const $=s=>document.querySelector(s),model=window.RipprRewards;
 let config=null,mode='loading',index=2,animation=null,pool=[],nextClaimAtMs=0,serverOffset=0,generation=0,pendingResult=null;
 const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const image=p=>p.kind==='pack'?`assets/pack-${p.packId}.svg`:'assets/rewards/credit-wallet.svg';
+const image=p=>p.kind==='pack'?(p.packId==='icy-rush'?'assets/seasonal/pack-icy-rush.png':`assets/pack-${p.packId}.svg`):'assets/rewards/credit-wallet.svg';
 const art=p=>`<img class="${p.kind==='pack'?'pack-art':'wallet-art'}" src="${image(p)}" alt="" draggable="false">`;
 const copy=p=>p.kind==='pack'?{value:model.rewardLabel(p),detail:''}:{value:model.rewardLabel(p).replace(' credit',''),detail:'credit'};
 document.querySelector('[data-image="pip-daily-case.png"]').src='assets/rewards/pip-daily-case.png';

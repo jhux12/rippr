@@ -124,3 +124,12 @@
 @media(max-width:1000px) and (min-width:701px){.grails #homepage-grails>.grail-preview{flex-basis:calc((100% - 16px)/2)}}
 @media(max-width:700px){.grails .grails-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.grails-heading h2 br{display:none}.grails-heading>span{display:none}.homepage-grail-controls{margin:0;flex:none;gap:5px}.homepage-grail-controls button{padding:4px 7px;min-width:28px}.grails #homepage-grails{gap:12px;min-height:0}.grails #homepage-grails>.grail-preview{flex-basis:66%;max-width:260px}.grails #homepage-grails .homepage-grail-art{height:210px}.grails #homepage-grails .homepage-grail-name{font-size:12px}.grails #homepage-grails .homepage-grail-value{font-size:14px}}
 @media(max-width:380px){.grails .grails-heading{align-items:flex-start;flex-direction:column;gap:12px}.grails #homepage-grails>.grail-preview{flex-basis:72%}}
+
+/* Collection switch leaves the established carousel and product sizes intact. */
+.pack-collections{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid #344c63;border-radius:9px;background:#0a1420;margin-left:auto}
+.pack-collections button{min-height:32px;padding:6px 13px;border-radius:6px;color:#a7bfd2;font:650 11px/1.4 Manrope,Arial,sans-serif;white-space:nowrap}
+.pack-collections button[aria-pressed="true"]{background:#00e2ed;color:#031b24}
+.pack-collections button:hover:not([aria-pressed="true"]){color:#e3fbff;background:#122c3a}
+.pack-collections button span{margin-right:4px}
+.carousel-controls button:disabled{opacity:.4;cursor:default}
+@media(max-width:700px){.catalog-toolbar{display:grid;grid-template-columns:1fr auto;gap:12px}.catalog-toolbar .pack-collections{grid-column:1/-1;grid-row:2;margin:0;justify-self:start}.catalog-toolbar .carousel-controls{grid-column:2;grid-row:1}.pack-collections button{min-height:34px;padding:6px 14px}}

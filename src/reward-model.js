@@ -1,4 +1,4 @@
-export const REWARD_PACKS = ['basic','plus','premium','elite','ultimate'];
+export const REWARD_PACKS = ['basic','plus','premium','elite','ultimate','icy-rush'];
 export const REWARD_COOLDOWN_MS = 24*60*60*1000;
 export const defaultRewards = () => ({enabled:true,testingNoCooldown:true,version:0,prizes:[
  {id:'credit-25',kind:'credit',amountCents:25,chanceBps:4000},
@@ -28,7 +28,7 @@ export function readRewards(data){
  return {enabled:data.enabled,testingNoCooldown:data.testingNoCooldown===true,version:data.version,prizes:cleanPrizes(data.prizes)};
 }
 export const cleanPrizes=prizes=>prizes.map(p=>({id:p.id,kind:p.kind,chanceBps:p.chanceBps,...(p.kind==='credit'?{amountCents:p.amountCents}:{packId:p.packId})}));
-export function rewardLabel(p){return p.kind==='pack'?p.packId[0].toUpperCase()+p.packId.slice(1)+' pack':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(p.amountCents/100)+' credit'}
+export function rewardLabel(p){return p.kind==='pack'?(p.packId==='icy-rush'?'Icy Rush':p.packId[0].toUpperCase()+p.packId.slice(1))+' pack':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(p.amountCents/100)+' credit'}
 export function drawReward(config,roll){
  if(validateRewards(config).length||!Number.isInteger(roll)||roll<0||roll>=10000)throw new Error('Invalid reward draw.');
  let sum=0;for(const p of config.prizes){sum+=p.chanceBps;if(roll<sum)return {...p}}
