@@ -19,7 +19,7 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 // Only site files are deployed. Never publish repository metadata or tooling.
 for (const file of ['landing.html','landing.css','landing.js','referral-model.js','referrals.js','referrals.css','help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css',
-  'footer.css', 'footer-config.js', 'footer.js', 'phone-auth.js', 'app.js', 'auth.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'packs.js', 'navigation.css', 'navigation.js',
+  'footer.css', 'footer-config.js', 'footer.js', 'phone-auth.js', 'app.js', 'auth.js', 'opening-audio.js', 'opening-foil.js', 'opening-foil.css', 'opening-theater.css', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'packs.js', 'navigation.css', 'navigation.js',
   'firebase-config.js', 'firebase-client.js', 'account-state.js', 'catalog.js', 'admin', 'assets']) {
   await cp(resolve(root, file), resolve(dist, file), { recursive: true });
 }

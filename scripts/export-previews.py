@@ -107,6 +107,9 @@ opening = (ROOT / 'opening.html').read_text()
 opening_css = (ROOT / 'opening.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
 opening = opening.replace('<link rel="stylesheet" href="opening.css">', '<style>' + opening_css + '</style>')
 opening = opening.replace('<link rel="stylesheet" href="opening-stage.css">', '<style>' + (ROOT / 'opening-stage.css').read_text() + '</style>')
+for css in ['opening-foil.css','opening-theater.css']:
+    opening=opening.replace('<link rel="stylesheet" href="'+css+'">','<style>'+(ROOT/css).read_text()+'</style>')
+opening=opening.replace('<script src="opening-foil.js"></script>','<script>'+(ROOT/'opening-foil.js').read_text()+'</script>')
 opening = opening.replace('<script src="packs.js"></script>', '<script>' + bootstrap + '</script>')
 opening = opening.replace('<script src="opening-audio.js"></script>', '<script>' + (ROOT / 'opening-audio.js').read_text() + '</script>')
 opening = opening.replace('<script src="opening.js"></script>', '<script>' + (ROOT / 'opening.js').read_text() + '</script>')
@@ -179,7 +182,7 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
     source_files = ['landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
-                    'referral-model.js','referrals.js','referrals.css','catalog.js', 'opening-audio.js', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
+                    'referral-model.js','referrals.js','referrals.css','catalog.js', 'opening-audio.js', 'opening-foil.js', 'opening-foil.css', 'opening-theater.css', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
     for folder in ['scripts', 'src', 'assets', 'admin', 'tests', 'functions', 'partials']:

@@ -304,3 +304,9 @@ npx firebase deploy --only functions:ripprAccount,firestore:rules --project ripp
 ```
 
 Stage atmospheres share the same geometry and reveal controls: Basic silver studio, Plus cyan currents, Premium purple prism, Elite coral energy, Ultimate gold celestial rings, and Icy Rush frost/snowflakes. Actual card rarity controls reveal colors. Mute, reduced motion, ambient pausing, batch skip, and per-card sell/keep actions are retained. Unconfigured prices render as a dash, not a free offer. Catalog/account/reward tests and browser checks cover the seasonal flow; the rules emulator download remains blocked by the environment's network policy for `storage.googleapis.com`.
+
+## Full-screen opening view
+
+A successful purchase (or owned-pack opening) expands the existing tier-themed arena into a viewport-sized native dialog. No browser Fullscreen API permission is required. The stage remains large through rip, suspense and per-card keep/sell actions; finishing the batch restores the normal results page. The top-right control or Escape returns to the inline stage without purchasing again, and the same control can expand it again. Payment failures leave the normal page visible. Account changes and resets close the layer, restore the original arena/live region, cancel its entrance animation, and unlock page scrolling.
+
+`opening-theater.css` defines the responsive composition, including compact landscape. `opening-foil.js` and `opening-foil.css` retain the source pack art and dimensions while adding a progressive jagged cut, curled strip, reflective underside and brief release motion. Drag in either direction, use the keyboard rip control, or skip the remaining batch animations. Reduced motion removes the entrance and foil-release movement. Native dialog focus handling keeps sale confirmations above the enlarged stage. These are frontend-only changes; no additional Firebase deployment is required.
