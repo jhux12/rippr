@@ -64,6 +64,26 @@
       {
         "source": "/community",
         "destination": "/community.html"
+      },
+      {
+        "source": "/pick-your-path",
+        "destination": "/pick-your-path.html"
+      },
+      {
+        "source": "/build-a-collection",
+        "destination": "/build-a-collection.html"
+      },
+      {
+        "source": "/daily-reveal",
+        "destination": "/daily-reveal.html"
+      },
+      {
+        "source": "/mystery-vault",
+        "destination": "/mystery-vault.html"
+      },
+      {
+        "source": "/pack-draft",
+        "destination": "/pack-draft.html"
       }
     ],
     "headers": [
