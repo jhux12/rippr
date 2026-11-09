@@ -106,11 +106,11 @@
   const heroRotation = document.querySelector('#hero-rotation');
   const heroStatus = document.querySelector('#hero-status');
   const banners = [
-    {title:'Your next great pull.',copy:'One pack. One card. Something unexpected.',cta:'Explore packs',href:'#packs',scene:'signature'},
-    {title:'Your daily discovery.',copy:'Discover your daily case.',cta:'View rewards',href:'rewards.html',scene:'daily-discovery'},
-    {title:'Find your next favorite.',copy:'A collection worth discovering.',cta:'View packs',href:'#packs',scene:'grail-gallery'},
-    {title:'Find your level.',copy:'From Basic to Ultimate.',cta:'Choose your pack',href:'#packs',scene:'find-your-level'},
-    {title:'Make the first rip.',copy:'Choose a pack. Reveal the unexpected.',cta:'Open a pack',href:'opening.html?pack=plus',scene:'first-rip'}
+    {title:'Your next great pull.',cta:'Explore packs',href:'#packs',scene:'signature'},
+    {title:'Your daily discovery.',cta:'View rewards',href:'rewards.html',scene:'daily-discovery'},
+    {title:'Find your next favorite.',cta:'Discover grails',href:'#grails-title',scene:'grail-gallery'},
+    {title:'A collection worth sharing.',cta:'Explore Community',href:'community.html',scene:'community'},
+    {title:'Meet Icy Rush.',cta:'View limited packs',href:'#packs',scene:'icy-rush',collection:'limited'}
   ];
   let heroIndex=0, heroPaused=motion.matches, heroHovered=false, heroTimer;
   banners.forEach((banner,i)=>{
@@ -129,13 +129,12 @@
   function changeHero(index,manual=false){
     heroIndex=(index+banners.length)%banners.length;const banner=banners[heroIndex];
     document.querySelector('#hero-title').textContent=banner.title;
-    hero.querySelector('.hero-copy p').textContent=banner.copy;
     const cta=document.querySelector('#hero-cta');cta.textContent=banner.cta;cta.setAttribute('href',banner.href);
     hero.dataset.hero=banner.scene;
     hero.querySelectorAll('.hero-scene').forEach(scene=>{const active=scene.dataset.scene===banner.scene;scene.hidden=!active;if(active)scene.querySelectorAll('img').forEach(image=>image.loading='eager')});
-    // Warm the next image after first interaction without eagerly loading all five.
+    // Warm only the next scene so rotation does not flash on a slow connection.
     const nextScene=banners[(heroIndex+1)%banners.length].scene;
-    if(manual)hero.querySelector(`[data-scene="${nextScene}"]`).querySelectorAll('img').forEach(image=>image.loading='eager');
+    hero.querySelector(`[data-scene="${nextScene}"]`).querySelectorAll('img').forEach(image=>image.loading='eager');
     [...heroDots.children].forEach((button,i)=>button.setAttribute('aria-pressed',String(i===heroIndex)));
     heroStatus.textContent=`Banner ${heroIndex+1} of ${banners.length}: ${banner.title}`;
     hero.classList.remove('hero-enter');void hero.offsetWidth;hero.classList.add('hero-enter');
@@ -143,6 +142,23 @@
   }
   document.querySelector('#hero-previous').addEventListener('click',()=>changeHero(heroIndex-1,true));
   document.querySelector('#hero-next').addEventListener('click',()=>changeHero(heroIndex+1,true));
+  document.querySelector('#hero-cta').addEventListener('click',()=>{
+    if(banners[heroIndex].collection)document.querySelector(`[data-collection="${banners[heroIndex].collection}"]`).click();
+  });
+  hero.addEventListener('keydown',event=>{
+    if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
+      event.preventDefault();changeHero(heroIndex+(event.key==='ArrowRight'?1:-1),true);
+    }
+  });
+  let heroTouch;
+  hero.addEventListener('touchstart',event=>{heroTouch={x:event.touches[0].clientX,y:event.touches[0].clientY};},{passive:true});
+  hero.addEventListener('touchend',event=>{
+    if(!heroTouch)return;
+    const dx=event.changedTouches[0].clientX-heroTouch.x,dy=event.changedTouches[0].clientY-heroTouch.y;
+    if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy))changeHero(heroIndex+(dx<0?1:-1),true);
+    heroTouch=null;
+  },{passive:true});
+  hero.addEventListener('touchcancel',()=>{heroTouch=null;},{passive:true});
   heroRotation.addEventListener('click',()=>{heroPaused=!heroPaused;heroSchedule()});
   hero.addEventListener('pointerenter',()=>{heroHovered=true;heroSchedule()});
   hero.addEventListener('pointerleave',()=>{heroHovered=false;heroSchedule()});
