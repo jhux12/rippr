@@ -2,6 +2,7 @@
  'use strict';
  const $=selector=>document.querySelector(selector),targetUid=new URLSearchParams(location.search).get('user')||null;
  const room=$('#museum-room'),editor=$('#museum-editor'),preview=$('#museum-card-dialog'),share=$('#museum-share-dialog');
+ const mobileCaption=document.createElement('p');mobileCaption.id='museum-active-name';mobileCaption.className='museum-mobile-caption';mobileCaption.hidden=true;$('#museum-displays').after(mobileCaption);room.dataset.hasCards='false';
  const client=window.RipprFirebase,actor=()=>window.RIPPR_ACCOUNT?.user?.uid||null;
  let museum=null,canEdit=false,selectedIndex=0,request=0,saving=false,liking=false,returnFocus=null,draftIds=[],inventorySignature='';
  const cards=()=>museum?.cards||[];
@@ -23,15 +24,15 @@
  function showState(title,copy='',actions=[]){
   $('#museum-state').hidden=false;$('#museum-state-title').textContent=title;$('#museum-state-copy').textContent=copy;$('#museum-state-actions').className='museum-state-actions';$('#museum-state-actions').replaceChildren(...actions);
  }
- function clearView(){museum=null;canEdit=false;selectedIndex=0;$('#museum-displays').replaceChildren();$('#museum-featured-track').replaceChildren();$('#museum-featured').hidden=true;$('#museum-owner').hidden=true;for(const id of ['museum-edit','museum-like','museum-share','museum-inspect','museum-room-nav'])$('#'+id).hidden=true;$('#museum-title').textContent='My museum';$('#museum-description').textContent='A collection worth sharing.'}
+ function clearView(){mobileCaption.hidden=true;mobileCaption.textContent='';room.dataset.hasCards='false';museum=null;canEdit=false;selectedIndex=0;$('#museum-displays').replaceChildren();$('#museum-featured-track').replaceChildren();$('#museum-featured').hidden=true;$('#museum-owner').hidden=true;for(const id of ['museum-edit','museum-like','museum-share','museum-inspect','museum-room-nav'])$('#'+id).hidden=true;$('#museum-title').textContent='My museum';$('#museum-description').textContent='A collection worth sharing.';$('#museum-description').dataset.default='true'}
  function render(){
-  const items=cards(),owner=canEdit&&museum?.uid===actor();room.setAttribute('aria-busy','false');
+  const items=cards(),owner=canEdit&&museum?.uid===actor();room.setAttribute('aria-busy','false');room.dataset.hasCards=String(Boolean(items.length));
   $('#museum-title').textContent=owner?'My museum':museum.title||'Collection museum';document.title=(owner?'My museum':museum.title||'Museum')+' — rippr';
-  $('#museum-description').textContent=museum.description||'A collection worth sharing.';
+  $('#museum-description').textContent=museum.description||'A collection worth sharing.';$('#museum-description').dataset.default=String(!museum.description);
   $('#museum-owner').replaceChildren();const avatar=picture(museum.photoURL||'assets/mascot/pip-hover.png','');avatar.alt='';const by=document.createElement('span');by.textContent=(owner?(museum.published?'Public museum':'Private museum'):'Curated by '+(museum.displayName||'Collector'));$('#museum-owner').append(avatar,by);$('#museum-owner').hidden=false;
   $('#museum-edit').hidden=!owner;$('#museum-share').hidden=!(owner||museum.published);$('#museum-like').hidden=owner||!museum.published;$('#museum-like').disabled=liking;$('#museum-like').setAttribute('aria-pressed',String(Boolean(museum.likedByMe)));$('#museum-likes').textContent=String(Math.max(0,Number(museum.likeCount)||0));
-  if(!items.length){$('#museum-displays').replaceChildren();$('#museum-inspect').hidden=true;$('#museum-room-nav').hidden=true;$('#museum-featured').hidden=!owner;renderFeatures();showState(owner?'Your gallery starts here.':'This gallery is waiting for its next display.',owner?'Choose your favorite cards to create a museum of your own.':'Explore more collections from the community.',owner?[button('Add a display',openEditor,true),link('View my items','profile.html')]:[link('Browse collections','community.html',true)]);return}
-  $('#museum-state').hidden=true;selectedIndex=Math.min(selectedIndex,items.length-1);const positions=['is-center','slot-left','slot-right','slot-back-left','slot-back-middle','slot-back-right'];
+  if(!items.length){mobileCaption.hidden=true;mobileCaption.textContent='';$('#museum-displays').replaceChildren();$('#museum-inspect').hidden=true;$('#museum-room-nav').hidden=true;$('#museum-featured').hidden=!owner;renderFeatures();showState(owner?'Your gallery starts here.':'This gallery is waiting for its next display.',owner?'Choose your favorite cards to create a museum of your own.':'Explore more collections from the community.',owner?[button('Add a display',openEditor,true),link('View my items','profile.html')]:[link('Browse collections','community.html',true)]);return}
+  $('#museum-state').hidden=true;selectedIndex=Math.min(selectedIndex,items.length-1);mobileCaption.textContent=items[selectedIndex].name;mobileCaption.hidden=false;const positions=['is-center','slot-left','slot-right','slot-back-left','slot-back-middle','slot-back-right'];
   $('#museum-displays').replaceChildren();
   for(let slot=0;slot<items.length;slot++){
    const index=(selectedIndex+slot)%items.length,card=items[index],display=document.createElement('button');display.type='button';display.className='museum-display '+positions[slot];display.dataset.cardIndex=String(index);display.setAttribute('aria-label',(slot?'Feature ':'Inspect ')+card.name);display.setAttribute('aria-pressed',String(slot===0));

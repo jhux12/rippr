@@ -90,3 +90,12 @@
 
 @media(max-width:760px){.site-navigation .nav-actions .nav-signup.nav-profile{display:none}}
 .site-navigation .nav-balance[hidden]{display:none!important}
+
+/* Five destinations share the same compact bar without squeezing account controls. */
+@media(min-width:761px) and (max-width:1000px){
+ .nav-shell{padding:0 16px;gap:22px}
+ .site-navigation .nav-links{gap:16px}
+ .site-navigation .nav-link{font-size:12px}
+ .nav-actions{gap:12px}
+ .site-navigation .nav-profile .nav-display-name{max-width:72px}
+}
