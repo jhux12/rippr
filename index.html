@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#080e17">
   <meta name="description" content="One pack. One card. Something unexpected. Explore rippr’s collectible packs and discover your next great pull.">
   <title>rippr — Your next great pull.</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shipping-content.css">
   <script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="account-state.js" defer></script><script src="packs.js" defer></script>
   <script src="catalog.js" defer></script>
   <script src="app.js" defer></script>
@@ -70,19 +70,7 @@
       <div class="grail-grid" id="homepage-grails" aria-busy="true" role="group" aria-label="Featured grails carousel" tabindex="0"><p class="homepage-grails-status" role="status">Loading grails…</p></div>
     </section>
     <section class="fulfillment" aria-labelledby="fulfillment-title">
-      <h2 id="fulfillment-title">Made for collectors.</h2>
-      <div class="fulfillment-card">
-        <figure class="fulfillment-visual">
-          <img src="assets/fulfillment/pip-packing.png" alt="Pip carefully packing a protected collectible card into a rippr mailer." width="1536" height="1024" loading="lazy" decoding="async">
-          <figcaption class="fulfillment-concept">Fulfillment concept</figcaption>
-        </figure>
-        <div class="fulfillment-copy">
-          <p class="fulfillment-eyebrow">The next chapter</p>
-          <h3>Good pulls.<br> Great mail days.</h3>
-          <p class="fulfillment-description">A preview of the rippr shipping experience.</p>
-          <p class="fulfillment-status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h12v12H2ZM14 9h4l4 5v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Shipping is currently in testing</span></p>
-        </div>
-      </div>
+      <h2 id="fulfillment-title">From reveal to your doorstep.</h2><div class="packing-home"><figure class="packing-home-art"><img src="assets/fulfillment/pip-packing.webp" alt="Illustration of Pip packing a protected collectible card" width="1000" height="667" loading="lazy"><figcaption>Illustrated packing preview</figcaption></figure><div class="packing-home-copy"><p class="packing-eyebrow">Behind the mail day</p><h3>A closer look<br>at packing.</h3><p>Explore the journey from your collection to your doorstep.</p><ul><li>Protect the card</li><li>Pack with care</li><li>Follow your request</li></ul><a class="primary-button" href="shipping.html">Shipping &amp; delivery →</a><a class="shipping-guide-link" href="shipping.html#packing">Packing guide · Video coming soon</a></div></div>
       <ul class="fulfillment-trust" aria-label="Account and collection features">
         <li><a href="auth.html?mode=login"><svg class="trust-feature-icon" viewBox="0 0 32 36" aria-hidden="true"><path d="m16 2 12 5v9c0 8-6 14-12 18C10 30 4 24 4 16V7Z"/><path d="m10 17 4 4 8-9"/></svg><span>Secure phone sign-in</span></a></li>
         <li><a href="opening.html?pack=basic"><svg class="trust-feature-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="27" r="3"/><path d="M5 29 20 5m5 5h8m-8 8h8m-8 8h8"/></svg><span>Transparent pack odds</span></a></li>
