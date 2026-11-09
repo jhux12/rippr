@@ -133,3 +133,7 @@
 .pack-collections button span{margin-right:4px}
 .carousel-controls button:disabled{opacity:.4;cursor:default}
 @media(max-width:700px){.catalog-toolbar{display:grid;grid-template-columns:1fr auto;gap:12px}.catalog-toolbar .pack-collections{grid-column:1/-1;grid-row:2;margin:0;justify-self:start}.catalog-toolbar .carousel-controls{grid-column:2;grid-row:1}.pack-collections button{min-height:34px;padding:6px 14px}}
+
+.community-discovery{grid-column:1/-1;justify-self:end;display:inline-flex;gap:8px;align-items:center;color:#98e5ec;font-size:12px;font-weight:650;text-decoration:none;margin-top:-6px;min-height:36px}
+.community-discovery:hover{color:#e3fcff}.community-discovery:focus-visible{outline:2px solid #00e2ed;outline-offset:4px}
+@media(max-width:700px){.community-discovery{display:flex;justify-content:flex-end;margin-top:12px;font-size:11px}}

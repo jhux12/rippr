@@ -86,6 +86,9 @@ service cloud.firestore {
         allow write: if false;
       }
     }
+    // Museum drafts, directory projections and per-account likes are served by
+    // ripprMuseum, which verifies publication, ownership and authoritative counts.
+    match /museumDirectory/{document=**} { allow read, write: if false; }
     match /{document=**} { allow read, write: if false; }
   }
 }

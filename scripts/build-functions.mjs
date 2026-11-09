@@ -6,3 +6,5 @@ console.log('Synced shared pack validation and defaults for Functions.');
 await copyFile(new URL('../src/account-settings-model.js', import.meta.url),new URL('../functions/account-settings-model.js',import.meta.url));
 
 await copyFile(new URL('../src/referral-model.js',import.meta.url),new URL('../functions/referral-model.js',import.meta.url));
+
+await copyFile(new URL('../src/museum-model.js',import.meta.url),new URL('../functions/museum-model.js',import.meta.url));

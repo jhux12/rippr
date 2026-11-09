@@ -184,3 +184,14 @@ test('Icy Rush is public catalog data but only owner can configure and enable a 
   await assertSucceeds(setDoc(target,{...payload('owner',2),priceCents:1500}));
   await assertFails(setDoc(doc(context('+12025550123').firestore(),'packContents/icy-rush'),{...payload('member',3),priceCents:1}));
 });
+
+
+test('museum directory and likes are only accessible through the callable projection',async()=>{
+ const path='museumDirectory/root/profiles/owner';
+ await env.withSecurityRulesDisabled(async context=>setDoc(doc(context.firestore(),path),{published:true,title:'Published museum',likeCount:0}));
+ for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')]){
+  await assertFails(getDoc(doc(client.firestore(),path)));
+  await assertFails(setDoc(doc(client.firestore(),path),{published:true,likeCount:999}));
+  await assertFails(setDoc(doc(client.firestore(),path+'/likes/member'),{liked:true}));
+ }
+});

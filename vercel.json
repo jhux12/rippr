@@ -48,6 +48,14 @@
     {
       "source": "/landing",
       "destination": "/landing.html"
+    },
+    {
+      "source": "/museum",
+      "destination": "/museum.html"
+    },
+    {
+      "source": "/community",
+      "destination": "/community.html"
     }
   ]
 }

@@ -5,11 +5,16 @@ export function memoryDatabase(){
  const records=new Map();let queue=Promise.resolve();
  const ref=path=>({path,id:path.split('/').at(-1),collection:name=>collection(path+'/'+name)});
  const snapshot=target=>({id:target.id,exists:records.has(target.path),data:()=>structuredClone(records.get(target.path))});
- const collection=path=>({doc:id=>ref(path+'/'+id),orderBy:(field,direction)=>({limit:count=>({get:async()=>{
-  const entries=[...records].filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/'));
-  entries.sort((a,b)=>(a[1][field]-b[1][field])*(direction==='desc'?-1:1));
-  const docs=entries.slice(0,count).map(([key])=>snapshot(ref(key)));return {docs,size:docs.length};
- }})})});
+ const collection=path=>({doc:id=>ref(path+'/'+id),orderBy:(field,direction)=>{
+  const query=(count=Infinity,after=undefined)=>({limit:value=>query(value,after),startAfter:value=>query(count,value),get:async()=>{
+   const compare=(a,b)=>typeof a==='string'&&typeof b==='string'?(a<b?-1:a>b?1:0):a-b;
+   const sign=direction==='desc'?-1:1;
+   const entries=[...records].filter(([key,value])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')&&value[field]!==undefined&&(after===undefined||compare(value[field],after)*sign>0));
+   entries.sort((a,b)=>compare(a[1][field],b[1][field])*sign||a[0].localeCompare(b[0]));
+   const docs=entries.slice(0,count).map(([key])=>snapshot(ref(key)));return {docs,size:docs.length};
+  }});return query();
+ }});
+
  return {doc:ref,runTransaction:callback=>{
   const task=queue.then(async()=>{
    const writes=[];let writing=false;

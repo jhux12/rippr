@@ -56,6 +56,14 @@
       {
         "source": "/landing",
         "destination": "/landing.html"
+      },
+      {
+        "source": "/museum",
+        "destination": "/museum.html"
+      },
+      {
+        "source": "/community",
+        "destination": "/community.html"
       }
     ],
     "headers": [
@@ -100,6 +108,16 @@
       {
         "source": "/landing/",
         "destination": "/landing",
+        "type": 302
+      },
+      {
+        "source": "/museum/",
+        "destination": "/museum",
+        "type": 302
+      },
+      {
+        "source": "/community/",
+        "destination": "/community",
         "type": 302
       }
     ]

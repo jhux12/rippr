@@ -53,7 +53,7 @@ def common(text):
 window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>null,observe:cb=>{queueMicrotask(()=>cb(null));return()=>{}},
 createAccount:()=>Promise.reject({code:'auth/offline-preview'}),signInEmail:()=>Promise.reject({code:'auth/offline-preview'}),
 signInGoogle:()=>Promise.reject({code:'auth/offline-preview'}),resetPassword:()=>Promise.reject({code:'auth/offline-preview'}),
-signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'}),startPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),confirmPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),cancelPhoneSignIn:()=>{}};"""
+signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerification:()=>Promise.reject({code:'auth/offline-preview'}),startPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),confirmPhoneSignIn:()=>Promise.reject({code:'auth/offline-preview'}),cancelPhoneSignIn:()=>{},museumAction:action=>action==='browse'?Promise.resolve({museums:[],nextCursor:null}):Promise.reject({code:'functions/not-found'})};"""
     mascot_poses = ['hover', 'welcome'] + [pose for pose in ['celebrate'] if 'data-pip="' + pose + '"' in text]
     mascot_urls = {pose: uri(ROOT / ('assets/mascot/pip-' + pose + '.png'), 'image/png') for pose in mascot_poses}
     if 'id="reveal-stage"' in text:
@@ -83,10 +83,10 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     text = re.sub(r'<script src="catalog\.js"(?: defer)?></script>', lambda match: '<script>' + (ROOT / 'catalog.js').read_text() + '</script>', text)
     text = text.replace('</body>', '<script>' + (ROOT / 'navigation.js').read_text() + '</script></body>')
     text = text.replace('href="assets/favicon.svg"', 'href="' + uri(ROOT / 'assets/favicon.svg', 'image/svg+xml') + '"')
-    filenames = {'index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html', 'profile.html': 'rippr-profile.html', 'rewards.html':'rippr-rewards.html', 'how-it-works.html':'rippr-how-it-works.html','shipping.html':'rippr-shipping.html','order-tracking.html':'rippr-order-tracking.html','account-settings.html':'rippr-account-settings.html','help-center.html':'rippr-help-center.html','about.html':'rippr-about.html','contact-support.html':'rippr-contact-support.html'}
+    filenames = {'museum.html':'rippr-museum.html','community.html':'rippr-community.html','index.html': 'rippr-homepage.html', 'opening.html': 'rippr-opening.html', 'auth.html': 'rippr-auth.html', 'profile.html': 'rippr-profile.html', 'rewards.html':'rippr-rewards.html', 'how-it-works.html':'rippr-how-it-works.html','shipping.html':'rippr-shipping.html','order-tracking.html':'rippr-order-tracking.html','account-settings.html':'rippr-account-settings.html','help-center.html':'rippr-help-center.html','about.html':'rippr-about.html','contact-support.html':'rippr-contact-support.html'}
     # Rewrite complete relative filenames once, including query/hash links. Do not
     # rewrite an already exported filename such as rippr-opening.html again.
-    text = re.sub(r'(?<![\w-])(?:index|opening|auth|profile|rewards|how-it-works|shipping|order-tracking|account-settings|help-center|about|contact-support)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
+    text = re.sub(r'(?<![\w-])(?:museum|community|index|opening|auth|profile|rewards|how-it-works|shipping|order-tracking|account-settings|help-center|about|contact-support)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
     return text
 
 
@@ -155,10 +155,12 @@ guide = re.sub(r'href="(assets/how-it-works/[^\"]+\.png)"', lambda m: 'href="' +
 guide = re.sub(r'src="(assets/pack-[^\"]+\.svg)"', lambda m: 'src="' + uri(ROOT / m[1], 'image/svg+xml') + '"', guide)
 (OUT / 'rippr-how-it-works.html').write_text(common(guide))
 
-for page in ['shipping', 'order-tracking', 'account-settings','help-center','about','contact-support']:
+for page in ['museum','community','shipping', 'order-tracking', 'account-settings','help-center','about','contact-support']:
     content=(ROOT / (page+'.html')).read_text()
-    for css in ['how-it-works.css','service-pages.css','info-pages.css']:
-        content=content.replace('<link rel="stylesheet" href="'+css+'">','<style>'+(ROOT/css).read_text()+'</style>')
+    for css in ['how-it-works.css','service-pages.css','info-pages.css','museum.css','community.css']:
+        style=(ROOT/css).read_text().replace('assets/fonts/manrope-latin-variable.woff2',uri(ROOT/'assets/fonts/manrope-latin-variable.woff2','font/woff2'))
+        if page in ['museum','community']:style=style.replace('assets/museum/gallery-room.png',uri(ROOT/'assets/museum/gallery-room.png','image/png'))
+        content=content.replace('<link rel="stylesheet" href="'+css+'">','<style>'+style+'</style>')
     for js in ['catalog.js','settings-model.js',page+'.js']:
         if (ROOT/js).exists():
             content=content.replace('<script src="'+js+'" defer></script>','<script>'+(ROOT/js).read_text()+'</script>')
@@ -179,7 +181,7 @@ landing=landing.replace('</body>','<script>'+bootstrap+'</script><script>'+(ROOT
 (OUT/'rippr-landing.html').write_text(common(landing))
 
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-    source_files = ['landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
+    source_files = ['museum.html','museum.css','museum.js','community.html','community.css','community.js','landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'referral-model.js','referrals.js','referrals.css','catalog.js', 'opening-audio.js', 'opening-foil.js', 'opening-foil.css', 'opening-theater.css', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
@@ -189,9 +191,9 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
         for path in sorted((ROOT / folder).rglob('*')):
             if path.is_file() and not any(part in path.parts for part in ['__pycache__', 'node_modules']) and not path.name.startswith('.env'):
                 archive.write(path, 'rippr/' + str(path.relative_to(ROOT)))
-    for name in ['rippr-landing.html','rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html']:
+    for name in ['rippr-museum.html','rippr-community.html','rippr-landing.html','rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html']:
         archive.write(OUT / name, 'previews/' + name)
 with zipfile.ZipFile(OUT / 'rippr-site.zip') as archive:
     assert archive.testzip() is None
-for name in ['rippr-landing.html','rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html', 'rippr-site.zip']:
+for name in ['rippr-museum.html','rippr-community.html','rippr-landing.html','rippr-homepage.html', 'rippr-opening.html', 'rippr-auth.html', 'rippr-profile.html', 'rippr-rewards.html', 'rippr-how-it-works.html','rippr-shipping.html','rippr-order-tracking.html','rippr-account-settings.html','rippr-help-center.html','rippr-about.html','rippr-contact-support.html', 'rippr-site.zip']:
     print(f'{name}: {(OUT / name).stat().st_size:,} bytes')

@@ -309,3 +309,24 @@ export async function readSupportScreenshot(path){
  if(auth.currentUser?.uid!==uid)throw phoneError('auth/user-signed-out','Your sign-in changed.');
  return new Blob([bytes],{type:path.endsWith('.png')?'image/png':'image/jpeg'});
 }
+
+// Public museum reads and authenticated community writes share one callable API.
+export async function museumAction(action, data = {}) {
+  // Bind mutations/private reads to the actor who initiated the UI operation,
+  // before waiting for Auth readiness. Never reinterpret an old edit as a new user.
+  const actorRequired = !['browse','get'].includes(action);
+  const actorUid = auth.currentUser?.uid;
+  await ready;
+  if (actorRequired && (!actorUid || auth.currentUser?.uid !== actorUid)) {
+    throw Object.assign(new Error('Your sign-in changed. Please retry.'), {code:'functions/unauthenticated'});
+  }
+  if (!functions) {
+    functions = getFunctions(app, 'us-central1');
+    if (window.RIPPR_FUNCTIONS_EMULATOR_URL) {
+      const url = localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);
+      connectFunctionsEmulator(functions, url.hostname, Number(url.port));
+    }
+  }
+  const call = httpsCallable(functions, 'ripprMuseum', { timeout:30000 });
+  return (await call({action,...data,...(actorRequired ? {accountUid:actorUid} : {})})).data;
+}

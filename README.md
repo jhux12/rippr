@@ -310,3 +310,23 @@ Stage atmospheres share the same geometry and reveal controls: Basic silver stud
 A successful purchase (or owned-pack opening) expands the existing tier-themed arena into a viewport-sized native dialog. No browser Fullscreen API permission is required. The stage remains large through rip, suspense and per-card keep/sell actions; finishing the batch restores the normal results page. The top-right control or Escape returns to the inline stage without purchasing again, and the same control can expand it again. Payment failures leave the normal page visible. Account changes and resets close the layer, restore the original arena/live region, cancel its entrance animation, and unlock page scrolling.
 
 `opening-theater.css` defines the responsive composition, including compact landscape. `opening-foil.js` and `opening-foil.css` retain the source pack art and dimensions while adding a progressive jagged cut, curled strip, reflective underside and brief release motion. Drag in either direction, use the keyboard rip control, or skip the remaining batch animations. Reduced motion removes the entrance and foil-release movement. Native dialog focus handling keeps sale confirmations above the enlarged stage. These are frontend-only changes; no additional Firebase deployment is required.
+
+## Personal museums and community collections
+
+Open **My items → My museum** to curate up to six available cards, arrange their display order, and save a private gallery. Publishing requires explicitly enabling **Share with the community** in the editor. The museum uses the generated `assets/museum/gallery-room.png` architectural background with live card images, glass cases, plinths, Pip, a featured-card rail and full-image inspection. No sample collector galleries are published automatically.
+
+**Community collections** is linked from My items, each museum, and the homepage grails section. `/community` browses published museums with recent/most-liked sorting, cursor pagination and a filter for the pages explored. `/museum?user=UID` is the shareable public view. Guests can browse; signed-in collectors can like or unlike a museum once per account. Self-likes are blocked. Counts are authoritative server transactions, and retrying a like does not add another one.
+
+`ripprMuseum` serves these projections through callable Functions. It validates ownership of every selected card, omits sold/shipping cards at read time, binds writes to the initiating account, checks saved versions and exposes no balances, contact details, address data or private inventory. Private drafts and likes live in server-managed documents; clients cannot write the directory or counts directly. Unpublishing immediately removes a museum from public reads/browsing while preserving its private draft.
+
+Deploy the new function and latest rules from an authenticated checkout before using live museums:
+
+```sh
+git pull origin main
+npm ci
+npm ci --prefix functions
+npm run build:functions
+npx firebase deploy --only functions:ripprMuseum,firestore:rules --project rippr-2b01c
+```
+
+The normal frontend build includes both pages; Firebase/Vercel route configurations support `/museum` and `/community`. No additional secrets or composite indexes are needed. Run `npm run test:museum` for ownership/privacy/like/pagination tests. Existing account, rewards, referral and catalog tests and mocked browser flows pass. Security Rules emulator tests are provided but remain unverified here because the uncached emulator JAR download from `storage.googleapis.com` is blocked by the environment policy. No production deployment was performed in this workspace.
