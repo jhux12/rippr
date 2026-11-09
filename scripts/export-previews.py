@@ -159,7 +159,7 @@ for page in ['museum','community','shipping', 'order-tracking', 'account-setting
     content=(ROOT / (page+'.html')).read_text()
     for css in ['how-it-works.css','service-pages.css','info-pages.css','museum.css','community.css']:
         style=(ROOT/css).read_text().replace('assets/fonts/manrope-latin-variable.woff2',uri(ROOT/'assets/fonts/manrope-latin-variable.woff2','font/woff2'))
-        if page in ['museum','community']:style=style.replace('assets/museum/gallery-room.png',uri(ROOT/'assets/museum/gallery-room.png','image/png'))
+        if page in ['museum','community']:style=style.replace('assets/museum/gallery-room.png',uri(ROOT/'assets/museum/gallery-room.png','image/png')).replace('assets/museum/gallery-room.webp',uri(ROOT/'assets/museum/gallery-room.webp','image/webp'))
         content=content.replace('<link rel="stylesheet" href="'+css+'">','<style>'+style+'</style>')
     for js in ['catalog.js','settings-model.js',page+'.js']:
         if (ROOT/js).exists():
@@ -168,6 +168,7 @@ for page in ['museum','community','shipping', 'order-tracking', 'account-setting
         content=content.replace('<script>'+(ROOT/(page+'.js')).read_text()+'</script>','')
         content=content.replace('</body>','<script>'+(ROOT/(page+'.js')).read_text()+'</script></body>')
     content=re.sub(r'src="(assets/(?:shipping|fulfillment|support)/[^\"]+\.png)"',lambda m:'src="'+uri(ROOT/m[1],'image/png')+'"',content)
+    if page in ['museum','community']:content=content.replace('href="assets/museum/gallery-room.webp"','href="'+uri(ROOT/'assets/museum/gallery-room.webp','image/webp')+'"')
     (OUT / ('rippr-'+page+'.html')).write_text(common(content))
 
 landing = (ROOT / 'landing.html').read_text()

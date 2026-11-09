@@ -313,11 +313,11 @@ A successful purchase (or owned-pack opening) expands the existing tier-themed a
 
 ## Personal museums and community collections
 
-Open **Community → My museum** to curate up to six available cards, arrange their display order, and save a private gallery. Publishing requires explicitly enabling **Share with the community** in the editor. The museum uses the generated `assets/museum/gallery-room.png` architectural background with live card images, glass cases, plinths, Pip, a featured-card rail and full-image inspection. No sample collector galleries are published automatically.
+Open **Community → My museum** to curate up to six kept cards, including shipped items, arrange their display order, and save a private gallery. Publishing requires explicitly enabling **Share with the community** in the editor. The museum uses the generated `assets/museum/gallery-room.png` architectural background with live card images, glass cases, plinths, Pip, a featured-card rail and full-image inspection. No sample collector galleries are published automatically.
 
 **Community** is the single shared navigation entry on desktop and in the mobile menu. Homepage, profile and museum-toolbar shortcuts have been removed; museum browsing and **My museum** remain connected within Community. `/community` browses published museums with recent/most-liked sorting, cursor pagination and a filter for the pages explored. `/museum?user=UID` is the shareable public view. Guests can browse; signed-in collectors can like or unlike a museum once per account. Self-likes are blocked. Counts are authoritative server transactions, and retrying a like does not add another one.
 
-`ripprMuseum` serves these projections through callable Functions. It validates ownership of every selected card, omits sold/shipping cards at read time, binds writes to the initiating account, checks saved versions and exposes no balances, contact details, address data or private inventory. Private drafts and likes live in server-managed documents; clients cannot write the directory or counts directly. Unpublishing immediately removes a museum from public reads/browsing while preserving its private draft.
+`ripprMuseum` serves these projections through callable Functions. It validates ownership of every selected card, omits sold cards at read time, binds writes to the initiating account, checks saved versions and exposes no balances, contact details, address data or private inventory. Private drafts and likes live in server-managed documents; clients cannot write the directory or counts directly. Unpublishing immediately removes a museum from public reads/browsing while preserving its private draft.
 
 Deploy the new function and latest rules from an authenticated checkout before using live museums:
 
@@ -336,3 +336,9 @@ The normal frontend build includes both pages; Firebase/Vercel route configurati
 Shared desktop navigation and the mobile menu now use **Packs → Rewards → My items → Community → How it works**. Community is active for both browsing and museum pages. The homepage, profile and museum toolbar no longer duplicate entry links; the Community page retains its internal My museum link.
 
 On narrow/tablet screens the museum shows one complete exhibit, followed by independent caption, Inspect and navigation rows. Long names can wrap without covering controls; the inspection dialog retains the complete name and artwork. Featured cards use a compact horizontal rail, and mobile editors use 16px inputs to avoid iOS input zoom and 44px touch targets. Desktop retains the room's multi-display composition. These are frontend-only changes; no Firebase redeployment is needed.
+
+## Museum interaction polish
+
+Card selection now keeps card, thumbnail and avatar DOM nodes mounted, with short transitions, adjacent image decoding and horizontal swipe/keyboard navigation. Mobile captions reserve three lines to keep controls stationary. Likes respond immediately and roll back on failure; server counts remain authoritative. The mobile editor is a native bottom sheet with focus handling and page scroll lock. Reduced motion removes transitions, and loading placeholders are decorative until real data arrives. The room uses a preloaded 96 KB WebP (95% smaller than the retained PNG original).
+
+Museum selections now accept kept cards in available, shipping, shipped or delivered status. Sold cards remain excluded and ownership is still checked on the server. Deploy the updated `ripprMuseum` function for shipped-card eligibility; the interaction improvements otherwise require only the frontend update.

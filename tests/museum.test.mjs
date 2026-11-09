@@ -53,7 +53,7 @@ test('published galleries always hydrate current ownership and current display i
  await f.db.runTransaction(async tx=>{tx.update(f.db.doc('testAccounts/alice/items/card-0'),{status:'sold'});tx.update(f.db.doc('testAccounts/alice'),{displayName:'Renamed collector'})});
  let museum=(await f.call(null,'get',{uid:'alice'})).museum;assert.equal(museum.displayName,'Renamed collector');assert.deepEqual(museum.cards.map(c=>c.id),['card-1']);assert.equal((await f.call(null,'browse')).museums[0].cardCount,1);
  await f.db.runTransaction(async tx=>tx.update(f.db.doc('testAccounts/alice/items/card-1'),{status:'shipping'}));
- assert.deepEqual((await f.call(null,'get',{uid:'alice'})).museum.cards,[]);assert.deepEqual((await f.call(null,'browse')).museums,[]);
+ assert.deepEqual((await f.call(null,'get',{uid:'alice'})).museum.cards.map(c=>c.id),['card-1']);assert.equal((await f.call(null,'browse')).museums[0].cardCount,1);
 });
 test('likes require authentication, exclude self, persist per-account and retry atomically',async()=>{
  const f=fixture();await f.seed();await f.seed('bob');await f.seed('carol');await f.save();
@@ -82,3 +82,17 @@ test('browse sorts and paginates with stable unique scalar keys, without composi
  await assert.rejects(()=>f.call(null,'browse',{sort:'popular',cursor:first.nextCursor}),code('invalid-argument'));
  await assert.rejects(()=>f.call(null,'browse',{sort:'bogus'}),code('invalid-argument'));
 });
+
+ test('kept shipping, shipped and delivered items can be selected, while sold items cannot',async()=>{
+ const f=fixture();await f.seed();
+ for(const status of ['shipping','shipped','delivered']){
+  await f.db.runTransaction(async tx=>tx.update(f.db.doc('testAccounts/alice/items/card-0'),{status}));
+  const own=await f.call('alice','own');
+  await f.save('alice',{cardIds:['card-0'],expectedVersion:own.museum.version});
+  assert.equal((await f.call(null,'get',{uid:'alice'})).museum.cards[0].id,'card-0');
+ }
+ await f.db.runTransaction(async tx=>tx.update(f.db.doc('testAccounts/alice/items/card-0'),{status:'sold'}));
+ const own=await f.call('alice','own');
+ await assert.rejects(()=>f.save('alice',{cardIds:['card-0'],expectedVersion:own.museum.version}),code('failed-precondition'));
+ assert.deepEqual((await f.call(null,'get',{uid:'alice'})).museum.cards,[]);
+ });

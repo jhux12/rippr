@@ -19,7 +19,7 @@
 .community-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 .community-card{min-width:0;border:1px solid #304557;border-radius:14px;overflow:hidden;background:linear-gradient(145deg,#10202d,#0a141f);transition:border-color .2s,transform .2s}
 .community-card:hover{border-color:#568a9e;transform:translateY(-2px)}
-.community-scene{position:relative;display:block;height:232px;overflow:hidden;background:linear-gradient(#07111b0a,#07111b55),url('assets/museum/gallery-room.png') center/cover}
+.community-scene{position:relative;display:block;height:232px;overflow:hidden;background:linear-gradient(#07111b0a,#07111b55),url('assets/museum/gallery-room.webp') center/cover}
 .community-slab{position:absolute;left:50%;top:14%;transform:translateX(-50%);width:30%;height:64%;display:flex;align-items:center;justify-content:center;border:1px solid #76e4efb3;border-radius:7px;padding:6px;background:linear-gradient(130deg,#cae3ed22,#08131dbb,#9bdbeb26);box-shadow:0 0 14px #00dfef22,0 16px 20px #0009;transition:transform .3s}
 .community-scene:hover .community-slab{transform:translateX(-50%) translateY(-3px)}
 .community-slab img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 4px #0008)}
@@ -71,3 +71,7 @@ button.community-likes[aria-pressed="true"]{color:#74f0f4}button.community-likes
  .community-card-footer{padding-top:8px}
  .community-status{margin:10px 0 14px}
 }
+.community-likes{transition:color 160ms ease,background-color 160ms ease}
+.community-likes svg{transition:fill 160ms ease,stroke 160ms ease}
+@media(max-width:600px){.community-slab img{filter:none}.community-slab{box-shadow:0 0 10px #00dfef18,0 8px 12px #0006}}
+@media(prefers-reduced-motion:reduce){.community-likes,.community-likes svg{transition:none}}

@@ -11,7 +11,7 @@ const selectedIds=data=>Array.isArray(data?.cardIds)?data.cardIds.filter(museumI
 const cardJSON=(snap)=>{
  if(!snap.exists)return null;
  const card=snap.data();
- if(card.status!=='available'||!safeImageURL(card.image)||typeof card.name!=='string'||!card.name.trim())return null;
+ if(!['available','shipping','shipped','delivered'].includes(card.status)||!safeImageURL(card.image)||typeof card.name!=='string'||!card.name.trim())return null;
  return {id:snap.id,name:card.name.trim().slice(0,160),image:card.image,rarity:RARITIES.some(r=>r.name===card.rarity)?card.rarity:'Common'};
 };
 export function museumService(db,{now=()=>Date.now()}={}){
@@ -65,7 +65,7 @@ export function museumService(db,{now=()=>Date.now()}={}){
     const version=nonnegative(prior.data()?.version);
     if(version!==clean.expectedVersion)fail('failed-precondition','Your museum changed in another session. Reload before saving.');
     const cards=await readOwned(tx,uid,clean.cardIds);
-    if(cards.length!==clean.cardIds.length)fail('failed-precondition','Only your currently available cards can be displayed. Refresh your collection.');
+    if(cards.length!==clean.cardIds.length)fail('failed-precondition','Only cards you kept, including shipped cards, can be displayed. Refresh your collection.');
     const updatedAtMs=now(),likeCount=nonnegative(pub.data()?.likeCount),next={title:clean.title,description:clean.description,published:clean.published,cardIds:clean.cardIds,version:version+1,updatedAtMs};
     tx.set(config(uid),next);
     // Omitting sort keys on private drafts keeps orderBy queries public-only
