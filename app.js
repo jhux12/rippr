@@ -230,10 +230,14 @@
   const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const grailImage = image => window.RIPPR_ASSET_URLS?.[image] || image;
   let homepageGrails = [], grailSource = 'default';
-  function grailStatus(message) {
+  function grailStatus(message,retry=false) {
     homepageGrails = [];
-    const text = document.createElement('p'); text.className = 'homepage-grails-status'; text.setAttribute('role','status'); text.textContent = message;
-    grailGrid.replaceChildren(text); grailGrid.setAttribute('aria-busy','false');scheduleGrails();
+    const panel=document.createElement('div');panel.className='brand-state brand-state--quiet';panel.setAttribute('role','status');
+    const image=document.createElement('img');image.src=window.RIPPR_MASCOT_URLS?.hover||'assets/hero/pip-hover.webp';image.alt='';image.width=76;image.height=76;
+    const title=document.createElement('h3');title.textContent=message;
+    const copy=document.createElement('p');copy.textContent=retry?'Please try again to see the featured cards.':'A new lineup is on its way.';panel.append(image,title,copy);
+    if(retry){const button=document.createElement('button');button.type='button';button.className='primary-button';button.textContent='Try again';button.addEventListener('click',()=>{button.disabled=true;button.textContent='Loading…';loadHomepageGrails()});panel.append(button)}
+    grailGrid.replaceChildren(panel);grailGrid.setAttribute('aria-busy','false');scheduleGrails();
   }
   function renderHomepageGrails(saved) {
     const catalog = window.RipprCatalog;
@@ -258,7 +262,7 @@
     try {
       const saved = window.RIPPR_AUTH_OFFLINE ? window.RipprCatalog.defaultHomepageGrails() : await Promise.race([window.RipprFirebase.loadHomepageGrails(),new Promise((_,reject) => setTimeout(() => reject(new Error('Grails timeout')),6000))]);
       renderHomepageGrails(saved);
-    } catch { grailStatus('Grails couldn’t load. Please refresh.'); }
+    } catch { grailStatus('The highlights are taking a moment.',true); }
   }
   grailGrid.addEventListener('click', event => {
     const button = event.target.closest('[data-grail]'); if (!button || !grailGrid.contains(button)) return;

@@ -10,7 +10,7 @@
  const pendingLikes=new Map();
  let generation=0,loading=false,cursor=null,search='',sort='recent',museums=new Map(),lastError=false;
  function empty(title,copy,retry=false){
-  grid.innerHTML=`<div class="community-empty"><img src="${window.RIPPR_MASCOT_URLS?.hover||'assets/mascot/pip-hover.png'}" alt="" width="100" height="100"><h2>${escape(title)}</h2><p>${escape(copy)}</p>${retry?'<button type="button" class="community-outline" data-retry>Try again</button>':'<a class="community-primary" href="museum.html">Create your museum ↗</a>'}</div>`;
+  grid.innerHTML=`<div class="community-empty brand-state"><img src="${window.RIPPR_MASCOT_URLS?.hover||'assets/hero/pip-hover.webp'}" alt="" width="100" height="100"><h2>${escape(title)}</h2><p>${escape(copy)}</p>${retry?'<button type="button" class="community-outline" data-retry>Try again</button>':search?'<button type="button" class="community-outline" data-clear-community>Clear search</button>':'<a class="community-primary" href="museum.html">Create your museum</a>'}</div>`;
  }
  function render(){
   if(!museums.size){empty(search?'No matches on this page.':'Be the first to open your doors.',search?'Try another name, or explore the next page of museums.':'Choose cards from your collection and publish a museum for others to discover.');return}
@@ -38,7 +38,7 @@
  async function load(reset=false){
   if(loading&&!reset)return;
   const ticket=++generation;loading=true;lastError=false;
-  if(reset){cursor=null;museums=new Map();grid.replaceChildren()}
+  if(reset){cursor=null;museums=new Map();grid.innerHTML='<div class="brand-state brand-state--loading"><img src="assets/hero/pip-hover.webp" alt="" width="60" height="60"><p>Opening the gallery…</p></div>'}
   grid.setAttribute('aria-busy','true');more.disabled=true;status.textContent=reset?'Loading museums…':'Exploring more museums…';
   try{
    const result=await window.RipprFirebase.museumAction('browse',{sort,search,cursor});
@@ -60,6 +60,7 @@
  $('#community-sort').addEventListener('change',()=>{sort=$('#community-sort').value;load(true)});
  more.addEventListener('click',()=>load(false));
  grid.addEventListener('click',async event=>{
+  if(event.target.closest('[data-clear-community]')){search='';$('#community-query').value='';load(true);return}
   if(event.target.closest('[data-retry]')){load(true);return}
   const button=event.target.closest('[data-like]');if(!button)return;
   const owner=button.dataset.like,museum=museums.get(owner),actor=window.RIPPR_ACCOUNT?.user?.uid;

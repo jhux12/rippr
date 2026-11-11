@@ -46,6 +46,7 @@ bootstrap = '''(() => {
 
 
 def common(text):
+    text=text.replace('<link rel="stylesheet" href="brand-states.css">','<style>'+(ROOT/'brand-states.css').read_text()+'</style>')
     # Offline design previews deliberately do not contact production Firebase.
     for filename in ['firebase-config.js', 'firebase-client.js', 'account-state.js']:
         text = text.replace('<script src="' + filename + '" defer></script>', '')

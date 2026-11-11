@@ -1,6 +1,14 @@
-# rippr status — account settings and accessibility
+# rippr status — brand feedback states
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest brand polish
+
+- Shared compact navy/cyan feedback styling with the approved optimized Pip artwork for homepage grails, Community and My items/activity.
+- Separate loading, empty and error copy; loading animation respects reduced motion. Empty displays do not invent cards or community activity.
+- Homepage grail failures offer retry; Community and inventory searches offer clear search when empty. Existing collection actions remain in place.
+- Three browser groups cover retries, empty/search actions, artwork decoding and layouts at 320, 390 and 1440 pixels. Included in the regular browser command/CI.
+- Frontend-only. No new backend changes, no new artwork generation, no shipping work or Firebase deployment.
 
 ## Latest frontend batch
 
@@ -23,8 +31,8 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 ## Verification
 
 - **91 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 707 local references.
-- **21 customer-journey groups plus 6 settings/navigation groups** pass at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
+- Build and static HTML reference checks pass: 16 pages / 711 local references.
+- **30 browser groups** pass (21 customer journeys, 6 settings/navigation and 3 branded feedback states) at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 

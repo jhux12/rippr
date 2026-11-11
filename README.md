@@ -382,3 +382,8 @@ Login's **Remember me** sets Firebase local persistence when checked and tab-ses
 Notification switches save preferences but do not send email; the settings page now states that explicitly. Profile required/email fields validate before submitting, failed saves retain typed values and focus readable errors, and phone-number verification focuses the next field and validates code length. These are frontend-only changes.
 
 `npm run test:browser` also runs settings failure/retry/preference and navigation keyboard/dialog cleanup checks at phone and desktop widths. All browser services remain fixtures; no real SMS or account mutation is part of these checks. Shipping admin work and the cumulative Firebase deployment are deferred at the owner's request.
+
+
+## Shared brand feedback states
+
+`brand-states.css` keeps homepage grail, Community and collection/activity empty/loading/error panels compact and consistent with navy/cyan/Pip branding. The approved 13 KB optimized Pip image is reused; no new generated artwork or fabricated activity is added. Loading respects reduced motion. Grail errors have retry, and empty Community/item searches have clear-search actions. Browser checks at 320/390/1440 px are included in `npm run test:browser`. This is frontend-only; the cumulative Firebase deployment remains deferred.
