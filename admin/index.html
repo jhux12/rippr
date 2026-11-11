@@ -88,7 +88,7 @@
                 <div class="editor-inputs">
                   <label for="item-name">Card name</label><input id="item-name" type="text" maxlength="100" required value="First Light" autocomplete="off">
                   <label for="item-rarity">Rarity</label><select id="item-rarity"></select>
-                  <label for="item-value">Value</label><div class="input-unit"><span>$</span><input id="item-value" type="text" inputmode="decimal" value="100.00" aria-label="Card value in USD"></div>
+                  <label for="item-condition">Condition</label><select id="item-condition"><option value="raw">Raw · Near Mint</option><option value="graded">Graded slab</option></select><label for="item-grader">Grading company</label><select id="item-grader" disabled><option>PSA</option><option>CGC</option><option>BGS</option><option>SGC</option><option>TAG</option><option>ACE</option></select><label for="item-grade">Grade</label><input id="item-grade" type="text" inputmode="decimal" placeholder="10" disabled aria-label="Slab grade from 1 to 10"><label for="item-value">Value</label><div class="input-unit"><span>$</span><input id="item-value" type="text" inputmode="decimal" value="100.00" aria-label="Card value in USD"></div>
                   <label for="item-chance">Pull chance</label><div class="input-unit"><input id="item-chance" type="text" inputmode="decimal" value="1" aria-label="Pull chance in percent"><span>%</span></div>
                   <label class="toggle-label" for="item-grail"><input id="item-grail" type="checkbox" role="switch" checked><span class="toggle-track" aria-hidden="true"></span><span>Show in grails</span></label>
                 </div>

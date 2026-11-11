@@ -1,6 +1,15 @@
-# rippr status — collector cards and welcome screens
+# rippr status — condition and slab badges
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest condition badges
+
+- Raw cards use the owner's Near Mint default. Graded slabs show an explicit grader and grade (PSA 10, CGC 9.5, etc.) in a neutral badge separate from rarity.
+- Pack and homepage-grail editors now let the owner mark a slab and enter its actual grading company/grade. Missing or invalid grades cannot publish. No grade is inferred from names or photos, and no certification verification is claimed.
+- Grading is retained when a card is awarded and read from inventory, public museums, and request item snapshots. Card galleries, reveal/results, previews and tracked request items display it.
+- Existing slab catalog/homepage entries must be marked in admin. Existing winnings are not rewritten from the current catalog: old slabs without recorded grading require explicit correction from known source data. Raw legacy entries retain the Near Mint policy.
+- Three domain cases cover validation, legacy compatibility and award/inventory/museum/request persistence. Three browser groups cover mobile/desktop badges and pack/homepage admin saves/validation.
+- Added owner-only Firestore homepage validation tests. The rules emulator download failed, so rule compilation and emulator behavior remain unverified in this environment. No deployment was performed.
 
 ## Latest collector/welcome polish
 
@@ -46,9 +55,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **91 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 715 local references.
-- **37 browser groups** cover 21 customer journeys, 6 settings/navigation, 3 branded feedback states, 4 reveal/results layouts and 3 collector/welcome layouts at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
+- **94 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- Build and static HTML reference checks pass: 16 pages / 722 local references.
+- **40 browser groups** cover the prior 37 journeys/layouts plus 3 condition/admin grading groups at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
@@ -56,7 +65,7 @@ The browser suite intercepts all HTTP and uses fixtures. It does not establish r
 
 ## Deferred deployment
 
-Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new rules, Function names, secrets or payment integration are needed.
+Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed. The Firestore rules update is limited to validating optional homepage grading metadata.
 
 From the owner's authenticated Firebase checkout:
 
@@ -65,7 +74,7 @@ cd ~/rippr &&
 git pull --ff-only origin main &&
 npm ci &&
 npm ci --prefix functions &&
-npx firebase deploy --only functions:ripprAccount --project rippr-2b01c
+npx firebase deploy --only functions:ripprAccount,functions:ripprMuseum,firestore:rules --project rippr-2b01c
 ```
 
 This workspace has not deployed Firebase. If local edits block a pull, inspect/stash them rather than discarding them. Older snapshots remain readable; additional paging and the new ownership lookup require the new Function.

@@ -397,3 +397,12 @@ Notification switches save preferences but do not send email; the settings page 
 ## Collector cards and welcome finishes
 
 `identity-polish.css` aligns profile and Community card framing, typography, badges, values, action states and focus treatment. Profile names scroll by keyboard when long, card values include valid zero values, missing card artwork is labeled explicitly, and missing Community avatars use Pip. Sign-in retains its two modes, referral-before-SMS flow, Remember me option, legacy linking and return destinations. Welcome copy follows the phone/code step; mobile retains an 88px strip and desktop retains real pack/Pip artwork. The optimized welcome WebP and reduced-motion-aware float keep it lightweight and restrained. Three additional fixture browser groups cover the collector and welcome layouts. No backend deployment is added by this frontend batch.
+
+
+## Card condition and slab grades
+
+Raw cards default to **Near Mint**, per the owner policy. In Admin → pack item editor choose **Graded slab**, select the actual grading company, and enter the grade shown on the slab; update the item and save the pack. Homepage grails have the same fields. Supported companies are PSA, CGC, BGS, SGC, TAG and ACE; numeric grades use the supported 1–10 scale (PSA 9.5 and fractional TAG/ACE entries are rejected). Grades are entered by the owner, not inferred or externally verified. Condition badges remain neutral and separate from rarity.
+
+The optional `grading:{company,grade}` metadata is preserved by catalog saves, awards, inventory, museum projections and request snapshots. Legacy raw entries remain compatible. Mark existing slab entries before displaying them as graded. Historical winnings retain their original snapshot and are not automatically backfilled from an edited catalog; old slab records without metadata need explicit, source-backed correction. No destructive data migration runs.
+
+Deploy updated `ripprAccount`, `ripprMuseum`, and Firestore rules for the full metadata flow; no Storage changes. The cumulative command remains in docs/STATUS.md for the deferred release. New rules tests are provided but their emulator download was unavailable here, so emulator/rule compilation is not reported as passed.

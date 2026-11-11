@@ -6,7 +6,7 @@ import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS } from './reward-model.js';
-import { isAdminToken, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem, packImage } from './catalog-model.js';
+import { isAdminToken, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem, packImage, gradingFields } from './catalog-model.js';
 
 const fail = (code, message) => { throw new HttpsError(code, message); };
 const stamp = () => FieldValue.serverTimestamp();
@@ -220,7 +220,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           let address=wallet.address||null;
           if(data.address!==undefined){try{address=cleanAddress(data.address)}catch(error){fail('invalid-argument',error.message)}}
           if(data.requireAddress===true&&!address)fail('invalid-argument','Add a delivery address before submitting.');
-          const shipment={itemIds:ids,items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents}}),address,status:'test-request',version:0,shippingMethod:'standard-tracked',estimateCents:null,quoteStatus:'unavailable',createdAt:stamp(),testOnly:true};
+          const shipment={itemIds:ids,items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents,...gradingFields(c)}}),address,status:'test-request',version:0,shippingMethod:'standard-tracked',estimateCents:null,quoteStatus:'unavailable',createdAt:stamp(),testOnly:true};
           tx.create(account.collection('shipments').doc(operationId),shipment);
           tx.create(db.doc(`shippingQueue/root/requests/${uid}_${operationId}`),{...shipment,id:operationId,customerUid:uid});
           result = { count:ids.length, shipmentId:operationId };

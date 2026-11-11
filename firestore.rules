@@ -33,10 +33,22 @@ service cloud.firestore {
       allow get: if id == 'daily';
       allow list, write: if false;
     }
+    function validGrading(item) {
+      let grading = item.get('grading', null);
+      return grading == null || (grading is map
+        && grading.keys().hasAll(['company', 'grade'])
+        && grading.keys().hasOnly(['company', 'grade'])
+        && grading.company in ['PSA', 'CGC', 'BGS', 'SGC', 'TAG', 'ACE']
+        && grading.grade is string
+        && (grading.company != 'PSA' || grading.grade != '9.5')
+        && (!(grading.company in ['TAG', 'ACE']) || grading.grade.matches('(10|[1-9])'))
+        && grading.grade.matches('(10|[1-9](\\.5)?)'));
+    }
     function validHomepageGrail(item) {
       return item is map
         && item.keys().hasAll(['id', 'name', 'image', 'valueCents'])
-        && item.keys().hasOnly(['id', 'name', 'image', 'valueCents'])
+        && item.keys().hasOnly(['id', 'name', 'image', 'valueCents', 'grading'])
+        && validGrading(item)
         && item.id is string && item.id.size() > 0 && item.id.size() <= 80
         && item.id.matches('[a-zA-Z0-9_-]+')
         && item.name is string && item.name.trim().size() > 0 && item.name.size() <= 160

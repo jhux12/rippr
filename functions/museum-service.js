@@ -1,5 +1,5 @@
 import {HttpsError} from 'firebase-functions/v2/https';
-import {safeImageURL, RARITIES} from './catalog-model.js';
+import {safeImageURL, RARITIES, gradingFields} from './catalog-model.js';
 import {MUSEUM_LIMITS, museumId, cleanMuseumDraft} from './museum-model.js';
 const fail=(code,message)=>{throw new HttpsError(code,message)};
 const safeText=(value,max,fallback='')=>typeof value==='string'&&value.trim()?value.trim().slice(0,max):fallback;
@@ -12,7 +12,7 @@ const cardJSON=(snap)=>{
  if(!snap.exists)return null;
  const card=snap.data();
  if(!['available','shipping','shipped','delivered'].includes(card.status)||!safeImageURL(card.image)||typeof card.name!=='string'||!card.name.trim())return null;
- return {id:snap.id,name:card.name.trim().slice(0,160),image:card.image,rarity:RARITIES.some(r=>r.name===card.rarity)?card.rarity:'Common'};
+ return {...gradingFields(card),id:snap.id,name:card.name.trim().slice(0,160),image:card.image,rarity:RARITIES.some(r=>r.name===card.rarity)?card.rarity:'Common'};
 };
 export function museumService(db,{now=()=>Date.now()}={}){
  const account=uid=>db.doc(`testAccounts/${uid}`),config=uid=>account(uid).collection('museum').doc('config');
@@ -46,7 +46,7 @@ export function museumService(db,{now=()=>Date.now()}={}){
      const {museum}=await readMuseum(snapshot.id,uid);
      if(!museum.cards.length||search&&!`${museum.title} ${museum.description} ${museum.displayName}`.toLocaleLowerCase().includes(search))continue;
      const {uid:owner,title,description,displayName,photoURL,likeCount,likedByMe,updatedAtMs,cards}=museum;
-     museums.push({uid:owner,title,description,displayName,photoURL,likeCount,likedByMe,updatedAtMs,cardCount:cards.length,coverImage:cards[0].image});
+     museums.push({uid:owner,title,description,displayName,photoURL,likeCount,likedByMe,updatedAtMs,cardCount:cards.length,coverImage:cards[0].image,coverGrading:cards[0].grading||null});
     }catch(error){if(error.code!=='not-found')throw error}
    }
    return {museums,nextCursor:result.docs.length===MUSEUM_LIMITS.pageSize?{sort,key:result.docs.at(-1).data()[field]}:null,searchScope:'page'};

@@ -1,3 +1,4 @@
+import { gradingFields } from './catalog-model.js';
 import { initializeApp } from 'firebase/app';
 import {
   initializeAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver,
@@ -182,7 +183,7 @@ export async function savePackContents(packId, pack, expectedVersion) {
   const issues = validateItems(pack.items);
   if (issues.length || typeof pack.enabled !== 'boolean') throw Object.assign(new Error(issues[0] || 'Choose whether the pack is enabled.'), { code: 'catalog/invalid-data' });
   if (!validPackPrice(pack.priceCents ?? null) || (packId === 'icy-rush' && pack.enabled && !Number.isSafeInteger(pack.priceCents))) throw Object.assign(new Error('Enter a pack price from $0 to $1,000,000 with up to two decimal places.'), { code:'catalog/invalid-data' });
-  const items = pack.items.map(({ id, name, image, rarity, valueCents, chanceBps, grail }) => ({ id, name: name.trim(), image, rarity, valueCents, chanceBps, grail }));
+  const items = pack.items.map(item => ({id:item.id,name:item.name.trim(),image:item.image,rarity:item.rarity,valueCents:item.valueCents,chanceBps:item.chanceBps,grail:item.grail,...gradingFields(item)}));
   const target = doc(getDatabase(), 'packContents', packId);
   return runTransaction(getDatabase(), async transaction => {
     const previous = await transaction.get(target);

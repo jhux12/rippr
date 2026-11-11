@@ -254,7 +254,7 @@
       art.append(image);
       const name = document.createElement('span'); name.className = 'homepage-grail-name'; name.textContent = grail.name; name.title = grail.name;
       const value = document.createElement('span'); value.className = 'homepage-grail-value'; value.textContent = grailMoney.format(grail.valueCents / 100);
-      button.append(art,name,value); fragment.append(button);
+      const condition=document.createElement('span');condition.className='condition-badge';condition.textContent=window.RipprCatalog.conditionLabel(grail);button.append(art,name,value,condition); fragment.append(button);
     });
     grailGrid.replaceChildren(fragment); grailGrid.setAttribute('aria-busy','false');grailGrid.scrollLeft=0;requestAnimationFrame(scheduleGrails);
   }
@@ -267,7 +267,7 @@
   grailGrid.addEventListener('click', event => {
     const button = event.target.closest('[data-grail]'); if (!button || !grailGrid.contains(button)) return;
     const grail = homepageGrails[Number(button.dataset.grail)]; if (!grail) return;
-    stopGrailTimer();show(`<div class="modal-kicker">GRAIL PREVIEW</div><h2 id="modal-title">${escapeHTML(grail.name)}</h2><img class="modal-grail" src="${escapeHTML(grailImage(grail.image))}" alt="${escapeHTML(grail.name)}"><p class="homepage-modal-value">${grailMoney.format(grail.valueCents / 100)}</p>${grailSource === 'default' ? '<p>Original concept artwork.</p>' : ''}`, button);
+    stopGrailTimer();show(`<div class="modal-kicker">GRAIL PREVIEW</div><h2 id="modal-title">${escapeHTML(grail.name)}</h2><img class="modal-grail" src="${escapeHTML(grailImage(grail.image))}" alt="${escapeHTML(grail.name)}"><span class="condition-badge">${window.RipprCatalog.conditionLabel(grail)}</span><p class="homepage-modal-value">${grailMoney.format(grail.valueCents / 100)}</p>${grailSource === 'default' ? '<p>Original concept artwork.</p>' : ''}`, button);
     content.querySelector('.modal-grail').addEventListener('error', event => { event.currentTarget.hidden = true; const text = document.createElement('p'); text.textContent = 'Image unavailable.'; event.currentTarget.after(text); }, {once:true});
   });
   loadHomepageGrails();

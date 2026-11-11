@@ -195,3 +195,15 @@ test('museum directory and likes are only accessible through the callable projec
   await assertFails(setDoc(doc(client.firestore(),path+'/likes/member'),{liked:true}));
  }
 });
+
+test('homepage slab metadata is owner-only, validated and backward compatible',async()=>{
+ const target=doc(context(OWNER_PHONE).firestore(),'settings/homepageGrails');
+ await env.withSecurityRulesDisabled(async ctx=>deleteDoc(doc(ctx.firestore(),'settings/homepageGrails')));
+ const item={id:'slab',name:'Graded card',image:'assets/card-placeholder.svg',valueCents:1000};
+ const data=(items,version)=>({items,version,updatedBy:'owner',updatedAt:serverTimestamp()});
+ await assertSucceeds(setDoc(target,data([item],1)));
+ await assertSucceeds(setDoc(target,data([{...item,grading:{company:'PSA',grade:'10'}}],2)));
+ for(const grading of [{company:'PSA',grade:'9.5'},{company:'PSA',grade:'11'},{company:'Unknown',grade:'10'},{company:'PSA',grade:'10',extra:true}])await assertFails(setDoc(target,data([{...item,grading}],3)));
+ await assertSucceeds(setDoc(target,data([{...item,grading:{company:'CGC',grade:'9.5'}}],3)));
+ await assertFails(setDoc(doc(context('+12025550123').firestore(),'settings/homepageGrails'),{...data([item],4),updatedBy:'member'}));
+});

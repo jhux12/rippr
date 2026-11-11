@@ -33,7 +33,7 @@
   function setBusy(value) {
     busy = value;
     $('#workspace').setAttribute('aria-busy', String(value));
-    $('#workspace').querySelectorAll('button,input,select').forEach(control => { control.disabled = value; });
+    $('#workspace').querySelectorAll('button,input,select').forEach(control => { control.disabled = value; });gradingControls();
     refreshSave();
     document.dispatchEvent(new CustomEvent('rippr:adminbusy',{detail:{busy:value}}));
   }
@@ -106,6 +106,7 @@
     selectedItem = item.id; currentImage = item.image;
     $('#item-name').value = item.name;
     $('#item-rarity').value = item.rarity;
+    $('#item-condition').value=item.grading?'graded':'raw';$('#item-grader').value=item.grading?.company||'PSA';$('#item-grade').value=item.grading?.grade||'';gradingControls();
     $('#item-value').value = (item.valueCents / 100).toFixed(2);
     $('#item-chance').value = percent(item.chanceBps);
     $('#item-grail').checked = item.grail;
@@ -115,6 +116,8 @@
     $('#delete-item').hidden = isNew;
     refreshSave();
   }
+  function gradingControls(){const raw=$('#item-condition').value==='raw';$('#item-grader').disabled=busy||raw;$('#item-grade').disabled=busy||raw}
+  $('#item-condition').addEventListener('change',gradingControls);
   function renderPack() {
     clearOddsPreview(); oddsUndo = null; $('#undo-odds').hidden = true;
     $('#selected-pack-title').firstChild.textContent = `${tiers.find(tier => tier.id === selectedPack).name} pack `;
@@ -143,6 +146,7 @@
   function stageItem() {
     if ($('#item-form').hidden) return true;
     const item = { id:selectedItem, name:$('#item-name').value.trim(), image:currentImage, rarity:$('#item-rarity').value, valueCents:model.decimalToUnits($('#item-value').value), chanceBps:model.decimalToUnits($('#item-chance').value), grail:$('#item-grail').checked };
+    if($('#item-condition').value==='graded')item.grading={company:$('#item-grader').value,grade:$('#item-grade').value.trim()};
     const next = newItem ? [...pack().items, item] : pack().items.map(existing => existing.id === selectedItem ? item : existing);
     const issues = model.validateItems(next).filter(issue => issue !== 'Pull chances must total exactly 100%.');
     if (issues.length) { $('#item-error').textContent = issues[0]; $('#item-error').hidden = false; return false; }

@@ -86,6 +86,7 @@ export function validateItems(items) {
     if (!Number.isInteger(item.chanceBps) || item.chanceBps < 0 || item.chanceBps > 10000) issues.push(`${label} needs a chance from 0% to 100%, with up to two decimal places.`);
     if (typeof item.grail !== 'boolean') issues.push(`${label} needs a grail setting.`);
     if (!safeImageURL(item.image)) issues.push(`${label} needs a valid image.`);
+    if (!validGrading(item.grading)) issues.push(`${label} needs a grading company and grade from 1 to 10.`);
   }
   if (items.reduce((total, item) => total + (Number.isInteger(item?.chanceBps) ? item.chanceBps : 0), 0) !== 10000) issues.push('Pull chances must total exactly 100%.');
   return issues;
@@ -120,17 +121,18 @@ export function validateHomepageGrails(config) {
   for (const [index, item] of config.items.entries()) {
     const label = `Grail ${index + 1}`;
     if (!item || typeof item !== 'object' || Array.isArray(item)) { issues.push(`${label} is invalid.`); continue; }
-    if (Object.keys(item).some(key => !['id','name','image','valueCents'].includes(key))) issues.push(`${label} contains unsupported fields.`);
+    if (Object.keys(item).some(key => !['id','name','image','valueCents','grading'].includes(key))) issues.push(`${label} contains unsupported fields.`);
     if (typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(item.id) || ids.has(item.id)) issues.push(`${label} needs a unique ID.`);
     ids.add(item.id);
     if (typeof item.name !== 'string' || !item.name.trim() || item.name.length > 160) issues.push(`${label} needs a name of up to 160 characters.`);
     if (!safeImageURL(item.image)) issues.push(`${label} needs a valid image.`);
+    if (!validGrading(item.grading)) issues.push(`${label} needs a grading company and grade from 1 to 10.`);
     if (!Number.isSafeInteger(item.valueCents) || item.valueCents < 0 || item.valueCents > 100000000) issues.push(`${label} needs a value from $0 to $1,000,000.`);
   }
   return issues;
 }
 export function cleanHomepageGrailsItems(items) {
-  return items.map(({ id, name, image, valueCents }) => ({ id, name:name.trim(), image, valueCents }));
+  return items.map(item => ({id:item.id,name:item.name.trim(),image:item.image,valueCents:item.valueCents,...gradingFields(item)}));
 }
 export function readHomepageGrails(data) {
   const issues = validateHomepageGrails(data);
@@ -139,3 +141,11 @@ export function readHomepageGrails(data) {
   }
   return { items:cleanHomepageGrailsItems(data.items), version:data.version, source:'firebase' };
 }
+
+// Raw cards follow the site's Near Mint policy. Slab labels require explicit metadata.
+export const GRADING_COMPANIES=['PSA','CGC','BGS','SGC','TAG','ACE'];
+export function validGrading(grading){
+ return grading===undefined||grading===null||Boolean(grading&&typeof grading==='object'&&!Array.isArray(grading)&&Object.keys(grading).every(key=>['company','grade'].includes(key))&&GRADING_COMPANIES.includes(grading.company)&&typeof grading.grade==='string'&&/^(?:10|[1-9](?:\.5)?)$/.test(grading.grade)&&!(grading.company==='PSA'&&grading.grade==='9.5')&&(!['TAG','ACE'].includes(grading.company)||!grading.grade.includes('.')));
+}
+export function gradingFields(item){return item?.grading?{grading:{company:item.grading.company,grade:item.grading.grade}}:{}}
+export function conditionLabel(item){return item?.grading?(validGrading(item.grading)?`${item.grading.company} ${item.grading.grade}`:'Grade unavailable'):'Near Mint'}

@@ -17,10 +17,11 @@
  function fail(error){message();message(errorText(error),true)}
  function controls(){
   const blocked=busy||globalBusy||!loaded||!owner();
-  $('#homepage-grails-form').querySelectorAll('input,button').forEach(el=>el.disabled=blocked);
+  $('#homepage-grails-form').querySelectorAll('input,button,select').forEach(el=>el.disabled=blocked);
   $('#reload-homepage-grails').disabled=busy||globalBusy||!owner();
   $('#save-homepage-grails').disabled=blocked||!dirty;
   $('#save-homepage-grails').textContent=busy?'Working…':'Save homepage grails';
+  $('#homepage-grail-rows').querySelectorAll('[data-homepage-id]').forEach(row=>{const item=config.items.find(i=>i.id===row.dataset.homepageId);row.querySelectorAll('[data-homepage-field=company],[data-homepage-field=grade]').forEach(el=>el.disabled=blocked||!item?.grading)});
   $('#add-homepage-grail').disabled=blocked||config.items.length>=6;
   $('#homepage-grails-form').setAttribute('aria-busy',String(busy));
   $('#homepage-grails-dirty').hidden=!dirty;
@@ -32,7 +33,7 @@
  }
  function markDirty(){dirty=true;message();message('',true);controls()}
  function render(){
-  $('#homepage-grail-rows').innerHTML=config.items.map((item,index)=>`<article class="homepage-grail-row" data-homepage-id="${escape(item.id)}"><div class="homepage-grail-image"><img src="${escape(imageURL(item.image)||'/assets/card-placeholder.svg')}" alt="${escape(item.name||'New homepage card')}" ${item.image?'':'hidden'}><span ${item.image?'hidden':''}>Upload a card photo</span></div><div class="homepage-grail-fields"><label for="homepage-name-${escape(item.id)}">Card name<input id="homepage-name-${escape(item.id)}" data-homepage-field="name" type="text" maxlength="160" value="${escape(item.name)}" autocomplete="off" required></label><label for="homepage-value-${escape(item.id)}">Value ($)<input id="homepage-value-${escape(item.id)}" data-homepage-field="value" type="text" inputmode="decimal" value="${escape(values.get(item.id)??(Number.isInteger(item.valueCents)?(item.valueCents/100).toFixed(2):''))}" autocomplete="off" required></label><div class="homepage-grail-row-actions"><button type="button" class="button secondary" data-homepage-upload="${escape(item.id)}">Upload photo</button><div class="homepage-grail-order"><button type="button" class="button secondary" data-homepage-move="up" data-id="${escape(item.id)}" aria-label="Move card ${index+1} up">↑</button><button type="button" class="button secondary" data-homepage-move="down" data-id="${escape(item.id)}" aria-label="Move card ${index+1} down">↓</button><button type="button" class="button secondary homepage-grail-remove" data-homepage-remove="${escape(item.id)}" aria-label="Remove card ${index+1}">Remove</button></div></div></div></article>`).join('');
+  $('#homepage-grail-rows').innerHTML=config.items.map((item,index)=>`<article class="homepage-grail-row" data-homepage-id="${escape(item.id)}"><div class="homepage-grail-image"><img src="${escape(imageURL(item.image)||'/assets/card-placeholder.svg')}" alt="${escape(item.name||'New homepage card')}" ${item.image?'':'hidden'}><span ${item.image?'hidden':''}>Upload a card photo</span></div><div class="homepage-grail-fields"><label for="homepage-name-${escape(item.id)}">Card name<input id="homepage-name-${escape(item.id)}" data-homepage-field="name" type="text" maxlength="160" value="${escape(item.name)}" autocomplete="off" required></label><label for="homepage-value-${escape(item.id)}">Value ($)<input id="homepage-value-${escape(item.id)}" data-homepage-field="value" type="text" inputmode="decimal" value="${escape(values.get(item.id)??(Number.isInteger(item.valueCents)?(item.valueCents/100).toFixed(2):''))}" autocomplete="off" required></label><label>Condition<select data-homepage-field="condition"><option value="raw" ${!item.grading?'selected':''}>Raw · Near Mint</option><option value="graded" ${item.grading?'selected':''}>Graded slab</option></select></label><label>Grading company<select data-homepage-field="company" ${!item.grading?'disabled':''}>${model.GRADING_COMPANIES.map(company=>`<option ${item.grading?.company===company?'selected':''}>${company}</option>`).join('')}</select></label><label>Grade<input data-homepage-field="grade" type="text" inputmode="decimal" maxlength="4" placeholder="10" value="${escape(item.grading?.grade||'')}" ${!item.grading?'disabled':''}></label><div class="homepage-grail-row-actions"><button type="button" class="button secondary" data-homepage-upload="${escape(item.id)}">Upload photo</button><div class="homepage-grail-order"><button type="button" class="button secondary" data-homepage-move="up" data-id="${escape(item.id)}" aria-label="Move card ${index+1} up">↑</button><button type="button" class="button secondary" data-homepage-move="down" data-id="${escape(item.id)}" aria-label="Move card ${index+1} down">↓</button><button type="button" class="button secondary homepage-grail-remove" data-homepage-remove="${escape(item.id)}" aria-label="Remove card ${index+1}">Remove</button></div></div></div></article>`).join('');
   $('#homepage-grails-empty').hidden=config.items.length>0;
   controls();
  }
@@ -57,6 +58,8 @@
   const row=event.target.closest('[data-homepage-id]'),field=event.target.dataset.homepageField;
   const item=config.items.find(item=>item.id===row?.dataset.homepageId);if(!item||!field)return;
   if(field==='name')item.name=event.target.value;
+  else if(field==='condition'){if(event.target.value==='graded')item.grading={company:'PSA',grade:''};else delete item.grading;render()}
+  else if(field==='company'||field==='grade'){if(item.grading)item.grading[field]=event.target.value}
   else{values.set(item.id,event.target.value);item.valueCents=model.decimalToUnits(event.target.value)}
   markDirty();
  });

@@ -57,3 +57,7 @@ Legal review and eligibility, Stripe/payment setup, real deposits, real-money le
 2. **Browser fixtures:** actual page scripts with isolated account data; no live account mutation.
 3. **Build smoke checks:** local output links/assets, not external destinations or provider integrations.
 4. **Emulator / live verification:** recorded separately. Rules emulator and deployed backend checks must not be reported as passed unless actually run.
+
+## Condition metadata follow-through
+
+Condition badges and admin grading fields are implemented. Raw entries default to Near Mint; slabs need explicit company/grade. New winnings retain their grading snapshot. Existing slab catalog entries need owner annotation; historical wins without recorded grades are not automatically reclassified. Queue the updated ripprAccount/ripprMuseum Functions and Firestore homepage rules with the deferred release. Local rules emulator validation could not run because the emulator download was unavailable.
