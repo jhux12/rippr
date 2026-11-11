@@ -1,6 +1,13 @@
-# rippr status — import rarities and site-card picker
+# rippr status — prices and sorting in import search
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest prices and sorting before import
+
+- TCG import search tiles display USD market prices or finish ranges before selection. Low/high value sorting uses the lowest price in each range; missing/failed prices sort last.
+- Search pages accumulate matches; Load all matching cards ranks the entire query once loaded. The UI distinguishes loaded matches from full-query results, limits display to 24 cards at a time and explicitly stops at 1,000 matches with a refine-search message.
+- Four concurrent price requests, progress, stop, retry and HTTP 429 handling keep requests bounded. Source price summaries do not write to the library or packs; import previews still fetch current values and retain site rarity controls. Selections survive sorts/pages and clear after saving or sign-out.
+- Two domain cases and three mobile/desktop browser groups cover ranges/sorting, cross-page late expensive cards, missing prices, retry, stop/rate limit, selection, bounded concurrency and stale-response isolation. No new rules, Function, index or secret. Live TCGdex access remains unverified here.
 
 ## Latest library-first imports and pack selection
 
@@ -80,9 +87,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **111 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- **113 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 726 local references.
-- **50 browser groups** cover the prior 47 journeys/layouts plus the in-pack site-card picker at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **53 browser groups** cover the prior 50 journeys/layouts plus priced import search and cross-page sorting at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 

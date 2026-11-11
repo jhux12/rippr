@@ -29,6 +29,18 @@ export function importPriceQuote(quotes) {
   if(normal) return normal;
   return quotes.length && new Set(quotes.map(q=>q.finish)).size === 1 && new Set(quotes.map(q=>q.valueCents)).size === 1 ? quotes[0] : null;
 }
+export function providerPriceRange(card) {
+  const values=(card.quotes||[]).map(q=>q.valueCents).filter(v=>Number.isSafeInteger(v)&&v>0);
+  return values.length?{minCents:Math.min(...values),maxCents:Math.max(...values),finishes:new Set(card.quotes.map(q=>q.finish)).size}:null;
+}
+export function sortProviderMatches(cards,sort='source') {
+  if(!['source','name','value-low','value-high'].includes(sort))throw new Error('Choose a valid search sort order.');
+  if(sort==='source')return [...cards];
+  return [...cards].sort((a,b)=>{
+    if(sort!=='name'){const left=providerPriceRange(a)?.minCents??null,right=providerPriceRange(b)?.minCents??null;const compared=(left===null)-(right===null)||(sort==='value-low'?(left??0)-(right??0):(right??0)-(left??0));if(compared)return compared}
+    return a.name.localeCompare(b.name,'en')||a.id.localeCompare(b.id,'en');
+  });
+}
 function providerId(id) { if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,45}$/.test(id)) throw new Error('Invalid TCGdex card or set ID.'); return id; }
 export function tcgdexImage(base, quality = 'high') {
   if (typeof base !== 'string') return '';
@@ -46,10 +58,10 @@ export function createTCGdex(fetcher = (...args) => fetch(...args)) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(),15000);
     try {
       const response = await fetcher(ROOT + path, { signal:controller.signal, credentials:'omit', referrerPolicy:'no-referrer', ...(fresh?{cache:'no-store'}:{}) });
-      if (!response.ok) throw new Error(`TCGdex returned ${response.status}. Try again later or use CSV.`);
+      if (!response.ok) throw Object.assign(new Error(`TCGdex returned ${response.status}. Try again later or use CSV.`),{status:response.status});
       const text = await response.text(); if (text.length > 2 * 1024 * 1024) throw new Error('TCGdex returned too much data. Refine the search.');
       const data = JSON.parse(text); if (cache.size >= 80) cache.delete(cache.keys().next().value); cache.set(path, data); return structuredClone(data);
-    } catch (error) { throw new Error(error.name === 'AbortError' ? 'TCGdex timed out. Try again or use CSV.' : (error.message || 'Could not reach TCGdex. Try again or use CSV.')); }
+    } catch (error) { throw Object.assign(new Error(error.name === 'AbortError' ? 'TCGdex timed out. Try again or use CSV.' : (error.message || 'Could not reach TCGdex. Try again or use CSV.')),{status:error.status}); }
     finally { clearTimeout(timer); }
   }
   return {

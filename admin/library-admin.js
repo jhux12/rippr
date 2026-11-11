@@ -9,7 +9,8 @@
   const owner = () => catalog.isAdminUser(client.currentUser());
   const selected = new Map(), providerSelected = new Map();
   let rows = [], cursor = null, loaded = false, busy = false, generation = 0, tab = 'saved';
-  let pending = null, editing = null, results = [], page = 1, providerQuery = null, loadedSearch = '';
+  let pending = null, editing = null, results = [], providerPage = 0, viewPage = 0, providerMore = false, providerLoading = false, providerStop = false, providerQuery = null, loadedSearch = '';
+  const PROVIDER_LIMIT = 1000;
   const current = (ticket,uid) => ticket === generation && owner() && client.currentUser()?.uid === uid;
   function message(text = '', error = false) {
     const el = $(error?'#library-error':'#library-status'); el.textContent = text; el.hidden = !text;
@@ -23,6 +24,9 @@
     $('#library-view').querySelectorAll('button,input,select').forEach(el=>{el.disabled=Boolean(blocked)});
     $('#library-commit').disabled = blocked || !pending?.changes.length || Boolean(pending?.errors.length);
     $('#library-provider-preview').disabled = blocked || !providerSelected.size;
+    $('#library-provider-clear').disabled = blocked || !providerSelected.size;
+    $('#library-provider-stop').disabled = !providerLoading || !owner();
+    $('#library-provider-load-all').disabled = blocked || !providerMore || results.length >= PROVIDER_LIMIT;
     for (const id of ['library-export','library-clear','library-market-prices']) $('#'+id).disabled = blocked || !selected.size;
     $('#library-select-page').disabled = blocked || !rows.length;
     $('#library-edit-company').disabled = blocked || $('#library-edit-condition').value !== 'graded';
@@ -93,13 +97,49 @@
     const url = URL.createObjectURL(new Blob(['\uFEFF'+body],{type:'text/csv;charset=utf-8'})), a = document.createElement('a');
     a.href = url; a.download = filename; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
-  async function searchProvider(active) {
-    const found = await provider.search({...providerQuery,page});
-    if (!active()) return;
-    results = found;
-    $('#library-provider-results').innerHTML = found.map(c=>`<label class="library-provider-card"><input type="checkbox" data-provider-select="${escape(c.id)}" ${providerSelected.has(c.id)?'checked':''}><img src="${escape(c.image || '/assets/card-placeholder.svg')}" alt="" loading="lazy"><strong>${escape(c.name)}</strong><small>${escape(c.id)}</small></label>`).join('') || '<p>No matching cards. Try another name or set.</p>';
-    $('#library-provider-prev').hidden = page === 1; $('#library-provider-next').hidden = found.length < 24;
-    message(`TCGdex page ${page} · ${providerSelected.size} selected. Import previews skip cards already in your library.`);
+  function renderProvider() {
+    const sorted=model.sortProviderMatches(results,$('#library-provider-sort').value),visible=sorted.slice(viewPage*24,(viewPage+1)*24);
+    $('#library-provider-results').innerHTML=visible.map(c=>{
+      const range=model.providerPriceRange(c),loading=c.priceState==='pending';
+      const price=range?range.minCents===range.maxCents?money.format(range.minCents/100):`${money.format(range.minCents/100)}–${money.format(range.maxCents/100)}`:loading?(providerLoading?'Loading price…':'Price not loaded'):c.priceState==='error'?'Price unavailable':'No listed price';
+      return `<label class="library-provider-card"><input type="checkbox" data-provider-select="${escape(c.id)}" ${providerSelected.has(c.id)?'checked':''}><img src="${escape(c.image || '/assets/card-placeholder.svg')}" alt="" loading="lazy"><strong>${escape(c.name)}</strong><small>${escape(c.id)}</small>${c.setName?`<small>${escape(c.setName)}${c.number?' · #'+escape(c.number):''}</small>`:''}<b class="provider-card-price">${escape(price)}</b>${range?`<small>TCGplayer · USD${range.finishes>1?' · multiple finishes':''}${c.quotes.some(q=>q.stale)?' · older feed':''}</small>`:''}${c.priceState==='error'?`<small class="provider-price-error">${escape(c.priceError)}</small>`:''}</label>`;
+    }).join('')||`<p>${providerLoading?'Loading matching cards…':providerQuery?'No matching cards. Try another name or set.':'Search to browse cards and prices.'}</p>`;
+    $('#library-provider-prev').hidden=viewPage===0;
+    $('#library-provider-next').hidden=(viewPage+1)*24>=results.length&&(!providerMore||results.length>=PROVIDER_LIMIT);
+    $('#library-provider-load-all').hidden=!providerMore;
+    $('#library-provider-stop').hidden=!providerLoading;
+    $('#library-provider-retry-prices').hidden=!results.some(c=>c.priceState!=='ready'||!c.quotes.length);
+    renderProviderStatus();controls();
+  }
+  function renderProviderStatus(){
+    if(!providerQuery){$('#library-provider-status').textContent='Search to load card prices.';return}
+    const missing=results.filter(c=>c.priceState!=='pending'&&!model.providerPriceRange(c)).length,priced=results.filter(c=>c.priceState!=='pending').length;
+    $('#library-provider-status').textContent=`${results.length} matches loaded · ${priced} price lookups complete${missing?` · ${missing} unavailable`:''}. ${providerLoading?'Loading prices…':providerMore?results.length>=PROVIDER_LIMIT?'Result limit reached; refine the search. Sorting covers loaded matches.':'More matches available. Load all to sort the entire search.':'All matching cards loaded.'} ${providerSelected.size} selected.`;
+  }
+  async function searchProvider(active,{reset=false,all=false,retry=false}={}) {
+    if(reset){results=[];providerPage=0;viewPage=0;providerMore=true}
+    providerLoading=true;providerStop=false;renderProvider();
+    try{
+      do{
+        if(!retry&&providerMore&&results.length<PROVIDER_LIMIT){
+          const next=providerPage+1,found=await provider.search({...providerQuery,page:next});if(!active())return;
+          const known=new Set(results.map(c=>c.id)),fresh=found.filter(c=>!known.has(c.id));
+          if(found.length&&!fresh.length)throw new Error('TCGdex repeated a results page. Refine your search and try again.');
+          results.push(...fresh.slice(0,PROVIDER_LIMIT-results.length).map(c=>({...c,quotes:[],priceState:'pending'})));
+          providerPage=next;providerMore=found.length===24;renderProvider();
+        }
+        const waiting=results.filter(c=>c.priceState==='pending'||(retry&&(c.priceState==='error'||!c.quotes.length)));
+        for(let i=0;i<waiting.length&&!providerStop;i+=4){
+          const updates=await Promise.all(waiting.slice(i,i+4).map(async card=>{
+            try{const detail=await provider.priceDetails(card.id);return{id:card.id,quotes:detail.quotes,setName:detail.card.setName,number:detail.card.number,priceState:'ready',priceError:''}}
+            catch(error){return{id:card.id,quotes:[],priceState:'error',priceError:error.message,status:error.status}}
+          }));if(!active())return;
+          for(const update of updates){Object.assign(results.find(c=>c.id===update.id),update);if(update.status===429){providerStop=true;message('TCGdex rate-limited price requests. Loading stopped; wait before retrying.',true)}}
+          renderProvider();
+        }
+        if(!all||providerStop||!providerMore||results.length>=PROVIDER_LIMIT)break;
+      }while(active());
+    }finally{if(active()){providerLoading=false;renderProvider()}}
   }
   function edit(card) {
     editing = structuredClone(card);
@@ -192,13 +232,19 @@
     await preview(model.csvCandidates(text),$('#library-csv-mode').value,active);
   }));
   $('#library-provider-form').addEventListener('submit',event=>{event.preventDefault();void run(async active=>{
-    providerQuery={name:$('#library-provider-name').value,setId:$('#library-provider-set').value};page=1;await searchProvider(active);
+    providerQuery={name:$('#library-provider-name').value,setId:$('#library-provider-set').value};await searchProvider(active,{reset:true});
   })});
-  for(const [id,delta]of [['prev',-1],['next',1]])$('#library-provider-'+id).addEventListener('click',()=>void run(async active=>{page+=delta;try{await searchProvider(active)}catch(error){page-=delta;throw error}}));
+  $('#library-provider-prev').addEventListener('click',()=>{if(!busy&&owner()){viewPage=Math.max(0,viewPage-1);renderProvider()}});
+  $('#library-provider-next').addEventListener('click',()=>void run(async active=>{if((viewPage+1)*24>=results.length&&providerMore)await searchProvider(active);if(active()&&(viewPage+1)*24<results.length){viewPage++;renderProvider()}}));
+  $('#library-provider-sort').addEventListener('change',()=>{if(!busy&&owner()){viewPage=0;renderProvider()}});
+  $('#library-provider-load-all').addEventListener('click',()=>void run(active=>searchProvider(active,{all:true})));
+  $('#library-provider-retry-prices').addEventListener('click',()=>void run(active=>searchProvider(active,{retry:true})));
+  $('#library-provider-stop').addEventListener('click',()=>{providerStop=true;$('#library-provider-status').textContent='Stopping after the current price requests…'});
+  $('#library-provider-clear').addEventListener('click',()=>{if(!busy&&owner()){providerSelected.clear();renderProvider()}});
   $('#library-provider-results').addEventListener('change',event=>{
     const id=event.target.dataset.providerSelect;if(!id||busy||!owner())return;
     if(event.target.checked){if(providerSelected.size>=50){event.target.checked=false;message('Preview up to 50 Pokémon imports at a time.',true);return}providerSelected.set(id,results.find(c=>c.id===id))}else providerSelected.delete(id);
-    message(`${providerSelected.size} TCGdex cards selected.`);controls();
+    message(`${providerSelected.size} TCGdex cards selected.`);renderProviderStatus();controls();
   });
   $('#library-provider-preview').addEventListener('click',()=>void run(async active=>{
     if(!await mayReplacePreview()||!active())return;
@@ -242,11 +288,11 @@
       pending.added=pending.changes.filter(c=>!c.version).length;pending.updated=pending.changes.length-pending.added;
       renderPreview();renderRows();message(`${savedCount} saved. ${pending.changes.length} remaining.`);
     }
-    pending=null;providerSelected.clear();renderPreview();await load(active);if(active())message(`${savedCount} ${savedCount===1?'card':'cards'} saved to the library. Pack contents and odds are unchanged.`);
+    pending=null;providerSelected.clear();renderPreview();renderProvider();await load(active);if(active())message(`${savedCount} ${savedCount===1?'card':'cards'} saved to the library. Pack contents and odds are unchanged.`);
   }));
   function reset() {
-    generation++;busy=false;loaded=false;rows=[];cursor=null;pending=null;editing=null;results=[];providerQuery=null;page=1;
-    selected.clear();providerSelected.clear();$('#library-csv-file').value='';$('#library-editor-form').reset();$('#library-search').value='';$('#library-provider-name').value='';$('#library-provider-set').value='';$('#library-provider-results').replaceChildren();$('#library-provider-prev').hidden=true;$('#library-provider-next').hidden=true;
+    generation++;busy=false;loaded=false;rows=[];cursor=null;pending=null;editing=null;results=[];providerQuery=null;providerPage=0;viewPage=0;providerMore=false;providerLoading=false;providerStop=false;
+    selected.clear();providerSelected.clear();$('#library-provider-sort').value='source';$('#library-provider-status').textContent='';$('#library-provider-load-all').hidden=true;$('#library-provider-stop').hidden=true;$('#library-provider-retry-prices').hidden=true;$('#library-csv-file').value='';$('#library-editor-form').reset();$('#library-search').value='';$('#library-provider-name').value='';$('#library-provider-set').value='';$('#library-provider-results').replaceChildren();$('#library-provider-prev').hidden=true;$('#library-provider-next').hidden=true;
     if($('#library-editor').open)$('#library-editor').close();message();message('',true);renderRows();renderPreview();
   }
   document.addEventListener('rippr:adminview',event=>{if(event.detail.name==='library'&&!loaded)void run(active=>load(active))});

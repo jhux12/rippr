@@ -19,6 +19,8 @@ R-13 — **Listed TCGplayer market values** is complete in code following the ow
 
 R-14 — **Library-first imports and pack card picker** is complete in code: per-card/bulk site rarity during TCG import, library-only import saves, and an in-pack picker with full-library loading, value/rarity/condition/search filters, date/value/name sorting, selection persistence, version review and 0%-odds draft additions. Added dates are immutable for new cards; unknown historical dates remain unknown. Requires updated Firestore rules; no new Function/index/secret. Rules emulator remains network-blocked.
 
+R-15 — **Prices and sorting before import** is complete in code: TCGplayer prices/ranges on search tiles, low/high sorting across loaded matches, load-all for full-query ranking, 24-card display pages, bounded price requests, progress/stop/retry, rate-limit handling and persistent selection. Ranges sort by their lowest listed value; missing prices sort last. The 1,000-match guard asks for a narrower search explicitly. No new backend deployment.
+
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
 | R-01 | Consistent fulfillment labels in My items | Complete in code; see deployment note | Request, review, packing, shipped and delivered reflect the saved shipment. Older items without a shipment still render. No sell/ship controls for fulfillment items. Mobile and desktop checked. |

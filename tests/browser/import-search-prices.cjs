@@ -1,0 +1,31 @@
+const {chromium}=require('playwright'),assert=require('node:assert/strict');
+const {setup}=require('./library-admin.cjs');
+(async()=>{const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});try{
+  for(const width of [320,390,1440]){
+    const{p,errors}=await setup(browser,width);let failPrice=true,mode='normal',inFlight=0,maximum=0,releases=[];
+    const rows=Array.from({length:30},(_,i)=>({id:'test-'+i,name:'Test card '+i,localId:String(i),image:'https://assets.tcgdex.net/en/swsh/swsh7/215'}));
+    await p.route('https://api.tcgdex.net/**',async route=>{
+      const u=new URL(route.request().url());if(u.pathname.endsWith('/cards')){const offset=(Number(u.searchParams.get('pagination:page'))-1)*24;return route.fulfill({json:rows.slice(offset,offset+24)})}
+      const i=Number(u.pathname.split('/').at(-1).slice(5)),card=rows[i];inFlight++;maximum=Math.max(maximum,inFlight);
+      if(mode==='late')await new Promise(resolve=>{releases.push(resolve)});else await new Promise(resolve=>setTimeout(resolve,mode==='stop'?200:15));inFlight--;
+      if(mode==='rate')return route.fulfill({status:429,body:'rate limited'});
+      if(i===3&&failPrice)return route.fulfill({status:503,body:'unavailable'});
+      const prices=i===2?{}:i===4?{holofoil:{marketPrice:20},reverse:{marketPrice:2}}:{normal:{marketPrice:i===0?0.25:i>=24?1000+i:i+1}};
+      return route.fulfill({json:{...card,set:{name:'Price test set'},rarity:'Rare',pricing:{tcgplayer:{unit:'USD',updated:new Date().toISOString(),...prices}}}});
+    });
+    await p.locator('[data-library-tab=pokemon]').click();await p.locator('#library-provider-name').fill('Test');await p.locator('#library-provider-form button').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy);
+    assert.equal(await p.locator('[data-provider-select]').count(),24);assert((await p.locator('[data-provider-select="test-0"]').locator('..').textContent()).includes('$0.25'));assert((await p.locator('[data-provider-select="test-4"]').locator('..').textContent()).includes('$2.00–$20.00'));assert((await p.locator('[data-provider-select="test-2"]').locator('..').textContent()).includes('No listed price'));assert((await p.locator('[data-provider-select="test-3"]').locator('..').textContent()).includes('Price unavailable'));
+    await p.locator('#library-provider-sort').selectOption('value-high');assert.equal(await p.locator('[data-provider-select]').first().getAttribute('data-provider-select'),'test-23');assert((await p.locator('#library-provider-status').textContent()).includes('Load all'));
+    await p.locator('#library-provider-load-all').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy);assert.equal(await p.locator('[data-provider-select]').first().getAttribute('data-provider-select'),'test-29');assert((await p.locator('#library-provider-status').textContent()).includes('All matching cards loaded'));await p.locator('[data-provider-select="test-29"]').check();
+    await p.locator('#library-provider-sort').selectOption('value-low');assert.equal(await p.locator('[data-provider-select]').first().getAttribute('data-provider-select'),'test-0');await p.locator('[data-provider-select="test-0"]').check();await p.locator('#library-provider-next').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy);assert.deepEqual(await p.locator('[data-provider-select]').evaluateAll(els=>els.slice(-2).map(el=>el.dataset.providerSelect)),['test-2','test-3']);
+    failPrice=false;await p.locator('#library-provider-retry-prices').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy);await p.locator('#library-provider-prev').click();assert(await p.locator('[data-provider-select="test-0"]').isChecked());assert((await p.locator('#library-provider-status').textContent()).includes('2 selected'));assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert(maximum<=4);
+    if(process.env.RIPPR_LIBRARY_SCREENSHOTS){await p.locator('#library-provider-status').scrollIntoViewIfNeeded();await p.screenshot({path:'/tmp/rippr-import-search-'+width+'.png'})}
+    await p.locator('#library-provider-preview').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy);await p.locator('#library-import-rarity').selectOption('Rare');await p.locator('#library-import-rarity-apply').click();await p.locator('#library-commit').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy&&libraryDB['tdx-en-test-0']);assert.equal(await p.evaluate(()=>libraryDB['tdx-en-test-0'].valueCents),25);assert.equal(await p.evaluate(()=>libraryDB['tdx-en-test-29'].valueCents),102900);assert.equal(await p.evaluate(()=>RipprPackAdmin.snapshot().items.length),5);assert.equal(await p.locator('[data-provider-select]:checked').count(),0);
+    mode='stop';await p.locator('#library-provider-name').fill('Stop');await p.locator('#library-provider-form button').click();await p.locator('#library-provider-stop').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy);assert((await p.locator('#library-provider-status').textContent()).includes('More matches available'));
+    mode='rate';await p.locator('#library-provider-retry-prices').click();await p.waitForFunction(()=>!RipprLibraryAdmin.busy);assert((await p.locator('#library-error').textContent()).includes('rate-limited'));
+    mode='late';await p.locator('#library-provider-retry-prices').click();await p.waitForFunction(()=>document.querySelector('#library-provider-stop').hidden===false);await p.waitForTimeout(30);await p.evaluate(()=>{owner=null;document.dispatchEvent(new CustomEvent('rippr:authchange'))});
+    // A batch has four independent requests; release every held response.
+    for(const release of releases)release();await p.waitForTimeout(30);assert.equal(await p.locator('[data-provider-select]').count(),0);assert.equal(await p.locator('#library-provider-status').textContent(),'');assert.deepEqual(errors,[]);
+    console.log(`PASS import search ${width}px: visible prices/ranges, full-query value ordering, missing prices last, retry, selection persistence, library-only imports, bounded concurrency, stop/rate limit and sign-out isolation`);await p.close();
+  }
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanLibraryCard, validateLibraryCard, csvCandidates, parseCSV, importPreview, libraryCSV, addLibraryToPack, libraryCardReady, referenceURLValid, browseLibraryCards, libraryAddedTime } from '../src/library-model.js';
-import { cardFromTCGdex, createTCGdex, tcgdexImage, tcgplayerQuotes, matchingPriceQuote, importPriceQuote } from '../src/library-provider.js';
+import { cardFromTCGdex, createTCGdex, tcgdexImage, tcgplayerQuotes, matchingPriceQuote, importPriceQuote, providerPriceRange, sortProviderMatches } from '../src/library-provider.js';
 import { defaultPack } from '../src/catalog-model.js';
 
 const raw = (extra = {}) => ({...cleanLibraryCard({id:'tdx-en-swsh7-215',name:'Umbreon VMAX',image:'https://assets.tcgdex.net/en/swsh/swsh7/215/high.webp',source:'tcgdex',sourceId:'swsh7-215',setName:'Evolving Skies',number:'215'}),...extra});
@@ -126,4 +126,15 @@ test('value sorts keep unpriced records last, preserve zero and use stable name/
   assert.deepEqual(browseLibraryCards(cards,{sort:'value-low'}).map(c=>c.id),['zero','a','b','high','unknown']);
   assert.deepEqual(browseLibraryCards(cards,{sort:'value-high'}).map(c=>c.id),['high','a','b','zero','unknown']);
   for(const options of [{minValueCents:300,maxValueCents:200},{minValueCents:NaN},{maxValueCents:100000001},{sort:'fake'},{condition:'fake'}])assert.throws(()=>browseLibraryCards(cards,options));
+});
+test('import search prices expose finish ranges and sort by the lowest listed value without fabricating missing prices',()=>{
+  const cards=[{id:'unpriced',name:'A missing',quotes:[]},{id:'high',name:'Expensive',quotes:[{finish:'Holofoil',valueCents:10000}]},{id:'range',name:'Mixed finishes',quotes:[{finish:'Holofoil',valueCents:2000},{finish:'Reverse holo',valueCents:200}]},{id:'low',name:'Low',quotes:[{finish:'Standard',valueCents:25}]}];
+  assert.deepEqual(providerPriceRange(cards[2]),{minCents:200,maxCents:2000,finishes:2});assert.equal(providerPriceRange(cards[0]),null);
+  assert.deepEqual(sortProviderMatches(cards,'value-high').map(c=>c.id),['high','range','low','unpriced']);
+  assert.deepEqual(sortProviderMatches(cards,'value-low').map(c=>c.id),['low','range','high','unpriced']);
+  assert.deepEqual(sortProviderMatches(cards,'source').map(c=>c.id),cards.map(c=>c.id));assert.equal(cards[0].id,'unpriced');
+  assert.throws(()=>sortProviderMatches(cards,'fake'));
+});
+test('rate-limit errors retain HTTP status so search can stop additional price requests',async()=>{
+  const api=createTCGdex(async()=>({ok:false,status:429}));await assert.rejects(api.priceDetails('base1-4'),error=>error.status===429);
 });

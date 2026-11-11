@@ -15,6 +15,16 @@ English TCGdex imports use stable IDs such as `tdx-en-swsh7-215`. Search is pagi
 
 The adapter follows the official [TCGdex JavaScript SDK](https://github.com/tcgdex/javascript-sdk) query and card schemas. The [database README](https://github.com/tcgdex/cards-database) and [MIT license](https://github.com/tcgdex/cards-database/blob/master/LICENSE) were accessible during implementation. Direct `api.tcgdex.net` access is denied by this workspace's network policy, so current live search availability, CORS, artwork coverage and image delivery have **not** been verified here. Browser tests use intercepted documented responses. If a deployed browser cannot reach TCGdex, the page shows an error and CSV remains available.
 
+## Prices and value sorting in import search
+
+Search result tiles show listed TCGplayer USD market prices before import. A card with several finish prices shows a min/max range, and value sorting uses the range's **lowest listed value**. Missing or failed prices have explicit labels and sort last in either value direction. Name/search-order sorts remain available.
+
+The first search loads up to 24 matches and fetches price details with at most four concurrent requests. **Value: low to high** and **Value: high to low** sort all loaded matches. If more matches exist, the status says so; click **Load all matching cards** to rank the entire search rather than only the first API page. Client-side pages display 24 tiles at a time. Selection survives sorting and page changes; Clear selected imports resets it. Source prices are fetched again in the import preview before saving.
+
+Price loading shows progress, supports Stop loading (after current requests), and can retry unloaded, failed or missing prices. A rate-limit response stops further requests rather than automatically retrying. Searches load at most 1,000 matches; at that limit the page explicitly asks for a narrower name/set query and does not claim full-search ordering. Normal browsing can load subsequent matches with Next results without loading every match at once. Cached search summaries do not substitute for price refreshes.
+
+This addition needs no new Firestore rules, Function, API key or index beyond the existing library setup. Live provider access remains unverified in this workspace; documented response fixtures cover prices, ranges, pagination, sorting, retries, rate limits, selections and sign-out isolation.
+
 ## TCGplayer market values
 
 The owner approved using **listed TCGplayer USD market values through TCGdex**. The raw-card Near Mint badge remains the owner's condition policy; the feed is not represented as verified Near Mint-only pricing. Graded slabs keep separate owner-entered values.
