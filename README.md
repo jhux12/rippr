@@ -375,3 +375,10 @@ Museum selections now accept kept cards in available, shipping, shipped or deliv
 `auth.html?mode=signup` shows account creation with an optional referral code before sending the phone code. Supplied codes are checked through the read-only public `ripprAccount` validateReferral action before SMS; binding remains authenticated, versioned and subject to the original referral restrictions. The entered code is fixed for verification; failures can retry that code or continue without it. Login (`mode=login`) never shows/applies referral codes. Both screens link to each other and preserve the same-site return destination.
 
 Login's **Remember me** sets Firebase local persistence when checked and tab-session persistence when unchecked, before phone sign-in or legacy email sign-in. Sign-up keeps persistent sign-in by default. Existing signed-in accounts and verified phone linking are preserved. Deploy the updated `functions:ripprAccount` to enable the pre-signup referral check; no rules change is required.
+
+
+## Account settings feedback and keyboard checks
+
+Notification switches save preferences but do not send email; the settings page now states that explicitly. Profile required/email fields validate before submitting, failed saves retain typed values and focus readable errors, and phone-number verification focuses the next field and validates code length. These are frontend-only changes.
+
+`npm run test:browser` also runs settings failure/retry/preference and navigation keyboard/dialog cleanup checks at phone and desktop widths. All browser services remain fixtures; no real SMS or account mutation is part of these checks. Shipping admin work and the cumulative Firebase deployment are deferred at the owner's request.

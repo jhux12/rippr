@@ -1,8 +1,16 @@
-# rippr status — inventory, redemption and loading performance
+# rippr status — account settings and accessibility
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
 
-## Completed in this batch
+## Latest frontend batch
+
+- Notification switches now explain that they store preferences; email delivery is not connected. The hint is associated with both notification controls and remains visible after account initialization.
+- Profile forms use native required/email validation before a request. Failed saves preserve entered values and focus a readable error; error feedback is announced as an alert and successful feedback as status.
+- Phone changes focus the next code/number field and validate the six-digit code before verification. Existing session/identity checks remain intact.
+- Added durable browser regressions for settings errors/retries, preference rollback and phone-step focus, plus existing navigation menu/Escape/dialog-focus/sign-out behavior at 320, 390 and 1440 pixels. These add six groups to the 21 customer-journey groups. Navigation production code and header design are unchanged.
+- This batch needs only the frontend build. It adds no backend/rules changes to the pending deployment. Shipping/admin fulfillment work is deferred by the owner; the existing pending `ripprAccount` update remains recorded below for the combined release.
+
+## Previous batch — inventory, redemption and performance
 
 - **R-04 — Complete inventory access:** cards and packs now have Load more controls. The museum editor can reach older kept/shipped cards, and Order tracking can load older requests. Authenticated cursors use timestamp precision plus document ID; identical timestamps, deleted boundary records and new records do not skip the continuation. Snapshots start at 200 cards/packs and 50 requests rather than imposing a hard access limit.
 - **Refresh and account safety:** loaded ranges are refreshed, duplicates are removed, successful old sales update correctly, repeated page requests coalesce, and stale responses/errors are discarded after refresh or account changes. Search/filter copy describes its loaded scope. Unchanged profile card DOM/focus and selection survive refresh; tracking no longer hides the current request merely to load another history page.
@@ -16,15 +24,15 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 - **91 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 707 local references.
-- **21 browser journey groups** pass at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
+- **21 customer-journey groups plus 6 settings/navigation groups** pass at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
 The browser suite intercepts all HTTP and uses fixtures. It does not establish real Firebase SMS or SDK persistence behavior, Security Rules correctness, production infrastructure, payment processing, or carrier dispatch. No production account data or balances were changed. CI is configured; a successful hosted run is not assumed from local results. No production load-time/Core Web Vitals claim is made from the asset byte savings.
 
-## Required deployment
+## Deferred deployment
 
-Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Deploy it before frontend rollout. This also includes the previous daily reward readiness fix. No new rules, Function names, secrets or payment integration are needed.
+Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new rules, Function names, secrets or payment integration are needed.
 
 From the owner's authenticated Firebase checkout:
 
@@ -52,9 +60,9 @@ To use an installed Chromium: `CHROMIUM_PATH=/usr/bin/chromium npm run test:brow
 
 ## Next project
 
-**R-08 — Fulfillment operations:** older admin shipping queue access, request lookup, status edits and conflict recovery. The admin request queue is still capped at 100; activity is still the latest 50 records. These limits are separate from the inventory work and are not claimed to be removed.
+**R-08 — Fulfillment operations (deferred by owner):** older admin shipping queue access, request lookup, status edits and conflict recovery. The admin request queue is still capped at 100; activity is still the latest 50 records. These limits are separate from the inventory work and are not claimed to be removed.
 
-Following work: broader accessibility checks, accurately labeled notification preferences/delivery, error visibility and owner-supplied real fulfillment content. Legal and payment-provider setup remain owned by the business owner.
+Current work: keyboard/focus and error recovery in navigation and account settings. Notification preference copy now clearly distinguishes stored preferences from active email delivery. Actual notification delivery, error visibility and owner-supplied real fulfillment content remain later projects. Legal and payment-provider setup remain owned by the business owner.
 
 ## Updates
 

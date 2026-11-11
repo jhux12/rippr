@@ -32,17 +32,19 @@ R-01 is frontend-only. R-02 requires deploying `functions:ripprAccount`; this wo
 
 R-04 and R-05 require the updated `ripprAccount` Function. No rules changes or new Function names. Deploy backend before frontend rollout. The previous 200-record **page size** remains; the former hard access limit is removed. Admin queue (100) and activity history (50) need separate pagination if those workflows grow.
 
-## Next — fulfillment operations
+## Deferred — fulfillment operations
 
-**R-08** is next: review the admin shipping queue, request lookup, status edits and conflict recovery; add older-queue access. Carrier quotes/dispatch and payment setup remain separate integrations. A broader accessibility/notification pass follows.
+**R-08 is deferred at the owner’s request.** Its planned scope is: review the admin shipping queue, request lookup, status edits and conflict recovery; add older-queue access. Carrier quotes/dispatch and payment setup remain separate integrations. The current focus is accessibility and accurate settings feedback. Firebase deployment is deferred until the owner requests the combined release command.
 
-## Following — operations and experience
+## Current and following — customer experience
+
+Completed frontend slice: account settings validation/error focus, phone-step focus, accurate saved-only notification copy and six new settings/navigation browser groups. The broader accessibility and notification delivery projects remain open.
 
 | ID | Project | Why / definition of done |
 | --- | --- | --- |
-| R-08 | Fulfillment operator workflow | Validate queue discovery, status edits, conflict recovery, request lookup and customer tracking. Keep quote/provider integration separate and label unavailable estimates accurately. |
+| R-08 | Fulfillment operator workflow (deferred) | Validate queue discovery, status edits, conflict recovery, request lookup and customer tracking. Keep quote/provider integration separate and label unavailable estimates accurately. |
 | R-09 | Accessibility pass | Keyboard/focus checks for dialogs, forms and carousels; touch targets, reduced motion and error recovery. Record concrete issues and fix those found. Profile card focus now survives unchanged refreshes; extend checks to the remaining dialogs/forms and changing content. |
-| R-10 | Operational visibility and notifications | Saved email/shipping notification preferences currently do not send messages; clarify the settings until delivery is implemented. Plan minimal error reporting and an admin audit view without capturing phone numbers, addresses, verification codes or tokens. External tools/costs require a concrete proposal first. |
+| R-10 | Operational visibility and notifications | Saved email/shipping notification preferences now explicitly say email delivery is not connected. Actual notification delivery remains unimplemented. Plan minimal error reporting and an admin audit view without capturing phone numbers, addresses, verification codes or tokens. External tools/costs require a concrete proposal first. |
 | R-11 | Brand and fulfillment content | Keep approved pack/Pip assets coherent. Replace concept packaging imagery with owner-supplied real fulfillment evidence when available; no fabricated social proof. |
 
 ## Owner dependencies / excluded from this batch
