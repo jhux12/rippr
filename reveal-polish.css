@@ -1,0 +1,28 @@
+/* Typography and finishes only: stage geometry and animation timings stay shared. */
+.reveal-information .card-title-main,.result-name .card-title-main{display:block;font-weight:750;overflow-wrap:anywhere}
+.reveal-information .card-title-detail,.result-name .card-title-detail{display:block;margin-top:2px;font-size:10px;font-weight:500;letter-spacing:.01em;line-height:1.4;color:#a7bdcf;overflow-wrap:anywhere;text-wrap:pretty}
+.reveal-information h2{scrollbar-color:#42677b transparent;scroll-padding:3px}
+.reveal-information h2:focus-visible{outline:2px solid #78e4ee;outline-offset:3px;border-radius:3px}
+.reveal-information .reveal-value{color:#e4f3fa;font-weight:750;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.reveal-rarity{font-weight:750;letter-spacing:.04em}
+.reveal-stage .reveal-actions .sell-card{border-color:#52758a;background:#0c1d2a;color:#d0e9f5}
+.reveal-stage .reveal-actions .sell-card:hover:not(:disabled){background:#142f40;border-color:#8ac9df}
+.reveal-stage .reveal-actions button{box-shadow:inset 0 1px 0 #ffffff0a;transition:background .18s ease,border-color .18s ease}
+.results .results-heading{gap:10px;margin-bottom:8px}.results .result-pip{width:58px;height:58px}.results #result-title{font-size:28px;line-height:1.2;margin:0}
+.results .result-grid{gap:14px;align-items:stretch;margin:20px 0 16px}
+.results .result-card{width:188px;min-width:0;padding:15px 12px;border-radius:14px;border-color:color-mix(in srgb,var(--tone) 42%,#263d4d);background:radial-gradient(ellipse at 50% 8%,color-mix(in srgb,var(--tone) 9%,transparent),transparent 65%),#0b1722;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:inset 0 1px 0 #ffffff04}
+.result-card .rarity-badge{font-size:10px;max-width:100%;white-space:normal;text-align:center;line-height:1.3}
+.results .result-card .revealed-art{width:100%;height:220px;object-fit:contain;margin:15px 0 13px;filter:drop-shadow(0 7px 9px #0004)}
+.results .result-card .result-name{font-size:13px;line-height:1.4;width:100%;margin:0;text-align:center}
+.result-card .card-title-detail{font-size:10px;line-height:1.5;margin-top:4px}
+.result-value{margin:12px 0;font-size:17px;font-weight:750;line-height:1.3;font-variant-numeric:tabular-nums;letter-spacing:-.4px;color:#e5f4fc}
+.result-card .result-disposition{margin:auto 0 0;width:100%;border-top:1px solid #294151;padding:11px 0 0;font-size:10px;line-height:1.5;color:#9cddcf}
+.result-card[data-status="sold"] .result-disposition{color:#a7d6ef}
+.result-summary{margin:10px auto 18px;max-width:440px;color:#a8c3d4;font-size:12px;line-height:1.7}
+.result-art-fallback{display:grid;place-items:center;height:220px;width:100%;margin:15px 0 13px;border:1px dashed #385265;border-radius:8px;color:#94aebe;font-size:11px}
+.result-profile-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.result-profile-actions .text-button{min-height:44px;font:650 12px/1.5 Manrope,Arial,sans-serif;padding:11px 18px;border-radius:8px}
+.result-profile-actions .text-button:last-child{color:#071c26;border-color:#00d4e3;background:#00d4e3}
+@media(max-width:760px){.results .result-card{width:calc(50% - 7px);max-width:220px;padding:12px 9px}.results .result-card:only-child{width:min(100%,260px);max-width:260px}.results .result-card .revealed-art,.result-art-fallback{height:clamp(155px,45vw,210px)}.results .result-card:only-child .revealed-art{height:260px}.results .result-card .result-name{font-size:12px}.results .result-pip{width:46px;height:46px}.results #result-title{font-size:25px}.result-value{font-size:16px}.reveal-information .card-title-detail{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.reveal-stage .reveal-actions button{transition:none}}
+
+.results .result-card .result-name{max-height:80px;overflow:auto;scrollbar-width:thin;scrollbar-color:#49687b transparent}.result-name:focus-visible{outline:2px solid #78e4ee;outline-offset:3px;border-radius:3px}

@@ -1,6 +1,14 @@
-# rippr status — brand feedback states
+# rippr status — reveal and results polish
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest reveal/results polish
+
+- Card names use a clear main-name/detail hierarchy; long names remain keyboard-scrollable within their allotted space. Full names remain accessible.
+- Refined rarity/value/action styling without changing stage geometry, tearing, rarity cycling, flip timing or fullscreen behavior.
+- Result cards show value and keep/sell disposition with consistent framing, a visible batch summary, and missing-art fallback. Shipped/delivered outcomes are labeled accurately.
+- Four new browser groups cover extreme names, failed-sale retry, mixed sold/kept results, missing artwork and unchanged inline stage size at 320x900, 390x900, 1440x1000 and 844x390 landscape. Added to the regular browser suite.
+- Frontend-only; shipping work and the accumulated Firebase deployment remain deferred.
 
 ## Latest brand polish
 
@@ -31,8 +39,8 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 ## Verification
 
 - **91 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 711 local references.
-- **30 browser groups** pass (21 customer journeys, 6 settings/navigation and 3 branded feedback states) at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
+- Build and static HTML reference checks pass: 16 pages / 712 local references.
+- **34 browser groups** cover 21 customer journeys, 6 settings/navigation, 3 branded feedback states and 4 reveal/results layouts at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 

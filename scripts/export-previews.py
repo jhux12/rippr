@@ -108,7 +108,7 @@ opening = (ROOT / 'opening.html').read_text()
 opening_css = (ROOT / 'opening.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
 opening = opening.replace('<link rel="stylesheet" href="opening.css">', '<style>' + opening_css + '</style>')
 opening = opening.replace('<link rel="stylesheet" href="opening-stage.css">', '<style>' + (ROOT / 'opening-stage.css').read_text() + '</style>')
-for css in ['opening-foil.css','opening-theater.css']:
+for css in ['opening-foil.css','opening-theater.css','reveal-polish.css']:
     opening=opening.replace('<link rel="stylesheet" href="'+css+'">','<style>'+(ROOT/css).read_text()+'</style>')
 opening=opening.replace('<script src="opening-foil.js"></script>','<script>'+(ROOT/'opening-foil.js').read_text()+'</script>')
 opening = opening.replace('<script src="packs.js"></script>', '<script>' + bootstrap + '</script>')

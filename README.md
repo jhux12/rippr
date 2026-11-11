@@ -387,3 +387,8 @@ Notification switches save preferences but do not send email; the settings page 
 ## Shared brand feedback states
 
 `brand-states.css` keeps homepage grail, Community and collection/activity empty/loading/error panels compact and consistent with navy/cyan/Pip branding. The approved 13 KB optimized Pip image is reused; no new generated artwork or fabricated activity is added. Loading respects reduced motion. Grail errors have retry, and empty Community/item searches have clear-search actions. Browser checks at 320/390/1440 px are included in `npm run test:browser`. This is frontend-only; the cumulative Firebase deployment remains deferred.
+
+
+## Reveal and results finishes
+
+`reveal-polish.css` refines typography, rarity/value presentation, action finishes and result cards while preserving the existing stage geometry and animation timing. Names split on spaced dash separators into a primary name and lighter detail. Long reveal/result names remain keyboard-scrollable and retain their full accessible name. Results include visible values, actual item disposition, a batch summary and missing-art fallback. Four additional fixture browser groups test phone/desktop/landscape, long names, mixed keep/sell outcomes and a failed sale retry. This is frontend-only.

@@ -45,7 +45,7 @@ Completed frontend slice: account settings validation/error focus, phone-step fo
 | R-08 | Fulfillment operator workflow (deferred) | Validate queue discovery, status edits, conflict recovery, request lookup and customer tracking. Keep quote/provider integration separate and label unavailable estimates accurately. |
 | R-09 | Accessibility pass | Keyboard/focus checks for dialogs, forms and carousels; touch targets, reduced motion and error recovery. Record concrete issues and fix those found. Profile card focus now survives unchanged refreshes; extend checks to the remaining dialogs/forms and changing content. |
 | R-10 | Operational visibility and notifications | Saved email/shipping notification preferences now explicitly say email delivery is not connected. Actual notification delivery remains unimplemented. Plan minimal error reporting and an admin audit view without capturing phone numbers, addresses, verification codes or tokens. External tools/costs require a concrete proposal first. |
-| R-11 | Brand and content polish | First frontend slice complete: consistent compact Pip empty/loading/error states for homepage grails, Community and My items/activity, with retry/clear-search actions. Further content polish remains open; shipping content is deferred. |
+| R-11 | Brand and content polish | Completed slices: consistent compact Pip empty/loading/error states; reveal name/detail hierarchy, value/outcome presentation, bounded keyboard-readable names, result artwork fallback and a visible batch summary. Reveal stage geometry and animation timings remain unchanged. Profile/Community card polish remains open; shipping content is deferred. |
 
 ## Owner dependencies / excluded from this batch
 
