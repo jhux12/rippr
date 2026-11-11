@@ -18,6 +18,23 @@ const cleanProfile = data => {
 };
 const initial = uid => ({ balanceCents:0, packsOpened:0, cardsCollected:0, grailsFound:0, displayName:'Collector', handle:'collector_' + uid.replace(/[^a-z0-9]/gi,'').slice(0,12).toLowerCase(), avatar:'pip', currency:'TEST_USD', createdAt:stamp() });
 
+// Check every reachable pack prize before any award, rather than silently
+// rerolling an unavailable prize and changing the published probabilities.
+async function requireRewardPackCatalogs(tx, db, prizes) {
+  const packIds = [...new Set(prizes.filter(prize => prize.kind === 'pack' && prize.chanceBps > 0).map(prize => prize.packId))];
+  const catalogs = await Promise.all(packIds.map(packId => tx.get(db.doc(`packContents/${packId}`))));
+  for (const [index, saved] of catalogs.entries()) {
+    const packId = packIds[index];
+    let catalog;
+    try { catalog = saved.exists ? readStoredPack(saved.data()) : defaultPack(packId); }
+    catch { fail('failed-precondition', `The ${packId} reward pack needs its catalog corrected before daily rewards can be saved or claimed.`); }
+    const price = catalog.priceCents ?? DEFAULT_PRICES[packId];
+    if (!catalog.enabled || !Number.isSafeInteger(price) || price < 0) {
+      fail('failed-precondition', `The ${packId} reward pack is unavailable. Enable and configure it, or set its reward odds to 0%, before saving or claiming daily rewards.`);
+    }
+  }
+}
+
 // This namespace is exclusively for free, nonredeemable test credit and test items.
 // Never migrate it into a real-money wallet or physical fulfillment automatically.
 export function accountService(db, { freeTopups = () => true, now = () => Date.now() } = {}) {
@@ -100,6 +117,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const target=db.doc('rewardSettings/daily'),saved=await tx.get(target);
         const version=saved.exists?saved.data().version:0;
         if(data.expectedVersion!==version)fail('failed-precondition','Reward settings changed in another session. Reload before saving.');
+        if(config.enabled)await requireRewardPackCatalogs(tx, db, config.prizes);
         const configNext={enabled:config.enabled,testingNoCooldown:config.testingNoCooldown===true,prizes:cleanPrizes(config.prizes),version:version+1};
         tx.set(target,{...configNext,updatedAt:stamp(),updatedBy:uid});
         result={config:configNext};
@@ -110,6 +128,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         if(data.expectedVersion!==config.version)fail('failed-precondition','Reward odds changed. Reload the rewards page before opening.');
         const time=now();
         if(!config.testingNoCooldown&&(wallet.nextRewardAtMs||0)>time)fail('failed-precondition','Your daily reward has already been claimed. Return when the countdown ends.');
+        await requireRewardPackCatalogs(tx, db, config.prizes);
         const prize=drawReward(config,randomInt(10000));
         patch.nextRewardAtMs=config.testingNoCooldown?0:time+REWARD_COOLDOWN_MS;
         if(prize.kind==='credit'){

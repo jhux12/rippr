@@ -73,15 +73,14 @@ test('admin testing bypass allows repeat claims without waiting and can be turne
 test('Icy Rush rewards retain seasonal art and open exactly once after catalog setup',async()=>{
  const f=fixture();
  const seasonalPrize={id:'winter-pack',kind:'pack',packId:'icy-rush',chanceBps:10000};
+ const catalog={...defaultPack('icy-rush'),enabled:true,priceCents:1500,version:1};
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),catalog));
  await f.config([seasonalPrize]);
  const reward=await f.call('member','claimReward',{expectedVersion:1});
  let saved=await f.call('member','snapshot');
  assert.equal(saved.packs[0].image,'assets/seasonal/pack-icy-rush.png');
  assert.equal(saved.packs[0].name,'Icy Rush pack');
- const data={packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:0};
- await assert.rejects(()=>f.call('member','openInventoryPack',data),code('failed-precondition'));
- const catalog={...defaultPack('icy-rush'),enabled:true,priceCents:1500,version:1};
- await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),catalog));
+ const data={packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1};
  const result=await f.call('member','openInventoryPack',{...data,expectedVersion:1});
  assert.equal(result.cards.length,1);assert.equal(result.cards[0].packId,'icy-rush');assert.equal(result.totalCents,0);
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,expectedVersion:1}),code('failed-precondition'));
@@ -99,4 +98,59 @@ test('Icy Rush purchases require an enabled priced catalog and use its exact pri
  const result=await f.call('member','purchase',{...data,expectedVersion:2,expectedPriceCents:1500});
  assert.equal(result.totalCents,3000);assert.equal(result.cards.length,2);assert.equal(result.balanceCents,7000);
  assert.ok(result.cards.every(card=>card.packId==='icy-rush'));
+});
+
+
+test('reward settings reject positive-odds unconfigured, disabled, invalid and unpriced pack catalogs atomically',async()=>{
+ const scenarios=[
+  {packId:'icy-rush'},
+  {packId:'basic',catalog:{...defaultPack('basic'),enabled:false,version:1}},
+  {packId:'basic',catalog:{...defaultPack('basic'),items:[],version:1}},
+  {packId:'icy-rush',catalog:{...defaultPack('icy-rush'),enabled:true,version:1}}
+ ];
+ for(const scenario of scenarios){
+  const f=fixture();await f.config([credit]);
+  if(scenario.catalog)await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/'+scenario.packId),scenario.catalog));
+  const op=randomUUID(),config={enabled:true,prizes:[{...pack,packId:scenario.packId}]};
+  await assert.rejects(()=>f.call('owner','saveRewards',{config,expectedVersion:1},op,{sub:'owner',phone_number:OWNER_PHONE}),code('failed-precondition'));
+  const saved=await f.call('owner','rewardState');assert.equal(saved.config.version,1);assert.deepEqual(saved.config.prizes,[credit]);
+  const operation=await f.db.runTransaction(tx=>tx.get(f.db.doc('testAccounts/owner/operations/'+op)));assert.equal(operation.exists,false);
+ }
+});
+
+test('catalog changes pause the entire claim without rerolling, consuming cooldown or recording an operation',async()=>{
+ const f=fixture(),prizes=[{...credit,chanceBps:9999},{...pack,chanceBps:1}];await f.config(prizes);
+ await f.call('member','topup',{amountCents:1000});const before=await f.call('member','snapshot');
+ const catalog={...defaultPack('basic'),enabled:false,version:1};
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),catalog));
+ const op=randomUUID();await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:1},op),code('failed-precondition'));
+ const after=await f.call('member','snapshot');assert.deepEqual(after,before);
+ assert.equal((await f.call('member','rewardState')).nextClaimAtMs,0);
+ const operation=await f.db.runTransaction(tx=>tx.get(f.db.doc('testAccounts/member/operations/'+op)));assert.equal(operation.exists,false);
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),{...catalog,enabled:true}));
+ const won=await f.call('member','claimReward',{expectedVersion:1},op);assert.ok(won.prize);assert.ok(won.nextClaimAtMs>0);
+});
+
+test('unavailable zero-chance pack prizes do not prevent publishing or claiming reachable rewards',async()=>{
+ const f=fixture(),prizes=[credit,{...pack,packId:'icy-rush',chanceBps:0}];
+ await f.config(prizes);const won=await f.call('member','claimReward',{expectedVersion:1});
+ assert.equal(won.prize.id,'credit');assert.equal(won.balanceCents,125);
+ assert.deepEqual((await f.call('member','rewardState')).config.prizes,prizes);
+});
+
+
+test('owners can pause rewards with unavailable prizes but must repair the catalog before enabling',async()=>{
+ const f=fixture();await f.config([pack]);
+ const catalog={...defaultPack('basic'),enabled:false,version:1};
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),catalog));
+ const claims={sub:'owner',phone_number:OWNER_PHONE},config={enabled:false,prizes:[pack]};
+ await f.call('owner','saveRewards',{config,expectedVersion:1},randomUUID(),claims);
+ assert.equal((await f.call('owner','rewardState')).config.enabled,false);
+ await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:2}),code('failed-precondition'));
+ await assert.rejects(()=>f.call('owner','saveRewards',{config:{...config,enabled:true},expectedVersion:2},randomUUID(),claims),code('failed-precondition'));
+ assert.equal((await f.call('owner','rewardState')).config.version,2);
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),{...catalog,enabled:true}));
+ await f.call('owner','saveRewards',{config:{...config,enabled:true},expectedVersion:2},randomUUID(),claims);
+ const saved=await f.call('owner','rewardState');assert.equal(saved.config.enabled,true);assert.equal(saved.config.version,3);
+ assert.equal((await f.call('member','claimReward',{expectedVersion:3})).prize.packId,'basic');
 });
