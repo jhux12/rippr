@@ -1,27 +1,32 @@
-# rippr status — initial reliability batch
+# rippr status — inventory, redemption and loading performance
 
-Updated: November 10, 2026 (America/Indianapolis). Working board: [PROJECTS.md](PROJECTS.md).
+Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
 
-## Completed in code
+## Completed in this batch
 
-- **R-01 — Fulfillment labels:** My items displays the linked shipment's saved progress (received, review, packing, shipped or delivered), while keeping fulfillment cards unavailable for selling or another shipping request. Explicit shipped/delivered item records remain visible in Shipping. No ownership status or museum eligibility is changed.
-- **R-02 — Daily prize readiness:** Enabled daily settings and every new claim validate all positive-odds pack catalogs. An invalid/unavailable prize blocks the whole claim before an award, cooldown or operation is written; it never rerolls the advertised odds. Zero-odds prizes do not block valid rewards. The owner can still pause an invalid configuration. Redemption rules for already-owned packs are unchanged.
-- **R-03 — Release checks:** The default test command now includes all existing offline account, reward, referral and museum suites, plus profile-fulfillment and static-site-check regressions. Added a read-only GitHub Actions workflow to test, build and check built HTML references. It does not deploy or use production credentials.
-- Updated outdated documentation about address collection, hero slides, packing artwork and shared pages.
+- **R-04 — Complete inventory access:** cards and packs now have Load more controls. The museum editor can reach older kept/shipped cards, and Order tracking can load older requests. Authenticated cursors use timestamp precision plus document ID; identical timestamps, deleted boundary records and new records do not skip the continuation. Snapshots start at 200 cards/packs and 50 requests rather than imposing a hard access limit.
+- **Refresh and account safety:** loaded ranges are refreshed, duplicates are removed, successful old sales update correctly, repeated page requests coalesce, and stale responses/errors are discarded after refresh or account changes. Search/filter copy describes its loaded scope. Unchanged profile card DOM/focus and selection survive refresh; tracking no longer hides the current request merely to load another history page.
+- **R-05 — Seasonal redemption:** `enabled` controls new purchases and reward offers. An owned pack can still redeem after sales stop or its sale price is removed, provided its current catalog/version is valid and ownership is verified. It consumes once and costs zero balance. Exact owned-record verification works beyond the first page. A missing seasonal catalog does not fall back to concept cards or consume the award.
+- **R-06 — Reusable journey checks:** added a Playwright suite using actual page scripts and isolated account/museum services. CI now installs Chromium and runs these checks after domain tests/build/static reference checks.
+- **R-07 — Smaller active artwork:** five core pack sprites use lossless WebP inside their existing SVG geometry; reveal-back and landing-slab references use lossless WebP too. The five-pack asset group is 35% smaller. Dimensions, viewBox and alpha outlines are unchanged. Transparent PNG/WebP compositing can differ by one 8-bit RGB level in Chromium; no byte-identical browser rendering claim is made.
 
-## Verification completed locally
+Previous foundation fixes (fulfillment labels, reward prize readiness, expanded release checks) remain included.
 
-- `npm test`: all 10 selected test files passed, including the new fulfillment projection and reward failure/repair cases.
-- `npm run build`: passed.
-- `npm run check:site`: 16 built HTML pages, 708 local references, no missing references.
-- Chromium with isolated account snapshots at 320, 390, 768 and 1440 pixels: correct shipment labels on refresh; shipped/delivered cards visible; no fulfillment sell/ship controls; available/sold behavior intact; no horizontal overflow or page script errors.
-- `git diff --check`: passed.
+## Verification
 
-The browser data was a fixture. No customer records, live rewards, purchases, production SMS, addresses or account balances were changed. These checks do not validate Firestore Security Rules or deployed Firebase behavior. The new hosted CI workflow's first run is not yet verified.
+- **91 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- Build and static HTML reference checks pass: 16 pages / 707 local references.
+- **21 browser journey groups** pass at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
+- Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
+- Whitespace/syntax checks pass.
 
-## Deployment requirement
+The browser suite intercepts all HTTP and uses fixtures. It does not establish real Firebase SMS or SDK persistence behavior, Security Rules correctness, production infrastructure, payment processing, or carrier dispatch. No production account data or balances were changed. CI is configured; a successful hosted run is not assumed from local results. No production load-time/Core Web Vitals claim is made from the asset byte savings.
 
-The profile label fix is frontend-only. The daily reward guard needs the updated existing `ripprAccount` Function. No new rules, secrets or Function name are needed. From the owner's authenticated Firebase checkout:
+## Required deployment
+
+Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Deploy it before frontend rollout. This also includes the previous daily reward readiness fix. No new rules, Function names, secrets or payment integration are needed.
+
+From the owner's authenticated Firebase checkout:
 
 ```sh
 cd ~/rippr &&
@@ -31,19 +36,26 @@ npm ci --prefix functions &&
 npx firebase deploy --only functions:ripprAccount --project rippr-2b01c
 ```
 
-This workspace has not run that deployment. Static hosting builds do not deploy Functions. If the checkout has local edits, inspect/stash them before pulling; do not discard them.
+This workspace has not deployed Firebase. If local edits block a pull, inspect/stash them rather than discarding them. Older snapshots remain readable; additional paging and the new ownership lookup require the new Function.
 
-## Next priority
+## Repeat checks
 
-**R-04 — Complete inventory access.** Current snapshots stop at 200 cards and 200 unopened packs. Older available items can be hidden behind newer sold/opened records. Add stable authenticated pagination and complete collection/museum selection before encouraging larger collections.
+```sh
+npm test
+npm run build
+npm run check:site
+npx playwright install --with-deps chromium  # first browser setup only
+npm run test:browser
+```
 
-## Other confirmed follow-ups
+To use an installed Chromium: `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser`.
 
-- Large embedded pack artwork and the active reveal/landing PNGs warrant a measured performance pass that preserves pack dimensions and alpha/foil alignment.
-- Email/shipping notification preferences currently store settings but do not send messages. Clarify or complete notification delivery before describing it as operational.
-- Periodic profile refresh rebuilds the item grid and can disrupt focused controls; preserve keyed DOM/focus in the accessibility pass.
-- An already-earned pack still cannot open while its catalog is disabled. Define separate sales/redemption availability for seasonal packs before changing that lifecycle.
+## Next project
 
-## Update cadence
+**R-08 — Fulfillment operations:** older admin shipping queue access, request lookup, status edits and conflict recovery. The admin request queue is still capped at 100; activity is still the latest 50 records. These limits are separate from the inventory work and are not claimed to be removed.
 
-During active work, post a short update when findings change the priority, a project reaches verification, or something is blocked. At each completed batch, update this status and the project board with the result, evidence and next project. There is no unattended background work or scheduled reporting configured.
+Following work: broader accessibility checks, accurately labeled notification preferences/delivery, error visibility and owner-supplied real fulfillment content. Legal and payment-provider setup remain owned by the business owner.
+
+## Updates
+
+During active work, post updates when a finding changes priorities, verification completes or something is blocked. Update this report and the board at completed milestones. No unattended background work or scheduled reporting is configured.

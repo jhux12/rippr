@@ -10,7 +10,7 @@
     "build": "node scripts/build.mjs",
     "serve": "python3 -m http.server 3000 --bind 127.0.0.1 --directory dist",
     "emulators": "firebase emulators:start --only auth,firestore,storage,functions --project demo-rippr",
-    "test": "npm run build:functions && node --test tests/catalog-model.test.mjs tests/homepage-grails.test.mjs tests/odds-calculator.test.mjs tests/phone-auth.test.mjs tests/account-service.test.mjs tests/rewards.test.mjs tests/referrals.test.mjs tests/museum.test.mjs tests/site-check.test.mjs tests/profile-fulfillment.test.mjs",
+    "test": "npm run build:functions && node --test tests/catalog-model.test.mjs tests/homepage-grails.test.mjs tests/odds-calculator.test.mjs tests/phone-auth.test.mjs tests/account-service.test.mjs tests/rewards.test.mjs tests/referrals.test.mjs tests/museum.test.mjs tests/site-check.test.mjs tests/profile-fulfillment.test.mjs tests/inventory-pagination.test.mjs tests/account-pagination.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-rippr 'node tests/firebase-rules.test.mjs'",
     "deploy:rules": "firebase deploy --only firestore:rules,storage --project rippr-2b01c",
     "deploy": "npm run build && firebase deploy --only hosting --project rippr-2b01c",
@@ -20,7 +20,8 @@
     "test:rewards": "npm run build:functions && node tests/rewards.test.mjs",
     "test:referrals": "npm run build:functions && node --test tests/referrals.test.mjs",
     "test:museum": "npm run build:functions && node --test tests/museum.test.mjs",
-    "check:site": "node scripts/check-site.mjs"
+    "check:site": "node scripts/check-site.mjs",
+    "test:browser": "npm run build:functions && node tests/browser/customer-journey.cjs"
   },
   "dependencies": {
     "firebase": "13.2.0"
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@firebase/rules-unit-testing": "6.0.0",
     "esbuild": "0.28.2",
-    "firebase-tools": "15.35.0"
+    "firebase-tools": "15.35.0",
+    "playwright": "^1.65.0"
   }
 }

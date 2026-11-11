@@ -32,13 +32,33 @@ const sound=window.RipprOpeningAudio||{play:()=>false,stop:()=>{}};
 const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 const catalog=window.RipprCatalog;
 let contents=catalog.defaultPack(selectedPack.id),contentsReady=false,artReady=false,loadError=false;
+let inventoryStatus=inventoryPackId?'checking':'none',inventoryCheckVersion=0;
 const oddsPanel=$('.odds-table-panel');
 const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const cardImage=card=>window.RIPPR_ASSET_URLS?.[card.image]||card.image;
 const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDigits:2})+'%';
 const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 const rarityBadge=name=>`<span class="rarity-badge" style="--rarity-color:${catalog.RARITIES.find(rarity=>rarity.name===name).color}"><span class="rarity-dot" aria-hidden="true"></span>${escape(name)}</span>`;
-function updateOpen(){openButton.disabled=!artReady||!contentsReady||!contents.enabled||(!inventoryPackId&&!Number.isSafeInteger(contents.priceCents))||state!=='idle';label()}
+function canOpenCatalog(){return inventoryPackId?(!window.RIPPR_ACCOUNT?.user||inventoryStatus==='available'):contents.enabled&&Number.isSafeInteger(contents.priceCents)}
+function updateOpen(){openButton.disabled=!artReady||!contentsReady||!canOpenCatalog()||state!=='idle';label()}
+async function verifyInventoryPack(){
+ if(!inventoryPackId)return;
+ const version=++inventoryCheckVersion,uid=window.RIPPR_ACCOUNT?.user?.uid;
+ if(!uid){inventoryStatus='guest';updateOpen();return}
+ inventoryStatus='checking';updateOpen();
+ try{
+  const owned=await window.RipprFirebase.loadInventoryPack(inventoryPackId);
+  if(version!==inventoryCheckVersion||uid!==window.RIPPR_ACCOUNT?.user?.uid)return;
+  inventoryStatus=owned?.status==='available'&&owned.packId===selectedPack.id?'available':'unavailable';
+  if(inventoryStatus==='unavailable'&&state==='idle')phase.textContent='This reward pack is unavailable or already opened. Return to My items.';
+ }catch{
+  if(version!==inventoryCheckVersion||uid!==window.RIPPR_ACCOUNT?.user?.uid)return;
+  inventoryStatus='unavailable';
+  if(state==='idle')phase.textContent='Could not verify this reward pack. Reload to retry or return to My items.';
+ }
+ updateOpen();
+}
+
 let grailCards=[],grailTrigger=null,grailStops=[];
 const grailTrack=$('.grail-grid'),grailDialog=$('#grail-preview');
 function updateGrailControls(){
@@ -85,22 +105,24 @@ async function loadContents(){
  try{
   if(window.RIPPR_AUTH_OFFLINE){renderContents('Offline design preview · one card per pack');contentsReady=true;return}
   contents=await Promise.race([window.RipprFirebase.loadPackContents(selectedPack.id),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Catalog timeout')),6000))]);
-  renderContents('One card per pack · free test balance');
+  renderContents(inventoryPackId?'Owned pack · current displayed contents':'One card per pack · free test balance');
   contentsReady=true;
  }catch{loadError=true;phase.textContent='Pack contents could not load. Reload to try again.';const table=oddsPanel.querySelector('table');table.setAttribute('aria-busy','false');table.querySelector('caption').textContent='Contents unavailable';table.querySelector('tbody').innerHTML='<tr><td colspan="3" class="odds-loading">Odds unavailable. Reload to try again.</td></tr>';$('.grail-grid').innerHTML='<p class="empty-grails">Grails could not load.</p>';$('.grail-grid').setAttribute('aria-busy','false')}
- finally{if(!contents.enabled&&!loadError)phase.textContent='';updateOpen()}
+ finally{updateOpen()}
 }
-document.addEventListener('DOMContentLoaded',loadContents,{once:true});
+document.addEventListener('DOMContentLoaded',()=>{loadContents();verifyInventoryPack()},{once:true});
 function label(){
  if(state!=='idle')return;
  $('#pack-price').textContent=inventoryPackId?'Owned pack':contentsReady&&Number.isSafeInteger(contents.priceCents)?money.format(contents.priceCents/100):'—';$('#price-suffix').hidden=Boolean(inventoryPackId);
  if(!contentsReady){openButton.textContent=loadError?'Pack unavailable':'Loading pack…';return}
- if(!contents.enabled||(!inventoryPackId&&!Number.isSafeInteger(contents.priceCents))){openButton.textContent='Pack unavailable';return}
- if(inventoryPackId){openButton.textContent=window.RIPPR_ACCOUNT?.user?'Open reward pack':'Log in to open reward pack';return}
+ if(inventoryPackId){
+  openButton.textContent=!window.RIPPR_ACCOUNT?.user?'Log in to open reward pack':inventoryStatus==='checking'?'Checking reward pack…':inventoryStatus==='available'?'Open reward pack':'Reward pack unavailable';return;
+ }
+ if(!canOpenCatalog()){openButton.textContent='Pack unavailable';return}
  const packs=`${quantity} pack${quantity===1?'':'s'}`;
  openButton.textContent=(window.RIPPR_AUTH_OFFLINE?'Preview':window.RIPPR_ACCOUNT?.user?'Open':'Log in to open')+' '+packs+' · '+money.format(contents.priceCents*quantity/100);
 }
-document.addEventListener('rippr:authchange',()=>{if(state!=='idle')resetOpening();label()});
+document.addEventListener('rippr:authchange',()=>{inventoryStatus=inventoryPackId?'checking':'none';if(state!=='idle')resetOpening();verifyInventoryPack();updateOpen()});
 if(inventoryPackId){$('.quantities').hidden=true;$('#quantity-control').hidden=true;$('.back').href='profile.html';$('.back').textContent='← Back to my items';$('#again').textContent='Back to my items';}
 quantityButtons.forEach(button=>button.addEventListener('click',()=>{if(state!=='idle')return;sound.play('click');quantity=Number(button.dataset.qty);quantityButtons.forEach(b=>{b.classList.toggle('selected',b===button);b.setAttribute('aria-pressed',String(b===button))});label()}));
 function randomUnit(){const v=new Uint32Array(1);crypto.getRandomValues(v);return v[0]/4294967296}
@@ -109,7 +131,7 @@ const revealPhaseClasses=['is-extracting','is-cycling','is-settling','is-flippin
 const cycleDelays=[100,100,110,110,120,120,130,140,155,175,200,230,270,320];
 function clearRevealEffects(){arena.classList.remove(...revealPhaseClasses);delete arena.dataset.revealRarity;delete arena.dataset.cycleIndex;}
 const revealSpark='<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg>';
-const cardBackImage=window.RIPPR_REVEAL_BACK_URL||'assets/reveal/rippr-card-back.png';
+const cardBackImage=window.RIPPR_REVEAL_BACK_URL||'assets/reveal/rippr-card-back.webp';
 const preloadBack=new Image();preloadBack.src=cardBackImage;
 const saleDialog=$('#reveal-sale-dialog');
 // Reuse the actual arena so theme, audio, card actions and purchase state stay intact.
@@ -311,7 +333,7 @@ ripButton.addEventListener('lostpointercapture',()=>{if(drag){drag=null;setRip(0
 ripButton.addEventListener('click',event=>{if(event.detail===0)completeRip()});
 ripButton.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){event.preventDefault();setRip(progress+.25);if(progress>=1)completeRip()}else if(event.key==='ArrowLeft'){event.preventDefault();setRip(progress-.25)}});
 openButton.addEventListener('click',async()=>{
- if(state!=='idle'||!contentsReady||!contents.enabled)return;
+ if(state!=='idle'||!contentsReady||!canOpenCatalog())return;
  if(!window.RIPPR_AUTH_OFFLINE&&!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);return}
  sound.play('click');
  const uid=window.RIPPR_ACCOUNT?.user?.uid;
@@ -322,6 +344,7 @@ openButton.addEventListener('click',async()=>{
   else{
    const purchase=await window.RipprAccount.act(inventoryPackId?'openInventoryPack':'purchase',{packId:selectedPack.id,quantity,expectedPriceCents:contents.priceCents,expectedVersion:contents.version,...(inventoryPackId?{inventoryPackId}:{})});
    if(uid!==window.RIPPR_ACCOUNT?.user?.uid||session!==openingSession)return;
+   if(inventoryPackId)inventoryStatus='opened';
    deck=purchase.cards.map(card=>({...card,tone:catalog.RARITIES.find(r=>r.name===card.rarity).color}));
   }
   cursor=0;skipBatchAnimations=false;state='expanding';

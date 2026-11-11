@@ -42,12 +42,12 @@ test('awarded packs are saved unopened, consumed once for a real card, and never
  await assert.rejects(()=>f.call('other','openInventoryPack',data),code('failed-precondition'));
  await assert.rejects(()=>f.call('member','sell',{itemIds:[reward.inventoryPackId]}),code('failed-precondition'));
 });
-test('inventory packs cannot be swapped, batched or consumed from disabled/stale catalogs',async()=>{
+test('inventory packs cannot be swapped, batched or consumed from invalid/stale catalogs',async()=>{
  const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:0};
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,packId:'ultimate'}),code('failed-precondition'));
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,quantity:2}),code('invalid-argument'));
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,expectedVersion:4}),code('failed-precondition'));
- const catalog=defaultPack('basic');catalog.enabled=false;catalog.version=1;await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),catalog));
+ const catalog=defaultPack('basic');catalog.items=[];catalog.version=1;await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),catalog));
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,expectedVersion:1}),code('failed-precondition'));
  const saved=await f.call('member','snapshot');assert.equal(saved.packs[0].status,'available');assert.equal(saved.items.length,0);
 });
@@ -153,4 +153,55 @@ test('owners can pause rewards with unavailable prizes but must repair the catal
  await f.call('owner','saveRewards',{config:{...config,enabled:true},expectedVersion:2},randomUUID(),claims);
  const saved=await f.call('owner','rewardState');assert.equal(saved.config.enabled,true);assert.equal(saved.config.version,3);
  assert.equal((await f.call('member','claimReward',{expectedVersion:3})).prize.packId,'basic');
+});
+
+
+test('owned seasonal packs remain redeemable after sales end without a configured sale price',async()=>{
+ const f=fixture(),seasonalPrize={id:'winter-pack',kind:'pack',packId:'icy-rush',chanceBps:10000};
+ const enabled={...defaultPack('icy-rush'),enabled:true,priceCents:1500,version:1};
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),enabled));
+ await f.config([seasonalPrize]);
+ const reward=await f.call('member','claimReward',{expectedVersion:1});
+ const ended={...enabled,enabled:false,priceCents:null,version:2};
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),ended));
+ await assert.rejects(()=>f.call('member','purchase',{packId:'icy-rush',quantity:1,expectedPriceCents:null,expectedVersion:2}),code('failed-precondition'));
+ await assert.rejects(()=>f.call('member','openInventoryPack',{packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1}),code('failed-precondition'));
+ let saved=await f.call('member','snapshot');assert.equal(saved.packs[0].status,'available');assert.equal(saved.items.length,0);
+ f.advance(REWARD_COOLDOWN_MS);
+ await assert.rejects(()=>f.call('new-member','claimReward',{expectedVersion:1}),code('failed-precondition'));
+ const data={packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:2,expectedPriceCents:999999};
+ const op=randomUUID(),opened=await f.call('member','openInventoryPack',data,op);
+ assert.equal(opened.totalCents,0);assert.equal(opened.balanceCents,0);assert.equal(opened.cards.length,1);
+ assert.ok(ended.items.some(card=>card.id===opened.cards[0].catalogItemId));
+ assert.deepEqual(await f.call('member','openInventoryPack',data,op),opened);
+ await assert.rejects(()=>f.call('member','openInventoryPack',data),code('failed-precondition'));
+ saved=await f.call('member','snapshot');assert.equal(saved.packs[0].status,'opened');assert.equal(saved.items.length,1);
+});
+
+test('exact inventory-pack lookup is authenticated, account scoped and includes opened records',async()=>{
+ const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});
+ const data={inventoryPackId:reward.inventoryPackId};
+ // Exact lookup must work even after 200 newer opened packs hide this award
+ // from the first snapshot page.
+ await f.db.runTransaction(async tx=>{
+  for(let i=0;i<201;i++)tx.set(f.db.doc('testAccounts/member/packs/newer-pack-'+String(i).padStart(4,'0')),{packId:'basic',status:'opened',wonAt:Date.now()+10000});
+ });
+ assert.equal((await f.call('member','snapshot')).packs.some(p=>p.id===reward.inventoryPackId),false);
+ assert.equal((await f.call('member','inventoryPack',data)).pack.status,'available');
+ await assert.rejects(()=>f.call(null,'inventoryPack',data),code('unauthenticated'));
+ await assert.rejects(()=>f.call('other','inventoryPack',data),code('not-found'));
+ await assert.rejects(()=>f.call('member','inventoryPack',{...data,accountUid:'other'}),code('unauthenticated'));
+ for(const inventoryPackId of ['../private','short','x'.repeat(81)])await assert.rejects(()=>f.call('member','inventoryPack',{inventoryPackId}),code('invalid-argument'));
+ await f.call('member','openInventoryPack',{packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:0});
+ assert.equal((await f.call('member','inventoryPack',data)).pack.status,'opened');
+});
+
+
+test('an owned seasonal pack never substitutes concept defaults when its saved catalog is missing',async()=>{
+ const f=fixture(),inventoryPackId=randomUUID();await f.call('member','snapshot');
+ await f.db.runTransaction(async tx=>tx.set(f.db.doc('testAccounts/member/packs/'+inventoryPackId),{id:inventoryPackId,packId:'icy-rush',status:'available',name:'Icy Rush pack',wonAt:Date.now()}));
+ const before=await f.call('member','snapshot'),operationId=randomUUID();
+ await assert.rejects(()=>f.call('member','openInventoryPack',{packId:'icy-rush',inventoryPackId,quantity:1,expectedVersion:0},operationId),code('failed-precondition'));
+ assert.deepEqual(await f.call('member','snapshot'),before);
+ assert.equal((await f.db.runTransaction(tx=>tx.get(f.db.doc('testAccounts/member/operations/'+operationId)))).exists,false);
 });

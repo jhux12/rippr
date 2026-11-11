@@ -20,13 +20,41 @@
     $('#select-items').setAttribute('aria-label',selected.size?'Clear selected items':'Select available items');
     $('#items-grid').querySelectorAll('.item-card').forEach(el=>{const checked=selected.has(el.dataset.id);el.classList.toggle('is-selected',checked);const checkbox=el.querySelector('input');if(checkbox)checkbox.checked=checked});
   }
+  const renderedItems=new Map();
+  function reconcileItems(markup){
+    const root=$('#items-grid'),template=document.createElement('template');template.innerHTML=markup;
+    const existing=new Map([...root.querySelectorAll('.item-card')].map(node=>[node.dataset.id,node]));
+    const keep=new Set();let index=0;
+    for(const fresh of [...template.content.children]){
+      const id=fresh.dataset.id,old=existing.get(id),signature=fresh.outerHTML;
+      const node=id&&old&&renderedItems.get(id)===signature?old:fresh;
+      if(id){keep.add(id);renderedItems.set(id,signature)}
+      const focused=old?.contains(document.activeElement)?document.activeElement:null;
+      const control=focused&&['data-select','data-sell','data-ship'].find(attr=>focused.hasAttribute(attr));
+      if(old&&node!==old)old.replaceWith(node);
+      if(root.children[index]!==node)root.insertBefore(node,root.children[index]||null);
+      if(control&&node!==old)node.querySelector('['+control+']')?.focus({preventScroll:true});
+      index++;
+    }
+    while(root.children.length>index)root.lastElementChild.remove();
+    for(const id of renderedItems.keys())if(!keep.has(id))renderedItems.delete(id);
+  }
+  function pageControls(collection,buttonId,statusId){
+    const a=account(),button=$('#'+buttonId),message=$('#'+statusId),more=Boolean(a.pageInfo?.[collection]?.hasMore||(collection==='items'&&a.hasMore));
+    button.hidden=!more;button.disabled=Boolean(a.inventoryLoading?.[collection]);button.textContent=button.disabled?'Loading…':collection==='packs'?'Load more packs':'Load more cards';
+    message.textContent=a.inventoryErrors?.[collection]||'';message.hidden=!message.textContent;
+    return more;
+  }
+  for(const [collection,buttonId,statusId] of [['items','load-more-items','item-page-status'],['packs','load-more-packs','pack-page-status']])$('#'+buttonId).addEventListener('click',async()=>{
+    const actor=account()?.user?.uid;try{await window.RipprAccount.loadMore(collection)}catch(error){if(actor===account()?.user?.uid){$('#'+statusId).textContent=window.RipprAccount.errorMessage(error);$('#'+statusId).hidden=false}}
+  });
   function renderItems(){
     const items=visibleItems();
     $('#item-count').textContent=`${items.length} ${filter} item${items.length===1?'':'s'}`;
     $('#select-items').hidden=filter!=='available'||!items.length;
-    $('#items-grid').innerHTML=items.length?items.map(item=>`<article class="item-card" data-id="${escape(item.id)}">${itemState(item).canManage?`<label class="item-check"><input type="checkbox" data-select="${escape(item.id)}" aria-label="Select ${escape(item.name)}"></label>`:''}<div class="item-art"><img src="${escape(itemImage(item))}" alt="${escape(item.name)}" loading="lazy"></div><h3>${escape(item.name)}</h3><span class="item-rarity" style="--rarity:${color(item.rarity)}">${escape(item.rarity)}</span>${itemState(item).canManage?`<div class="item-actions"><button class="button" data-ship="${escape(item.id)}" aria-label="Ship ${escape(item.name)}">${truck}Ship</button><button class="button primary" data-sell="${escape(item.id)}" aria-label="Sell ${escape(item.name)} for ${money(item.valueCents)}">Sell ${money(item.valueCents)}</button></div>`:`<p class="item-state">${item.status==='sold'?'Sold · '+money(item.valueCents):escape(itemState(item).label)}</p>${item.shipmentId?`<a class="button" href="order-tracking.html?request=${encodeURIComponent(item.shipmentId)}">Track request</a>`:''}`}</article>`).join(''):`<div class="empty-items"><img src="${window.RIPPR_MASCOT_URLS?.hover||'assets/mascot/pip-hover.png'}" alt="" width="96" height="96"><h3>${$('#item-search').value?'No matching items':filter==='available'?'Your next great pull awaits.':filter==='sold'?'No sold items yet.':'No shipping requests yet.'}</h3>${!$('#item-search').value&&filter==='available'?'<p>Open a pack to start your collection.</p><a class="button primary" href="index.html#packs">Explore packs</a>':''}</div>`;
-    $('#items-grid').querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{if(!img.dataset.fallback){img.dataset.fallback='true';img.src='assets/card-placeholder.svg'}},{once:true}));
-    $('#more-items').hidden=!account().hasMore;updateSelection();
+    reconcileItems(items.length?items.map(item=>`<article class="item-card" data-id="${escape(item.id)}">${itemState(item).canManage?`<label class="item-check"><input type="checkbox" data-select="${escape(item.id)}" aria-label="Select ${escape(item.name)}"></label>`:''}<div class="item-art"><img src="${escape(itemImage(item))}" alt="${escape(item.name)}" loading="lazy"></div><h3>${escape(item.name)}</h3><span class="item-rarity" style="--rarity:${color(item.rarity)}">${escape(item.rarity)}</span>${itemState(item).canManage?`<div class="item-actions"><button class="button" data-ship="${escape(item.id)}" aria-label="Ship ${escape(item.name)}">${truck}Ship</button><button class="button primary" data-sell="${escape(item.id)}" aria-label="Sell ${escape(item.name)} for ${money(item.valueCents)}">Sell ${money(item.valueCents)}</button></div>`:`<p class="item-state">${item.status==='sold'?'Sold · '+money(item.valueCents):escape(itemState(item).label)}</p>${item.shipmentId?`<a class="button" href="order-tracking.html?request=${encodeURIComponent(item.shipmentId)}">Track request</a>`:''}`}</article>`).join(''):`<div class="empty-items"><img src="${window.RIPPR_MASCOT_URLS?.hover||'assets/mascot/pip-hover.png'}" alt="" width="96" height="96"><h3>${$('#item-search').value?'No matching items':filter==='available'?'Your next great pull awaits.':filter==='sold'?'No sold items yet.':'No shipping requests yet.'}</h3>${!$('#item-search').value&&filter==='available'?'<p>Open a pack to start your collection.</p><a class="button primary" href="index.html#packs">Explore packs</a>':''}</div>`);
+    $('#items-grid').querySelectorAll('img').forEach(img=>{if(img.dataset.fallbackBound)return;img.dataset.fallbackBound='true';img.addEventListener('error',()=>{if(!img.dataset.fallback){img.dataset.fallback='true';img.src='assets/card-placeholder.svg'}},{once:true})});
+    $('#more-items').hidden=!pageControls('items','load-more-items','item-page-status');updateSelection();
   }
   function render(){
     const a=account(),user=a?.user;
@@ -46,7 +74,7 @@
     $('#settings-email').textContent=user.phoneNumber||user.email||'';
     for(const id of selected){if(!a.items.some(item=>item.id===id&&item.status==='available'))selected.delete(id)}
     const packs=(a.packs||[]).filter(pack=>pack.status==='available');
-    $('#unopened-packs').hidden=!packs.length;
+    $('#unopened-packs').hidden=!packs.length&&!a.pageInfo?.packs?.hasMore;pageControls('packs','load-more-packs','pack-page-status');
     $('#inventory-packs-grid').innerHTML=packs.map(pack=>`<article class="inventory-pack"><img src="${escape(pack.packId==='icy-rush'?'assets/seasonal/pack-icy-rush.png':pack.image)}" alt="${escape(pack.name)}" loading="lazy"><div><h3>${escape(pack.name)}</h3><p>Daily reward</p><a class="button primary" href="opening.html?pack=${encodeURIComponent(pack.packId)}&inventory=${encodeURIComponent(pack.id)}">Open pack ↗</a></div></article>`).join('');
     renderItems();
     $('#activity-list').innerHTML=a.activity.length?a.activity.map(event=>`<div class="activity-row"><div><p>${escape(event.label)}</p><time>${escape(event.createdAt?new Date(event.createdAt).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'Just now')}</time></div><strong>${event.amountCents?`${event.amountCents>0?'+':'−'}${money(Math.abs(event.amountCents))}`:'—'}</strong></div>`).join(''):'<p class="activity-empty">Your top-ups, openings and item activity will appear here.</p>';

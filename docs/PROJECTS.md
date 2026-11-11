@@ -11,7 +11,7 @@ This is the working plan for the next development batches. Keep each project sma
 - Post findings and completion updates in chat during active work; update this board and [STATUS.md](STATUS.md) at each completed batch. Work and updates do not run unattended between sessions.
 - No live purchases, production data changes, Firebase deployments, outbound messages, paid services or new customer commitments during local verification.
 
-## Current batch — reliability foundation
+## Completed foundation
 
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
@@ -21,32 +21,27 @@ This is the working plan for the next development batches. Keep each project sma
 
 R-01 is frontend-only. R-02 requires deploying `functions:ripprAccount`; this workspace does not deploy it. R-03 adds CI configuration; local checks do not establish that the hosted workflow has run.
 
-## Next — inventory access
+## Current batch — inventory, redemption and loading performance
 
-### R-04: Complete inventory, not just the newest 200 records
+| ID | Project | Status | Verified scope |
+| --- | --- | --- | --- |
+| R-04 | Complete inventory access | Complete in code; account Function deployment needed | Stable authenticated cursor pages for cards, packs and shipments. Load more in profile, museum editor and tracking. Loaded records/selection persist across refresh; stale account responses are discarded. Filters/search describe their loaded scope. |
+| R-05 | Seasonal pack redemption | Complete in code; account Function deployment needed | Sales flag stops new purchases/reward offers, not earned packs. Exact ownership lookup for deep links; current valid contents/version required; one redemption, zero debit. |
+| R-06 | Customer-journey regression checks | Implemented; see status for verification | Reusable Playwright fixture suite for auth return flows, sell/ship, older inventory, museum eligibility, order history, batch skip/interruption and seasonal redemption. CI setup includes browser installation. |
+| R-07 | Initial performance pass | Complete for active asset payloads | Lossless encoding of the five active pack sprites, reveal back and landing slab. Pack group is 35% smaller; dimensions/alpha preserved. [Measured scope](PERFORMANCE.md). No production load-time claim. |
 
-**Priority:** High. **Owner:** Website lead. **Status:** Next.
+R-04 and R-05 require the updated `ripprAccount` Function. No rules changes or new Function names. Deploy backend before frontend rollout. The previous 200-record **page size** remains; the former hard access limit is removed. Admin queue (100) and activity history (50) need separate pagination if those workflows grow.
 
-Confirmed: `functions/service.js` limits snapshot cards and unopened packs to 200. Profile search and filters operate on that limited result. An older available card can be hidden behind 200 newer sold cards. The current `hasMore` note is not pagination.
+## Next — fulfillment operations
 
-Scope:
-- Add authenticated cursor pagination for cards and unopened packs; define stable ordering for records with identical timestamps.
-- Keep older actionable cards and reward packs reachable. Distinguish searching loaded records from searching the full collection.
-- Preserve selection across page loads, deduplicate refreshes, and prevent account changes from leaking prior-account results.
-- Apply the same retrieval model to museum curation so older kept/shipped cards remain selectable.
-- Review the separate 50-shipment and 100-admin-request limits in the same data-access design.
-
-Done when tests cover >200 cards/packs, mixed sold/available items, identical timestamps, retries, refreshes, end-of-list and account switching. Ship backend and frontend together; document the deployment requirement.
+**R-08** is next: review the admin shipping queue, request lookup, status edits and conflict recovery; add older-queue access. Carrier quotes/dispatch and payment setup remain separate integrations. A broader accessibility/notification pass follows.
 
 ## Following — operations and experience
 
 | ID | Project | Why / definition of done |
 | --- | --- | --- |
-| R-05 | Seasonal pack redemption lifecycle | Separate ending sales from redeeming already-owned packs. Define an explicit policy for outstanding seasonal reward packs before changing redemption behavior; never substitute contents silently. |
-| R-06 | Signed-in journey regression checks | Exercise sign-up/login return paths, Remember me, opening interruption, batch skip, keep/sell, free inventory-pack opening, shipping requests and community on mobile/desktop using isolated fixtures. No production SMS or awards. |
-| R-07 | Performance budget | Measure cold-load asset use on home, opening and profile. Optimize oversized active images without changing artwork or pack alpha dimensions. Record before/after request bytes and verify layout/animation quality. |
 | R-08 | Fulfillment operator workflow | Validate queue discovery, status edits, conflict recovery, request lookup and customer tracking. Keep quote/provider integration separate and label unavailable estimates accurately. |
-| R-09 | Accessibility pass | Keyboard/focus checks for dialogs, forms and carousels; touch targets, reduced motion and error recovery. Record concrete issues and fix those found. Preserve profile focus during periodic snapshot refresh instead of replacing focused controls. |
+| R-09 | Accessibility pass | Keyboard/focus checks for dialogs, forms and carousels; touch targets, reduced motion and error recovery. Record concrete issues and fix those found. Profile card focus now survives unchanged refreshes; extend checks to the remaining dialogs/forms and changing content. |
 | R-10 | Operational visibility and notifications | Saved email/shipping notification preferences currently do not send messages; clarify the settings until delivery is implemented. Plan minimal error reporting and an admin audit view without capturing phone numbers, addresses, verification codes or tokens. External tools/costs require a concrete proposal first. |
 | R-11 | Brand and fulfillment content | Keep approved pack/Pip assets coherent. Replace concept packaging imagery with owner-supplied real fulfillment evidence when available; no fabricated social proof. |
 

@@ -1,3 +1,4 @@
+import {inventoryPage} from './inventory-service.js';
 import {REFERRAL_ACTIONS,referralService,readReferralConfig,validateSignupReferral} from './referral-service.js';
 import {SUPPORT_ACTIONS,supportService} from './support-service.js';
 import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
@@ -77,6 +78,14 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const result={version:patch.version};tx.create(op,{fingerprint,result,createdAt:stamp()});return result;
       });
     }
+    // Deep links can reference a pack older than the first inventory page.
+    if (action === 'inventoryPack') {
+      if(typeof data.inventoryPackId!=='string'||!/^[a-zA-Z0-9-]{16,80}$/.test(data.inventoryPackId))fail('invalid-argument','Choose a valid inventory pack.');
+      const saved=await db.runTransaction(tx=>tx.get(account.collection('packs').doc(data.inventoryPackId)));
+      if(!saved.exists)fail('not-found','This reward pack was not found in your account.');
+      return {pack:{...timestampJSON(saved.data()),id:saved.id}};
+    }
+    if (action === 'inventoryPage') return inventoryPage(db,uid,data);
     if (action === 'snapshot') {
       const snapshot = await db.runTransaction(async tx => {
         const found = await tx.get(account);
@@ -84,12 +93,13 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         return found.exists ? found.data() : { ...initial(uid), createdAt:null };
       });
       const [items, activity, packs, shipments] = await Promise.all([
-        account.collection('items').orderBy('wonAt','desc').limit(200).get(),
+        inventoryPage(db,uid,{collection:'items'}),
         account.collection('activity').orderBy('createdAt','desc').limit(50).get(),
-        account.collection('packs').orderBy('wonAt','desc').limit(200).get(),
-        account.collection('shipments').orderBy('createdAt','desc').limit(50).get()
+        inventoryPage(db,uid,{collection:'packs'}),
+        inventoryPage(db,uid,{collection:'shipments'})
       ]);
-      return { shipments:shipments.docs.map(s=>({...timestampJSON(s.data()),id:s.id})), packs:packs.docs.map(s=>({...timestampJSON(s.data()),id:s.id})), account:timestampJSON(snapshot), items:items.docs.map(s => ({ ...timestampJSON(s.data()), id:s.id })), activity:activity.docs.map(s => ({ ...timestampJSON(s.data()), id:s.id })), hasMore:items.size===200, freeTopups:freeTopups() };
+      const metadata=page=>({cursor:page.cursor,hasMore:page.hasMore});
+      return {shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},freeTopups:freeTopups()};
     }
     if (action === 'rewardState') {
       return db.runTransaction(async tx=>{
@@ -158,12 +168,16 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           if(!owned.exists||owned.data().status!=='available'||owned.data().packId!==data.packId)fail('failed-precondition','This inventory pack is unavailable or already opened. View your items for its saved card.');
         }
         const saved = await tx.get(db.doc(`packContents/${data.packId}`));
+        // Seasonal defaults are illustrative, not a replacement for a removed
+        // catalog. Keep an earned pack intact until its catalog is restored.
+        if(ownedRef&&data.packId==='icy-rush'&&!saved.exists)fail('failed-precondition','This seasonal pack needs its saved catalog restored before it can open.');
         let pack;
         try { pack = saved.exists ? readStoredPack(saved.data()) : defaultPack(data.packId); }
         catch { fail('failed-precondition','This pack needs its catalog corrected before it can open.'); }
-        if (!pack.enabled) fail('failed-precondition','This pack is currently unavailable.');
+        // Ending sales does not revoke a pack already owned by this account.
+        if (action==='purchase'&&!pack.enabled) fail('failed-precondition','This pack is currently unavailable.');
         const price = pack.priceCents ?? DEFAULT_PRICES[data.packId];
-        if (!Number.isSafeInteger(price) || price < 0) fail('failed-precondition','This pack needs a price configured before it can open.');
+        if (action==='purchase'&&(!Number.isSafeInteger(price) || price < 0)) fail('failed-precondition','This pack needs a price configured before it can open.');
         // User sees and authorizes this exact price; a changed admin price requires a new click.
         if ((action==='purchase'&&price !== data.expectedPriceCents) || pack.version !== data.expectedVersion) fail('failed-precondition','The pack price or contents changed. Reload the page before opening.');
         const total = ownedRef ? 0 : price * data.quantity;

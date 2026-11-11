@@ -24,7 +24,7 @@ for asset in sorted((ROOT / 'assets').glob('*.svg')):
     if not asset.name.startswith(('pack-', 'grail-', 'card-')):
         continue
     text = asset.read_text()
-    for raster in re.findall(r'data:image/png;base64,[A-Za-z0-9+/=]+', text):
+    for raster in re.findall(r'data:image/(?:png|webp);base64,[A-Za-z0-9+/=]+', text):
         if raster not in rasters:
             rasters.append(raster)
         text = text.replace(raster, '__RIPPR_RASTER_' + str(rasters.index(raster)) + '__')
@@ -60,7 +60,7 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
         audio_names=['click','rip','lift','build','flip','common','rare','epic','legendary','inventory']
         audio_files=sorted((ROOT / 'assets/audio').glob('*.wav'))
         offline_auth += 'window.RIPPR_OPENING_AUDIO_URLS=' + json.dumps({name:uri(path, 'audio/wav') for name,path in zip(audio_names,audio_files,strict=True)}) + ';'
-        offline_auth += 'window.RIPPR_REVEAL_BACK_URL=' + json.dumps(uri(ROOT / 'assets/reveal/rippr-card-back.png', 'image/png')) + ';'
+        offline_auth += 'window.RIPPR_REVEAL_BACK_URL=' + json.dumps(uri(ROOT / 'assets/reveal/rippr-card-back.webp', 'image/webp')) + ';'
     offline_auth += 'window.RIPPR_MASCOT_URLS=' + json.dumps(mascot_urls) + ';'
     offline_auth += "document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('img[data-pip]').forEach(img=>{img.src=window.RIPPR_MASCOT_URLS[img.dataset.pip];}));"
     text = re.sub(r'\s+src="assets/mascot/pip-(?:hover|welcome|celebrate)\.png"', '', text)

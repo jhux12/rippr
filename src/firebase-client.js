@@ -169,6 +169,13 @@ export async function accountAction(action, data = {}, operationId) {
   const call = httpsCallable(functions, 'ripprAccount', { timeout:30000 });
   return (await call({ action, ...data, ...(operationId ? { operationId } : {}) })).data;
 }
+export async function loadInventoryPack(inventoryPackId) {
+  await ready;
+  const uid=auth.currentUser?.uid;
+  if(!uid)throw Object.assign(new Error('Log in to view your reward pack.'),{code:'functions/unauthenticated'});
+  return (await accountAction('inventoryPack',{inventoryPackId,accountUid:uid})).pack;
+}
+
 export async function savePackContents(packId, pack, expectedVersion) {
   assertPackId(packId);
   const owner = await requireAdmin();
