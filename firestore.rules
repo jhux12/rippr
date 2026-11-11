@@ -12,7 +12,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return data.keys().hasAll(['items', 'enabled', 'version', 'totalChanceBps', 'updatedBy', 'updatedAt'])
         && data.keys().hasOnly(['items', 'enabled', 'version', 'totalChanceBps', 'updatedBy', 'updatedAt', 'priceCents'])
-        && data.items is list && data.items.size() > 0 && data.items.size() <= 100
+        && data.items is list && data.items.size() > 0 && data.items.size() <= 1000
         && data.enabled is bool
         && (!data.keys().hasAny(['priceCents']) || data.priceCents == null
           || (data.priceCents is int && data.priceCents >= 0 && data.priceCents <= 100000000))

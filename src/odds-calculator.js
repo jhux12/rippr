@@ -58,11 +58,15 @@ export function generateOdds(items, targetCents, { includeZero = false } = {}) {
   // Reduce EV drift from rounding with bounded one-basis-point transfers. This
   // is an approximation on a discrete grid, not a promise of an exact target.
   let actual = values.reduce((sum, value, i) => sum + value * odds[i], 0) / TOTAL;
+  // For each donor only the recipient values nearest the required transfer can
+  // improve EV. Binary search keeps large pools out of a quadratic pair scan.
+  const recipients=[...new Map(values.map((value,i)=>[value,i]).reverse()).entries()].map(([value,i])=>({value,i})).sort((a,b)=>a.value-b.value);
+  const nearest=target=>{let low=0,high=recipients.length;while(low<high){const middle=(low+high)>>>1;if(recipients[middle].value<target)low=middle+1;else high=middle}return [recipients[low-1],recipients[low]].filter(Boolean).sort((a,b)=>a.i-b.i)};
   for (let step = 0; step < 200; step++) {
     let best = Math.abs(actual - targetCents), move;
     for (let from = 0; from < odds.length; from++) {
       if (odds[from] <= 1) continue;
-      for (let to = 0; to < odds.length; to++) {
+      for (const {i:to} of nearest(values[from]+(targetCents-actual)*TOTAL)) {
         const delta = (values[to] - values[from]) / TOTAL;
         const error = Math.abs(actual + delta - targetCents);
         if (error < best - 1e-9) { best = error; move = { from, to, delta }; }

@@ -14,6 +14,16 @@ before(async () => {
   await env.clearFirestore(); await env.clearStorage();
 });
 after(async () => { await env?.cleanup(); });
+test('owner may publish 1,000 pack entries while 1,001 and member writes remain blocked',async()=>{
+  const owner=context(OWNER_PHONE),member=context('+12025550123');
+  const items=Array.from({length:1000},(_,i)=>({...defaultPack('basic').items[0],id:'large-'+i,chanceBps:10}));
+  const target=doc(owner.firestore(),'packContents/plus');
+  await env.withSecurityRulesDisabled(async ctx=>deleteDoc(doc(ctx.firestore(),'packContents/plus')));
+  const data={items,version:1,enabled:true,totalChanceBps:10000,priceCents:499,updatedBy:'owner',updatedAt:serverTimestamp()};
+  await assertSucceeds(setDoc(target,data));
+  await assertFails(setDoc(target,{...data,version:2,items:[...items,{...items[0],id:'extra'}]}));
+  await assertFails(setDoc(doc(member.firestore(),'packContents/plus'),{...data,version:2,updatedBy:'member'}));
+});
 test('library added dates use server time, survive edits and cannot be fabricated from a later legacy update',async()=>{
   const db=context(OWNER_PHONE).firestore(),id='dated-library',target=doc(db,'cardLibrary/'+id);
   const card=cleanLibraryCard({id,name:'Dated card',image:'assets/card-placeholder.svg'});

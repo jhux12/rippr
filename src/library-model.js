@@ -1,4 +1,4 @@
-import { RARITIES, safeImageURL, decimalToUnits, validGrading, gradingFields } from './catalog-model.js';
+import { MAX_PACK_ITEMS, RARITIES, safeImageURL, decimalToUnits, validGrading, gradingFields, validateItems } from './catalog-model.js';
 
 export const LIBRARY_BATCH_SIZE = 50;
 export const LIBRARY_IMPORT_LIMIT = 500;
@@ -125,6 +125,8 @@ export function addLibraryToPack(existing, cards) {
     const name = [card.name, [card.setName, card.number && `#${card.number}`].filter(Boolean).join(' '), card.finish !== 'Standard' ? card.finish : ''].filter(Boolean).join(' · ').slice(0,100);
     additions.push({ id:card.id, name, image:card.image, rarity:card.rarity, valueCents:card.valueCents, chanceBps:0, grail:false, ...gradingFields(card) });
   }
-  if (existing.length + additions.length > 100) throw new Error('A pack supports up to 100 cards. Choose fewer cards or remove some from its draft.');
+  if (existing.length + additions.length > MAX_PACK_ITEMS) throw new Error(`A pack supports up to ${MAX_PACK_ITEMS.toLocaleString('en-US')} cards. Choose fewer cards or remove some from its draft.`);
+  const issues=validateItems([...existing,...additions]).filter(issue=>issue!=='Pull chances must total exactly 100%.');
+  if(issues.length)throw new Error(issues[0]);
   return { items:[...existing, ...additions], added:additions.length, skipped:cards.length-additions.length };
 }

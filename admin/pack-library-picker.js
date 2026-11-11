@@ -15,7 +15,8 @@
     dialog.querySelectorAll('button,input,select').forEach(el=>{el.disabled=Boolean(blocked)});
     $('#pack-library-add').disabled=blocked||!selected.size||[...selected.values()].some(card=>!model.libraryCardReady(card));
     $('#pack-library-clear').disabled=blocked||!selected.size;
-    $('#pack-library-selection').textContent=`${selected.size} selected · ${Math.max(0,100-(target?.items.length||0))} slots available`;
+    $('#pack-library-selection').textContent=`${selected.size} selected · ${Math.max(0,catalog.MAX_PACK_ITEMS-(target?.items.length||0)-selected.size)} slots remaining`;
+    $('#pack-library-select-matches').disabled=blocked||!complete;
     dialog.querySelectorAll('[data-site-card]').forEach(el=>{const card=cards.get(el.dataset.siteCard);el.disabled=blocked||!card||(!model.libraryCardReady(card)&&!selected.has(card.id))||target?.items.some(i=>i.id===card.id)});
   }
   function results(){
@@ -81,16 +82,22 @@
   $('#pack-library-retry').addEventListener('click',()=>{message();void load()});
   $('#pack-library-refresh').addEventListener('click',()=>{if(adding||!owner())return;clearCache(true);message();render();void load()});
   $('#pack-library-clear').addEventListener('click',()=>{selected.clear();render()});
+  $('#pack-library-select-matches').addEventListener('click',()=>{
+    if(adding||!owner())return;
+    const existing=new Set(target.items.map(c=>c.id)),matches=results().filter(c=>!existing.has(c.id)&&model.libraryCardReady(c)&&!selected.has(c.id));
+    if(matches.length>catalog.MAX_PACK_ITEMS-target.items.length-selected.size){message('Matching cards exceed the remaining pack capacity. Narrow the filters or clear the selection first.',true);return}
+    matches.forEach(c=>selected.set(c.id,c));message();render();
+  });
   $('#pack-library-grid').addEventListener('change',event=>{
     const id=event.target.dataset.siteCard;if(!id||adding||!owner())return;
     if(!event.target.checked){selected.delete(id);controls();if($('#pack-library-selected-only').checked)render();return}
     const card=cards.get(id);if(!card||!model.libraryCardReady(card)||target.items.some(i=>i.id===id)){event.target.checked=false;return}
-    if(event.target.checked){if(selected.size>=100-target.items.length){event.target.checked=false;message('This pack supports up to 100 cards. Select fewer cards or remove some from the pack draft.',true);return}selected.set(id,card)}else selected.delete(id);
+    if(event.target.checked){if(selected.size>=catalog.MAX_PACK_ITEMS-target.items.length){event.target.checked=false;message(`This pack supports up to ${catalog.MAX_PACK_ITEMS.toLocaleString('en-US')} cards. Select fewer cards or remove some from the pack draft.`,true);return}selected.set(id,card)}else selected.delete(id);
     controls();if($('#pack-library-selected-only').checked)render();
   });
   $('#pack-library-add').addEventListener('click',async()=>{
     if(adding||!owner()||!selected.size)return;
-    const ticket=generation,uid=client.currentUser().uid;adding=true;message();controls();
+    const ticket=generation,uid=client.currentUser().uid;adding=true;message(`Checking ${selected.size} selected cards against the saved library…`);controls();
     const active=()=>ticket===generation&&owner()&&client.currentUser()?.uid===uid&&dialog.open;
     try{
       const saved=await client.lookupLibraryCards([...selected.keys()]);if(!active())return;

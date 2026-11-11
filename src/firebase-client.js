@@ -1,4 +1,4 @@
-import { gradingFields } from './catalog-model.js';
+import { gradingFields, MAX_PACK_ITEMS } from './catalog-model.js';
 import { initializeApp } from 'firebase/app';
 import {
   initializeAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver,
@@ -174,14 +174,16 @@ export async function loadLibraryPage({ search = '', cursor = null, pageSize = L
 }
 export async function lookupLibraryCards(ids) {
   await requireAdmin();
-  if (!Array.isArray(ids) || ids.length > 500 || ids.some(id => !/^[a-zA-Z0-9_-]{1,64}$/.test(id))) throw new Error('Choose up to 500 valid card IDs.');
-  const records = [];
-  // Bound read concurrency for large CSV previews.
-  for (let offset=0; offset<ids.length; offset+=10) {
-    const snapshots = await Promise.all(ids.slice(offset,offset+10).map(id=>getDoc(doc(getDatabase(),'cardLibrary',id))));
-    for (const snap of snapshots) if (snap.exists()) records.push(readLibraryRecord(snap.data()));
+  if (!Array.isArray(ids) || ids.length > MAX_PACK_ITEMS || ids.some(id => !/^[a-zA-Z0-9_-]{1,64}$/.test(id))) throw new Error(`Choose up to ${MAX_PACK_ITEMS.toLocaleString('en-US')} valid card IDs.`);
+  const records=new Map(),unique=[...new Set(ids)];
+  // Firestore supports 30 IDs per `in` query. Four queries at a time avoid
+  // thousands of individual HTTP lookups when filling a large pack.
+  for(let offset=0;offset<unique.length;offset+=120){
+    const chunks=[];for(let i=offset;i<Math.min(offset+120,unique.length);i+=30)chunks.push(unique.slice(i,i+30));
+    const snapshots=await Promise.all(chunks.map(chunk=>getDocs(query(collection(getDatabase(),'cardLibrary'),where(documentId(),'in',chunk)))));
+    for(const snapshot of snapshots)for(const snap of snapshot.docs)records.set(snap.id,readLibraryRecord(snap.data()));
   }
-  return records;
+  return ids.map(id=>records.get(id)).filter(Boolean);
 }
 export async function saveLibraryCards(cards) {
   const owner = await requireAdmin();

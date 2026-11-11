@@ -1,4 +1,23 @@
 export const OWNER_PHONE = '+17654794230';
+export const MAX_PACK_ITEMS = 1000;
+// Leave room below Firestore's 1 MiB document limit for document metadata.
+export const MAX_PACK_DOCUMENT_BYTES = 900 * 1024;
+const encoder = new TextEncoder();
+export function packDocumentBytes(items) {
+  const seen=new WeakSet();
+  function size(value,depth=0){
+    if(depth>20)return Infinity;
+    if(value===null)return 1;
+    if(typeof value==='string')return encoder.encode(value).length+1;
+    if(typeof value==='number')return 8;
+    if(typeof value==='boolean')return 1;
+    if(!value||typeof value!=='object'||seen.has(value))return Infinity;
+    seen.add(value);let bytes=Array.isArray(value)?0:32;
+    for(const [key,child]of Object.entries(value)){if(child===undefined&&!Array.isArray(value))continue;bytes+=(Array.isArray(value)?0:encoder.encode(key).length+1)+size(child,depth+1);if(bytes>MAX_PACK_DOCUMENT_BYTES)break}
+    seen.delete(value);return bytes;
+  }
+  return 2048+size(items);
+}
 export const PACK_IDS = ['basic', 'plus', 'premium', 'elite', 'ultimate', 'icy-rush'];
 export const DEFAULT_PRICES = { basic:199, plus:499, premium:1499, elite:2999, ultimate:9999, 'icy-rush':null };
 export const RARITIES = [
@@ -73,7 +92,7 @@ export function decimalToUnits(value) {
   return match ? Number(match[1]) * 100 + Number((match[2] || '').padEnd(2, '0')) : NaN;
 }
 export function validateItems(items) {
-  if (!Array.isArray(items) || items.length < 1 || items.length > 100) return ['Add between 1 and 100 cards.'];
+  if (!Array.isArray(items) || items.length < 1 || items.length > MAX_PACK_ITEMS) return [`Add between 1 and ${MAX_PACK_ITEMS.toLocaleString('en-US')} cards.`];
   const issues = [], ids = new Set();
   for (const [index, item] of items.entries()) {
     const label = `Card ${index + 1}`;
@@ -88,6 +107,7 @@ export function validateItems(items) {
     if (!safeImageURL(item.image)) issues.push(`${label} needs a valid image.`);
     if (!validGrading(item.grading)) issues.push(`${label} needs a grading company and grade from 1 to 10.`);
   }
+  if(!issues.length&&packDocumentBytes(items)>MAX_PACK_DOCUMENT_BYTES)issues.push('This pack is too large to save safely. Use shorter image URLs or fewer card entries.');
   if (items.reduce((total, item) => total + (Number.isInteger(item?.chanceBps) ? item.chanceBps : 0), 0) !== 10000) issues.push('Pull chances must total exactly 100%.');
   return issues;
 }

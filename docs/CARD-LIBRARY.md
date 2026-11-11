@@ -71,7 +71,8 @@ Open **Packs**, choose a tier, then **Browse site cards**. This picker selects f
 
 - Search by card name, set, number, finish or ID. Filter by site rarity, raw/graded condition and inclusive minimum/maximum USD value.
 - Sort by **Recently added**, value low/high or name. Hide cards already in the pack, or show selected cards only. Selections survive filter changes.
-- Cards without a value or site rarity are visible but cannot be selected. Cards already in the pack are marked and cannot be selected again. The pack limit remains 100 cards.
+- Cards without a value or site rarity are visible but cannot be selected. Cards already in the pack are marked and cannot be selected again. Each pack supports up to 1,000 card entries, subject to the document-size check.
+- **Select matching cards** selects all eligible matches once the complete library is loaded. If the matches exceed remaining capacity, it asks you to narrow filters rather than choosing a subset silently.
 - **Add selected to draft** fetches current saved records. If a selected card changed, its values/rarity are refreshed for review before adding again. Newly added cards start at 0% odds; existing cards retain their values, odds and grail flags. Slab grading is preserved.
 - Use the pack EV calculator (include zero-odds cards explicitly) or set odds yourself, then **Save changes** to publish. Closing the picker discards its unadded selection.
 
@@ -81,9 +82,19 @@ The picker loads the complete owner-only library in 200-record batches, displayi
 
 Library edits do not update previously added pack snapshots or historical winnings. This keeps CSV price changes from altering pack economics without review. Existing pack entries remain editable in the Packs view.
 
+## Large pack pools
+
+The shared catalog model, owner picker, manual editor and backend purchase validation support **1,000 entries per pack**. Each opening still awards exactly one card. The admin contents table renders 50 rows at a time with a show-more button and lazy artwork; search covers the entire pool. Selected-record checks use 30-ID Firestore queries with at most four concurrent queries, preserving selection order and avoiding one HTTP request per card.
+
+A conservative Firestore size estimate includes UTF-8 strings, field names, maps and metadata allowance. Drafts over **900 KiB** are rejected before adding/saving rather than relying on Firestore's hard 1 MiB failure. A pool with unusually long image URLs may reach this guard before 1,000 entries. Shorter valid image URLs or fewer entries resolve it; cards are never silently dropped.
+
+Auto odds uses binary searches for its EV rounding adjustment so large pools avoid the previous quadratic recipient scan. Odds still total exactly 10,000 basis points. Each included card receives at least 0.01%; with 1,000 included cards, this reserves 10% of total probability and constrains the reachable EV. Review the calculator's range and result before publishing. New draft entries remain at 0% until you set odds or explicitly include them in Auto odds.
+
+Deploy **functions:ripprAccount** and **firestore:rules** with the frontend before publishing larger pools. The updated shared model is copied into Functions by the predeploy build. Existing catalog documents and previously won cards are unchanged; no migration is required. Museum, Storage, secrets and indexes need no changes specifically for this capacity increase. Security Rules emulator tests remain blocked by the uncached Google-hosted JAR download in this workspace.
+
 ## Storage and release
 
-`cardLibrary/{stableId}` is owner-only Firestore data, paginated in groups of 50 using normalized name/document ID ordering. Saved-name search is a prefix search; it does not scan every card. There is no shared 100-card library cap. Selected cards are limited to 500 per operation. Images are referenced by URL; the importer does not upload or copy third-party artwork to Storage.
+`cardLibrary/{stableId}` is owner-only Firestore data, paginated in groups of 50 using normalized name/document ID ordering. Saved-name search is a prefix search; it does not scan every card. The reusable library is independent of per-pack capacity. Saved-library bulk/CSV operations retain their 500-card limit; the pack picker can select up to the pack’s remaining capacity. Images are referenced by URL; the importer does not upload or copy third-party artwork to Storage.
 
 Deploy the updated **Firestore rules before using live library saves**. The added-date metadata requires the updated **Firestore rules** before new imports/edits. This feature adds no Cloud Function, secret, Storage rule, subscription or paid provider. Normal Firestore reads/writes still apply. The cumulative deferred backend command is in [STATUS.md](STATUS.md). No deployment or production data mutation was performed during development.
 

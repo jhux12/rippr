@@ -10,6 +10,7 @@
   const packs = new Map(tiers.map(tier => [tier.id, model.defaultPack(tier.id)]));
   const loaded = new Set(), dirty = new Set();
   const priceInputs = new Map();
+  let rowsVisible=50,rowsQuery='',rowsPack=null;
   let oddsPreview = null, oddsUndo = null;
   let selectedPack = 'basic', selectedItem = 'first-light', currentImage, editorDirty = false;
   let newItem = false, busy = false, ownerUid = null, generation = 0, statusTimer;
@@ -84,11 +85,14 @@
   function renderRows() {
     const query = $('#card-search').value.trim().toLowerCase();
     const visible = pack().items.filter(item => item.name.toLowerCase().includes(query));
-    $('#item-rows').innerHTML = visible.map(item => {
+    if(query!==rowsQuery||selectedPack!==rowsPack){rowsVisible=50;rowsQuery=query;rowsPack=selectedPack}
+    $('#item-rows').innerHTML = visible.slice(0,rowsVisible).map(item => {
       const tone = model.RARITIES.find(rarity => rarity.name === item.rarity)?.color || '#adbdcf';
-      return `<tr data-item="${escape(item.id)}" class="${item.id === selectedItem && !newItem ? 'is-selected' : ''}"><td><div class="card-cell"><img src="${escape(imageURL(item.image))}" alt="" width="47" height="58"><span>${escape(item.name)}</span></div></td><td><span class="rarity-chip" style="--rarity:${tone}">${escape(item.rarity)}</span></td><td>${money.format(item.valueCents / 100)}</td><td>${percent(item.chanceBps)}%</td><td><button type="button" class="icon-button" aria-label="Edit ${escape(item.name)}" ${busy ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 15l12-12a2 2 0 0 1 3 0l2 2a2 2 0 0 1 0 3L9 20l-6 1 1-6Z"/></svg></button></td></tr>`;
+      return `<tr data-item="${escape(item.id)}" class="${item.id === selectedItem && !newItem ? 'is-selected' : ''}"><td><div class="card-cell"><img src="${escape(imageURL(item.image))}" alt="" width="47" height="58" loading="lazy"><span>${escape(item.name)}</span></div></td><td><span class="rarity-chip" style="--rarity:${tone}">${escape(item.rarity)}</span></td><td>${money.format(item.valueCents / 100)}</td><td>${percent(item.chanceBps)}%</td><td><button type="button" class="icon-button" aria-label="Edit ${escape(item.name)}" ${busy ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 15l12-12a2 2 0 0 1 3 0l2 2a2 2 0 0 1 0 3L9 20l-6 1 1-6Z"/></svg></button></td></tr>`;
     }).join('');
     $('#no-items').hidden = visible.length > 0;
+    $('#pack-items-count').textContent=`${Math.min(rowsVisible,visible.length)} of ${visible.length} cards shown · ${pack().items.length} / ${model.MAX_PACK_ITEMS.toLocaleString('en-US')} in pack`;
+    $('#pack-items-more').hidden=visible.length<=rowsVisible;
     const total = pack().items.reduce((sum, item) => sum + item.chanceBps, 0);
     $('#odds-total').textContent = `Total odds: ${percent(total)}%`;
     $('#odds-total').classList.toggle('is-invalid', total !== 10000);
@@ -237,13 +241,14 @@
     editor(pack().items.find(item => item.id === row.dataset.item)); renderRows();
   });
   $('#card-search').addEventListener('input', renderRows);
+  $('#pack-items-more').addEventListener('click',()=>{if(!busy){rowsVisible+=50;renderRows()}});
   $('#item-form').addEventListener('input', changedEditor);
   $('#item-form').addEventListener('change', changedEditor);
   $('#item-name').addEventListener('input', () => { $('#preview-name').textContent = $('#item-name').value || 'New card'; });
   $('#item-form').addEventListener('submit', event => { event.preventDefault(); if (!busy && owner() && stageItem()) status('Item updated in your draft. Save changes to publish it.'); });
   $('#add-item').addEventListener('click', async () => {
     if (busy || !await mayLeaveEditor()) return;
-    if (pack().items.length >= 100) { status('Each pack supports up to 100 cards.', true); return; }
+    if (pack().items.length >= model.MAX_PACK_ITEMS) { status(`Each pack supports up to ${model.MAX_PACK_ITEMS.toLocaleString('en-US')} cards.`, true); return; }
     editor({ id:crypto.randomUUID(), name:'', image:'assets/card-placeholder.svg', rarity:'Common', valueCents:0, chanceBps:0, grail:false }, true);
     renderRows(); $('#item-name').focus(); $('#editor-panel').scrollIntoView({ behavior:matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth', block:'nearest' });
   });

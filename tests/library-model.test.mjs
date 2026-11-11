@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanLibraryCard, validateLibraryCard, csvCandidates, parseCSV, importPreview, libraryCSV, addLibraryToPack, libraryCardReady, referenceURLValid, browseLibraryCards, libraryAddedTime } from '../src/library-model.js';
 import { cardFromTCGdex, createTCGdex, tcgdexImage, tcgplayerQuotes, matchingPriceQuote, importPriceQuote, providerPriceRange, sortProviderMatches } from '../src/library-provider.js';
-import { defaultPack } from '../src/catalog-model.js';
+import { defaultPack, MAX_PACK_ITEMS } from '../src/catalog-model.js';
 
 const raw = (extra = {}) => ({...cleanLibraryCard({id:'tdx-en-swsh7-215',name:'Umbreon VMAX',image:'https://assets.tcgdex.net/en/swsh/swsh7/215/high.webp',source:'tcgdex',sourceId:'swsh7-215',setName:'Evolving Skies',number:'215'}),...extra});
 test('library preserves unknown values and separates source rarity from rippr rarity',()=>{
@@ -45,7 +45,7 @@ test('adding library cards preserves every existing pack chance/value and keeps 
   const slab=raw({valueCents:30000,rarity:'Legendary',grading:{company:'PSA',grade:'10'}});
   const result=addLibraryToPack(pack.items,[slab,slab]);assert.equal(result.added,1);assert.equal(result.skipped,1);assert.deepEqual(result.items.slice(0,before.length),before);assert.equal(result.items.at(-1).chanceBps,0);assert.deepEqual(result.items.at(-1).grading,slab.grading);
   assert.throws(()=>addLibraryToPack(before,[raw()]),/needs a value/);
-  assert.throws(()=>addLibraryToPack(Array.from({length:100},(_,i)=>({...before[0],id:'x'+i})),[slab]),/up to 100/);
+  assert.throws(()=>addLibraryToPack(Array.from({length:MAX_PACK_ITEMS},(_,i)=>({...before[0],id:'x'+i})),[slab]),/up to 1,000/);
 });
 test('TCGdex adapter uses documented query/pagination, safe image host and stable English IDs',async()=>{
   const urls=[];

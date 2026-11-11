@@ -1,6 +1,15 @@
-# rippr status — prices and sorting in import search
+# rippr status — larger pack pools
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest 1,000-entry pack pools
+
+- Increased the shared catalog, manual editor, library-to-pack helper, picker and owner rules from 100 to **1,000 card entries per pack**. The backend uses the same copied validator. Each opening still awards one card; existing odds, prices and historical winnings are not migrated or changed.
+- Added a conservative UTF-8/map-aware **900 KiB** document budget below Firestore's 1 MiB hard limit. Oversized drafts are rejected with an actionable message, never silently truncated. Long image URLs can hit the size budget before the count limit.
+- Optimized the odds calculator's rounding adjustment using sorted recipient values and binary search. It preserves exact basis-point totals, minimum included odds, deterministic output and reachable EV checks.
+- Added Select matching cards within remaining capacity, a 50-row contents view with show-more/search and lazy artwork. The picker and lookups support the larger selection size; record lookups use bounded 30-ID queries instead of individual HTTP reads. Import/CSV limits remain separate.
+- Five new domain/service cases and three browser groups cover 1,000 entries, 1,001 rejection, UTF-8 size guards, large EV generation, server purchase/idempotency and bulk draft/save/overflow flows at 320/390/1440px. New owner rules cases are provided; emulator execution remains blocked by the JAR download.
+- Requires updated **ripprAccount** and **firestore.rules** before publishing pools above the prior limit. The cumulative deferred command below includes both. No new Function, index, secret or migration.
 
 ## Latest prices and sorting before import
 
@@ -87,9 +96,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **113 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- **118 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 726 local references.
-- **53 browser groups** cover the prior 50 journeys/layouts plus priced import search and cross-page sorting at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **56 browser groups** cover the prior 53 journeys/layouts plus large-pool bulk selection, EV calculation, 1,000-entry draft/save, bounded rendering and overflow rejection at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
@@ -97,7 +106,7 @@ The browser suite intercepts all HTTP and uses fixtures. It does not establish r
 
 ## Deferred deployment
 
-Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The card library adds owner-only Firestore access/validation rules, immutable added-date metadata and frontend tools; it needs no new Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed.
+Inventory pagination, exact owned-pack verification, seasonal redemption and the larger pack-pool validator use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The card library adds owner-only Firestore access/validation rules, immutable added-date metadata and frontend tools; it needs no new Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed.
 
 From the owner's authenticated Firebase checkout:
 

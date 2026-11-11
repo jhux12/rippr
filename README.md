@@ -12,6 +12,8 @@ The current development plan is in [docs/PROJECTS.md](docs/PROJECTS.md); the lat
 
 **Import → library → pack:** assign site rarity per card or in bulk in the import preview, then save to the library. Imports do not assign cards to packs. In **Packs → Browse site cards**, search the site library, filter by value, rarity and condition, sort by recently added/value/name, and add selected cards to the draft. Deploy the updated Firestore rules for immutable added-date metadata. Legacy dates that cannot be established are labeled unavailable.
 
+**Larger pack pools:** packs support up to **1,000 possible card entries**, while each opening still awards one card. The picker can select all matching eligible cards within remaining capacity. The pack table loads 50 rows at a time, and Auto odds supports the full pool. Deploy updated `ripprAccount` and Firestore rules before publishing pools above the previous limit.
+
 ## Landing page
 
 `/landing` is a separate responsive landing page with the shared header/footer, five live pack links, saved homepage grails, and shipping/sign-up links. The hero uses a transparent Charizard slab cutout derived from the supplied reference. It builds into `dist/landing.html`; Firebase and Vercel route configurations are included. No backend or rules changes are required.
@@ -142,7 +144,7 @@ Deploy the latest static build through the normal hosting flow. Link the owner's
 
 Open `/admin` (also `/admin/`). The sole owner is the Firebase account verified with **+1 765-479-4230**. Firestore, Storage and reward-setting writes independently require Firebase's trusted `phone_number` claim; the backend also binds that token to the request UID. The previous email alone grants no admin access. The account screen provides an owner-only admin link. No browser role/profile field grants admin rights.
 
-The editor manages five catalogs, prices, cards, names, rarities, values, image uploads, grails, per-card odds, enablement and stale-version conflicts. Each pack needs 1–100 cards with chances totaling exactly 100%, stored in basis points. Zero-chance cards are not drawn. JPG/PNG/WebP uploads are public, immutable and limited to 5 MB. Uploads need the repository's `storage.rules` published:
+The editor manages five catalogs, prices, cards, names, rarities, values, image uploads, grails, per-card odds, enablement and stale-version conflicts. Each pack supports 1–1,000 card entries with chances totaling exactly 100%, stored in basis points. A conservative 900 KiB document-size check prevents oversized saves; long image URLs can require a smaller pool. Zero-chance cards are not drawn. JPG/PNG/WebP uploads are public, immutable and limited to 5 MB. Uploads need the repository's `storage.rules` published:
 
 ```sh
 npm run deploy:rules
