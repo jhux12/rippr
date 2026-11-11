@@ -355,13 +355,16 @@
   window.RipprPackAdmin = {
     confirm:confirmAction,
     get busy() { return busy; },
+    snapshot() { return owner()?{id:selectedPack,name:tiers.find(t=>t.id===selectedPack).name,ready:loaded.has(selectedPack),items:structuredClone(pack().items)}:null; },
     cards() {
       if (!owner() || loaded.size !== tiers.length) throw new Error('Load saved pack contents before copying cards.');
       return [...new Map(tiers.flatMap(tier => packs.get(tier.id).items.map(item => [item.id, { ...item, source:'pack' }]))).values()];
     },
     async addCards(id, cards) {
       if (!owner() || busy || !loaded.has(id)) throw new Error('Wait for saved pack contents to load before adding cards.');
+      const uid=ownerUid;
       if (!await mayLeaveEditor()) return null;
+      if(!owner()||ownerUid!==uid||busy||!loaded.has(id))throw new Error('Your account or pack changed. Reopen the card picker.');
       const result = window.RipprLibrary.addLibraryToPack(packs.get(id).items, cards);
       selectedPack = id; $('#card-search').value = '';
       pack().items = result.items;

@@ -92,7 +92,8 @@ service cloud.firestore {
     function validLibraryCard(cardId) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','name','nameKey','image','setName','number','finish','source','sourceId','sourceRarity','referenceURL','rarity','valueCents','version','updatedBy','updatedAt'])
-        && d.keys().hasOnly(['id','name','nameKey','image','setName','number','finish','source','sourceId','sourceRarity','referenceURL','rarity','valueCents','grading','version','updatedBy','updatedAt'])
+        && d.keys().hasOnly(['id','name','nameKey','image','setName','number','finish','source','sourceId','sourceRarity','referenceURL','rarity','valueCents','grading','version','updatedBy','updatedAt','createdAt'])
+        && (d.get('createdAt', null) == null || d.createdAt is timestamp)
         && cardId.matches('[a-zA-Z0-9_-]{1,64}') && d.id == cardId
         && d.name is string && d.name.trim().size() > 0 && d.name.size() <= 100
         && d.nameKey is string && d.nameKey.size() > 0 && d.nameKey.size() <= 200
@@ -114,8 +115,13 @@ service cloud.firestore {
     }
     match /cardLibrary/{cardId} {
       allow read: if owner();
-      allow create: if owner() && validLibraryCard(cardId) && request.resource.data.version == 1;
-      allow update: if owner() && validLibraryCard(cardId) && request.resource.data.version == resource.data.version + 1;
+      allow create: if owner() && validLibraryCard(cardId) && request.resource.data.version == 1
+        && (request.resource.data.get('createdAt', null) == null || request.resource.data.createdAt == request.time);
+      allow update: if owner() && validLibraryCard(cardId) && request.resource.data.version == resource.data.version + 1
+        && (resource.data.get('createdAt', null) != null
+          ? request.resource.data.get('createdAt', null) == resource.data.createdAt
+          : (request.resource.data.get('createdAt', null) == null
+            || (resource.data.version == 1 && request.resource.data.createdAt == resource.data.updatedAt)));
       allow delete: if false;
     }
     // Free test balances and winnings are written exclusively by callable Functions.

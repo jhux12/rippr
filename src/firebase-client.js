@@ -8,7 +8,7 @@ import {
   RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, PhoneAuthProvider, updatePhoneNumber, reauthenticateWithCredential
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, getDocs, collection, query, orderBy, documentId, limit, startAfter, where, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
-import { cleanLibraryCard, validateLibraryCard, nameKey, LIBRARY_BATCH_SIZE } from './library-model.js';
+import { cleanLibraryCard, validateLibraryCard, nameKey, libraryAddedTime, LIBRARY_BATCH_SIZE } from './library-model.js';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL, getBytes } from 'firebase/storage';
 import { defaultRewards, readRewards } from './reward-model.js';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
@@ -138,13 +138,13 @@ function getImageStorage() {
   }
   return storage;
 }
-async function requireAdmin() {
+async function requireAdmin(refresh = true) {
   await ready;
   const user = auth.currentUser;
   if (!isAdminUser(user)) throw Object.assign(new Error('A verified owner phone sign-in is required.'), { code: 'catalog/permission-denied' });
   // Rules evaluate the token claims, which can lag behind the cached user profile.
   // Refresh before a privileged request so a newly linked phone reaches rules.
-  const { claims } = await getIdTokenResult(user, true);
+  const { claims } = await getIdTokenResult(user, refresh);
   if (auth.currentUser?.uid !== user.uid || !isAdminToken(claims, user.uid)) {
     throw Object.assign(new Error('Firebase has not confirmed this owner phone sign-in.'), { code:'catalog/permission-denied' });
   }
@@ -158,17 +158,19 @@ export async function loadPackContents(packId) {
 }
 
 // Separate reusable records: library edits never mutate a published pack.
-export async function loadLibraryPage({ search = '', cursor = null } = {}) {
-  await requireAdmin();
+const readLibraryRecord = data => ({...cleanLibraryCard(data),version:data.version,createdAt:libraryAddedTime(data)});
+export async function loadLibraryPage({ search = '', cursor = null, pageSize = LIBRARY_BATCH_SIZE } = {}) {
+  await requireAdmin(!cursor);
+  if(!Number.isSafeInteger(pageSize)||pageSize<1||pageSize>200)throw new Error('Library pages must contain between 1 and 200 cards.');
   const key = nameKey(search).slice(0,100);
   if (cursor && (cursor.search !== key || typeof cursor.nameKey !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(cursor.id))) throw new Error('Reload this library search.');
   const constraints = [orderBy('nameKey'), orderBy(documentId())];
   if (key) constraints.push(where('nameKey','>=',key), where('nameKey','<=',key+'\uf8ff'));
   if (cursor) constraints.push(startAfter(cursor.nameKey,cursor.id));
-  constraints.push(limit(LIBRARY_BATCH_SIZE+1));
+  constraints.push(limit(pageSize+1));
   const result = await getDocs(query(collection(getDatabase(),'cardLibrary'),...constraints));
-  const visible = result.docs.slice(0,LIBRARY_BATCH_SIZE), last = visible.at(-1);
-  return { cards:visible.map(d => ({...cleanLibraryCard(d.data()),version:d.data().version})), cursor:result.docs.length > LIBRARY_BATCH_SIZE ? { search:key, nameKey:last.data().nameKey, id:last.id } : null };
+  const visible = result.docs.slice(0,pageSize), last = visible.at(-1);
+  return { cards:visible.map(d => readLibraryRecord(d.data())), cursor:result.docs.length > pageSize ? { search:key, nameKey:last.data().nameKey, id:last.id } : null };
 }
 export async function lookupLibraryCards(ids) {
   await requireAdmin();
@@ -177,7 +179,7 @@ export async function lookupLibraryCards(ids) {
   // Bound read concurrency for large CSV previews.
   for (let offset=0; offset<ids.length; offset+=10) {
     const snapshots = await Promise.all(ids.slice(offset,offset+10).map(id=>getDoc(doc(getDatabase(),'cardLibrary',id))));
-    for (const snap of snapshots) if (snap.exists()) records.push({...cleanLibraryCard(snap.data()),version:snap.data().version});
+    for (const snap of snapshots) if (snap.exists()) records.push(readLibraryRecord(snap.data()));
   }
   return records;
 }
@@ -199,8 +201,12 @@ export async function saveLibraryCards(cards) {
     if (auth.currentUser?.uid !== owner.uid) throw new Error('Your account changed. Sign in again.');
     const saved = records.map((card,index)=>{
       const next = {...card,version:card.version+1};
-      tx.set(refs[index],{...next,nameKey:nameKey(card.name),updatedBy:owner.uid,updatedAt:serverTimestamp()});
-      return next;
+      const before=previous[index].exists()?previous[index].data():null;
+      // A legacy v1 update time is its actual first save; later update times
+      // cannot establish a creation date and are never presented as one.
+      const createdAt=before?(before.createdAt??(before.version===1?before.updatedAt:null)):serverTimestamp();
+      tx.set(refs[index],{...next,...(createdAt?{createdAt}:{}),nameKey:nameKey(card.name),updatedBy:owner.uid,updatedAt:serverTimestamp()});
+      return {...next,createdAt:before?libraryAddedTime(before):null};
     });
     return saved;
   });

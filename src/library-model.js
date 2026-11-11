@@ -33,6 +33,27 @@ export function validateLibraryCard(card) {
   return issues;
 }
 export function libraryCardReady(card) { return !validateLibraryCard(card).length && card.valueCents !== null && card.rarity !== null; }
+export function libraryAddedTime(data) {
+  const value=data.createdAt ?? (data.version===1?data.updatedAt:null);
+  const millis=typeof value==='number'?value:value?.toMillis?.();
+  return Number.isFinite(millis)&&millis>=0?millis:null;
+}
+export function browseLibraryCards(cards, {search='',rarity='',condition='',minValueCents=null,maxValueCents=null,sort='newest',excludeIds=[]}={}) {
+  if(!['newest','name','value-low','value-high'].includes(sort))throw new Error('Choose a valid sort order.');
+  if(!['','raw','graded'].includes(condition))throw new Error('Choose a valid condition.');
+  for(const value of [minValueCents,maxValueCents])if(value!==null&&(!Number.isSafeInteger(value)||value<0||value>100000000))throw new Error('Enter values from $0 to $1,000,000 with up to two decimal places.');
+  if(minValueCents!==null&&maxValueCents!==null&&minValueCents>maxValueCents)throw new Error('Minimum value must not exceed maximum value.');
+  const text=nameKey(search),excluded=new Set(excludeIds);
+  const visible=cards.filter(card=>!excluded.has(card.id)&&(!rarity||card.rarity===rarity)&&(!condition||(condition==='graded'?Boolean(card.grading):!card.grading))
+    &&(!text||nameKey([card.name,card.setName,card.number,card.id,card.finish].join(' ')).includes(text))
+    &&(minValueCents===null||(card.valueCents!==null&&card.valueCents>=minValueCents))&&(maxValueCents===null||(card.valueCents!==null&&card.valueCents<=maxValueCents)));
+  const alphabetical=(a,b)=>nameKey(a.name).localeCompare(nameKey(b.name),'en')||a.id.localeCompare(b.id,'en');
+  return visible.sort((a,b)=>{
+    if(sort==='newest'){const left=libraryAddedTime(a),right=libraryAddedTime(b);return(left===null)-(right===null)||(right??0)-(left??0)||alphabetical(a,b)}
+    if(sort==='value-low'||sort==='value-high')return(a.valueCents===null)-(b.valueCents===null)||(sort==='value-low'?(a.valueCents??0)-(b.valueCents??0):(b.valueCents??0)-(a.valueCents??0))||alphabetical(a,b);
+    return alphabetical(a,b);
+  });
+}
 
 // RFC 4180-style parser: quoted commas/newlines, doubled quotes, BOM, CRLF.
 export function parseCSV(text) {

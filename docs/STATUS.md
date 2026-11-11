@@ -1,6 +1,14 @@
-# rippr status — TCGplayer market-value previews
+# rippr status — import rarities and site-card picker
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest library-first imports and pack selection
+
+- TCG import previews now support a site rarity selector per card and an apply-to-all control. Import saves only update the site library; the library pack-assignment form was removed.
+- Packs now have **Browse site cards**: search name/set/number/finish/ID, inclusive min/max value, site rarity, raw/graded condition, recently added/value/name sorting, hide existing and selected-only views. Missing value/rarity and already-added cards cannot be selected.
+- Full-library batches (200 records), progress, cache, refresh, retry and 30-tile rendering avoid first-page-only filters. Selection survives filtering; current saved revisions are checked before staging new 0%-odds cards. Source changes require a second review; existing odds/values remain intact.
+- New records receive an immutable server added date. Legacy v1 first-save timestamps are usable; unknown creation times on edited legacy records remain unavailable and sort last. Requires the updated Firestore rules before new library saves; no Function, index or secret change.
+- Three new domain cases cover combined filters, stable value/date ordering and honest legacy dates. Three picker browser groups cover 320/390/1440px plus import rarity/no-pack-assignment checks in the existing library suite. Rules cases cover timestamp creation, preservation and invalid legacy backfill; emulator execution is still blocked by the uncached JAR download.
 
 ## Latest TCGplayer market-value previews
 
@@ -72,9 +80,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **108 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 725 local references.
-- **47 browser groups** cover the prior 44 journeys/layouts plus TCGplayer price previews, finish choices, manual card linking, slab exclusion, missing-price retention and priced imports at 320, 390 and 1440 pixels. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **111 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- Build and static HTML reference checks pass: 16 pages / 726 local references.
+- **50 browser groups** cover the prior 47 journeys/layouts plus the in-pack site-card picker at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
@@ -82,7 +90,7 @@ The browser suite intercepts all HTTP and uses fixtures. It does not establish r
 
 ## Deferred deployment
 
-Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The card library adds owner-only Firestore access/validation rules and a frontend bundle; it needs no new Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed.
+Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The card library adds owner-only Firestore access/validation rules, immutable added-date metadata and frontend tools; it needs no new Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed.
 
 From the owner's authenticated Firebase checkout:
 

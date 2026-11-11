@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanLibraryCard, validateLibraryCard, csvCandidates, parseCSV, importPreview, libraryCSV, addLibraryToPack, libraryCardReady, referenceURLValid } from '../src/library-model.js';
+import { cleanLibraryCard, validateLibraryCard, csvCandidates, parseCSV, importPreview, libraryCSV, addLibraryToPack, libraryCardReady, referenceURLValid, browseLibraryCards, libraryAddedTime } from '../src/library-model.js';
 import { cardFromTCGdex, createTCGdex, tcgdexImage, tcgplayerQuotes, matchingPriceQuote, importPriceQuote } from '../src/library-provider.js';
 import { defaultPack } from '../src/catalog-model.js';
 
@@ -103,4 +103,27 @@ test('price refresh bypasses cached card data and rejects mismatched provider ID
   assert.equal((await api.priceDetails('swsh7-215')).quotes[0].valueCents,200);
   assert.equal((await api.priceDetails('swsh7-215')).quotes[0].valueCents,300);
   await assert.rejects(api.priceDetails('swsh7-215'),/different card/);
+});
+test('library browsing combines inclusive value, site rarity, condition and full identity search',()=>{
+  const cards=[raw({id:'cheap',name:'Pikachu',rarity:'Rare',valueCents:100}),raw({id:'foil',rarity:'Rare',finish:'Reverse holo',valueCents:250}),raw({id:'slab',rarity:'Legendary',valueCents:500,grading:{company:'PSA',grade:'10'}}),raw({id:'unpriced'}),raw({id:'zero',valueCents:0,rarity:'Common'})];
+  assert.deepEqual(browseLibraryCards(cards,{minValueCents:100,maxValueCents:250,rarity:'Rare',condition:'raw',sort:'value-high'}).map(c=>c.id),['foil','cheap']);
+  assert.deepEqual(browseLibraryCards(cards,{search:'reverse holo'}).map(c=>c.id),['foil']);
+  assert.deepEqual(browseLibraryCards(cards,{condition:'graded'}).map(c=>c.id),['slab']);
+  assert.deepEqual(browseLibraryCards(cards,{minValueCents:0,maxValueCents:0}).map(c=>c.id),['zero']);
+  assert.deepEqual(browseLibraryCards(cards,{rarity:'Rare',excludeIds:['cheap']}).map(c=>c.id),['foil']);
+  assert.equal(browseLibraryCards(cards,{search:'evolving skies'}).length,5);
+});
+test('recently added uses immutable creation time, admits legacy v1 first-save time and keeps unknown dates last',()=>{
+  const cards=[raw({id:'changed',createdAt:1000,updatedAt:9000,version:5}),raw({id:'new',createdAt:3000,version:2}),raw({id:'legacy-first',updatedAt:2000,version:1}),raw({id:'unknown',updatedAt:10000,version:3})];
+  assert.deepEqual(browseLibraryCards(cards).map(c=>c.id),['new','legacy-first','changed','unknown']);
+  assert.equal(libraryAddedTime({createdAt:{toMillis:()=>123},version:2}),123);
+  assert.equal(libraryAddedTime({version:3,updatedAt:10000}),null);
+  assert.equal(libraryAddedTime({createdAt:NaN,version:2}),null);
+  assert.equal(cards[0].id,'changed');
+});
+test('value sorts keep unpriced records last, preserve zero and use stable name/ID ties',()=>{
+  const cards=[raw({id:'unknown',name:'A'}),raw({id:'zero',valueCents:0}),raw({id:'high',valueCents:500}),raw({id:'b',valueCents:100}),raw({id:'a',valueCents:100})];
+  assert.deepEqual(browseLibraryCards(cards,{sort:'value-low'}).map(c=>c.id),['zero','a','b','high','unknown']);
+  assert.deepEqual(browseLibraryCards(cards,{sort:'value-high'}).map(c=>c.id),['high','a','b','zero','unknown']);
+  for(const options of [{minValueCents:300,maxValueCents:200},{minValueCents:NaN},{maxValueCents:100000001},{sort:'fake'},{condition:'fake'}])assert.throws(()=>browseLibraryCards(cards,options));
 });

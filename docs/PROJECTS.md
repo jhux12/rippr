@@ -17,6 +17,8 @@ R-12 — **Reusable card library** is complete in code: owner-only paginated lib
 
 R-13 — **Listed TCGplayer market values** is complete in code following the owner's updated direction to use listed market values. Imports include USD market-value previews; saved cards support on-demand refresh, finish selection, provider-ID linking and source update-time display. Missing prices, slab values, prior winnings and existing pack odds/values are preserved. No new API key, Function or rules change. Exact Near Mint-only market data is not claimed; live provider access remains unverified here.
 
+R-14 — **Library-first imports and pack card picker** is complete in code: per-card/bulk site rarity during TCG import, library-only import saves, and an in-pack picker with full-library loading, value/rarity/condition/search filters, date/value/name sorting, selection persistence, version review and 0%-odds draft additions. Added dates are immutable for new cards; unknown historical dates remain unknown. Requires updated Firestore rules; no new Function/index/secret. Rules emulator remains network-blocked.
+
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
 | R-01 | Consistent fulfillment labels in My items | Complete in code; see deployment note | Request, review, packing, shipped and delivered reflect the saved shipment. Older items without a shipment still render. No sell/ship controls for fulfillment items. Mobile and desktop checked. |

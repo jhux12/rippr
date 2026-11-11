@@ -1,7 +1,7 @@
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, serverTimestamp, collection, getDocs, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { defaultPack, OWNER_PHONE } from '../src/catalog-model.js';
 import { cleanLibraryCard, nameKey } from '../src/library-model.js';
@@ -14,6 +14,22 @@ before(async () => {
   await env.clearFirestore(); await env.clearStorage();
 });
 after(async () => { await env?.cleanup(); });
+test('library added dates use server time, survive edits and cannot be fabricated from a later legacy update',async()=>{
+  const db=context(OWNER_PHONE).firestore(),id='dated-library',target=doc(db,'cardLibrary/'+id);
+  const card=cleanLibraryCard({id,name:'Dated card',image:'assets/card-placeholder.svg'});
+  const data={...card,nameKey:nameKey(card.name),version:1,updatedBy:'owner',updatedAt:serverTimestamp(),createdAt:serverTimestamp()};
+  await assertFails(setDoc(target,{...data,createdAt:Timestamp.fromMillis(1234)}));
+  await assertSucceeds(setDoc(target,data));const createdAt=(await getDoc(target)).data().createdAt;
+  await assertSucceeds(setDoc(target,{...data,createdAt,version:2,valueCents:500}));
+  await assertFails(setDoc(target,{...data,createdAt:Timestamp.fromMillis(5678),version:3}));
+  const legacy=doc(db,'cardLibrary/legacy-date'),legacyData={...data,id:'legacy-date'};delete legacyData.createdAt;
+  await assertSucceeds(setDoc(legacy,legacyData));const first=(await getDoc(legacy)).data().updatedAt;
+  await assertSucceeds(setDoc(legacy,{...legacyData,version:2,createdAt:first}));
+  const unknown=doc(db,'cardLibrary/unknown-date'),unknownData={...legacyData,id:'unknown-date'};
+  await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),'cardLibrary/unknown-date'),{...unknownData,version:2}));
+  await assertFails(setDoc(unknown,{...unknownData,version:3,createdAt:first}));
+  await assertSucceeds(setDoc(unknown,{...unknownData,version:3}));
+});
 test('library is owner-only, versioned, validates values/grades and never grants member writes',async()=>{
   const owner=context(OWNER_PHONE),member=context('+12025550123'),anon=env.unauthenticatedContext();
   const card=cleanLibraryCard({id:'rules-library',name:'Charizard',image:'assets/card-placeholder.svg'});

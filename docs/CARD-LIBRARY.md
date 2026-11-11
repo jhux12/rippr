@@ -7,8 +7,8 @@ This is a separate reusable catalog. Saving it does not publish or reprice packs
 
 1. Choose **Import Pokémon**. Search by card name (at least two letters), set ID, or both. For example, `Umbreon` and `swsh7`.
 2. Select up to 50 cards across search pages, then **Preview selected imports**.
-3. Review the name, set, number, artwork and listed TCGplayer USD market value. Existing library IDs are skipped. Choose the correct finish if multiple prices are available.
-4. Save to the library. In **Saved cards**, use bulk edit to set a rippr rarity. Cards without a listed price stay unpriced; you can enter their values manually. Source rarity is not silently mapped to a rippr prize tier.
+3. Review the name, set, number, artwork and listed TCGplayer USD market value. Set **Site rarity** on each card, or choose a rarity above the preview and **Apply to all imports**, then adjust individual cards. Existing library IDs are skipped. Choose the correct finish if multiple prices are available.
+4. **Save to library** stores cards without assigning them to any pack. You can also edit rarities later in Saved cards. Cards without a listed price stay unpriced; you can enter their values manually. Printed source rarity is not silently mapped to a site prize tier.
 5. Review the physical finish in **Edit** before pricing. TCGdex supplies card-level artwork, which does not identify which physical foil variant you intend to stock. Use a separate CSV ID for a reverse holo, other finish, or graded slab.
 
 English TCGdex imports use stable IDs such as `tdx-en-swsh7-215`. Search is paginated (24 results); detail requests run four at a time and have a 15-second timeout. Recent responses are cached in memory. Missing artwork or malformed details produce an error rather than invented card data. No API key is required by this public endpoint.
@@ -57,7 +57,17 @@ Every import has a preview. Saving uses atomic batches of at most 50 cards and c
 
 **Copy pack cards** previews the loaded pack drafts in the library and skips existing library IDs. No automatic migration runs.
 
-In **Saved cards**, select priced cards with a rippr rarity, choose a pack and click **Add to pack draft**. Existing IDs in that pack are skipped; their metadata, values, grail flags and odds stay unchanged. New cards start at 0% odds and are not grails automatically. Each pack retains its 100-card limit. Use its EV calculator (include the new zero-odds cards explicitly) or set odds yourself, review the total, then **Save changes** to publish. Library grades are retained.
+Open **Packs**, choose a tier, then **Browse site cards**. This picker selects from the saved site library; the library no longer has a separate pack-assignment form.
+
+- Search by card name, set, number, finish or ID. Filter by site rarity, raw/graded condition and inclusive minimum/maximum USD value.
+- Sort by **Recently added**, value low/high or name. Hide cards already in the pack, or show selected cards only. Selections survive filter changes.
+- Cards without a value or site rarity are visible but cannot be selected. Cards already in the pack are marked and cannot be selected again. The pack limit remains 100 cards.
+- **Add selected to draft** fetches current saved records. If a selected card changed, its values/rarity are refreshed for review before adding again. Newly added cards start at 0% odds; existing cards retain their values, odds and grail flags. Slab grading is preserved.
+- Use the pack EV calculator (include zero-odds cards explicitly) or set odds yourself, then **Save changes** to publish. Closing the picker discards its unadded selection.
+
+The picker loads the complete owner-only library in 200-record batches, displaying progress and 30 tiles at a time. Filters apply to all records loaded so far; the status explicitly marks ongoing loading and confirms when the full library is available. Errors retain loaded records and a retry cursor. The in-memory index is reused while the owner stays signed in; Refresh library reloads it, and library saves invalidate it. No new composite index is needed. This trades initial owner-only document reads for immediate combined filters and sorting; large catalogs may take time to load. Image requests are limited to displayed tiles and use lazy loading.
+
+**Recently added** uses immutable server `createdAt` timestamps on new records. For legacy version-1 records, the initial `updatedAt` is their first save and can be retained as the added date. Legacy records edited multiple times without a creation timestamp keep an unknown date and sort after known dates. Later edits are not presented as new additions; no historical dates are invented.
 
 Library edits do not update previously added pack snapshots or historical winnings. This keeps CSV price changes from altering pack economics without review. Existing pack entries remain editable in the Packs view.
 
@@ -65,6 +75,6 @@ Library edits do not update previously added pack snapshots or historical winnin
 
 `cardLibrary/{stableId}` is owner-only Firestore data, paginated in groups of 50 using normalized name/document ID ordering. Saved-name search is a prefix search; it does not scan every card. There is no shared 100-card library cap. Selected cards are limited to 500 per operation. Images are referenced by URL; the importer does not upload or copy third-party artwork to Storage.
 
-Deploy the updated **Firestore rules before using live library saves**. This feature adds no Cloud Function, secret, Storage rule, subscription or paid provider. Normal Firestore reads/writes still apply. The cumulative deferred backend command is in [STATUS.md](STATUS.md). No deployment or production data mutation was performed during development.
+Deploy the updated **Firestore rules before using live library saves**. The added-date metadata requires the updated **Firestore rules** before new imports/edits. This feature adds no Cloud Function, secret, Storage rule, subscription or paid provider. Normal Firestore reads/writes still apply. The cumulative deferred backend command is in [STATUS.md](STATUS.md). No deployment or production data mutation was performed during development.
 
-Verification: domain tests cover USD market quotes, finish matching, missing/invalid prices, timestamp handling, exact-ID updates, grades, CSV, pack invariants and provider failures. Browser fixtures cover 320/390/1440px, priced imports, finish selection, linking existing cards, slab exclusion, unavailable-price retention, version conflicts, import/edit/bulk/add flows, batch retry and sign-out cleanup. Rules tests cover private owner access, revisions and field validation; emulator execution remains blocked by its uncached JAR download.
+Verification: domain tests cover USD market quotes, finish matching, missing/invalid prices, timestamp handling, exact-ID updates, grades, CSV, pack invariants and provider failures. Browser fixtures cover 320/390/1440px, per-card/bulk import rarity, library-only imports, priced imports, finish selection, linking existing cards, slab exclusion, unavailable-price retention, version conflicts, full-library picker pagination/retry, combined filters, selection persistence, draft additions, disabled cards and sign-out cleanup. Rules tests cover private owner access, revisions and field validation; emulator execution remains blocked by its uncached JAR download.

@@ -63,10 +63,12 @@
   function priceRow(row) {
     const card=row.card, quote=row.quotes[0], chosen=row.quotes.find(q=>q.key===row.chosenKey), shown=chosen?{...card,finish:chosen.finish}:card, id=escape(card.id);
     const choices=quote?`<label class="library-price-choice" for="library-price-${id}">TCGplayer · USD</label><select id="library-price-${id}" class="library-price-select" data-market-choice="${id}"><option value="">${row.import?'Import without value':'Keep current value'}</option>${row.quotes.map(q=>`<option value="${escape(q.key)}" ${row.chosenKey===q.key?'selected':''}>${escape(q.finish)} · ${money.format(q.valueCents/100)}</option>`).join('')}</select><small>Feed updated ${escape(new Date(quote.updated).toLocaleString())}${quote.stale?' · over 7 days old':''}</small>`:'<small>No listed USD market price. Import stays unpriced.</small>';
-    return `<tr><td>${row.import?'New':row.chosenKey?'Update':'Keep'}</td><th scope="row">${escape(card.name)}<small>${escape(cardDetails(shown))}</small><small>${id}</small></th><td>${escape(card.rarity || 'Rarity not set')}<small>${escape(catalog.conditionLabel(card))}</small></td><td><small>Current: ${card.valueCents==null?'Not priced':money.format(card.valueCents/100)}</small>${choices}<small>Matched: ${escape(row.matchedName)} · ${escape(row.matched)}</small></td></tr>`;
+    const rarity=row.import?`<label class="library-price-choice" for="import-rarity-${id}">Site rarity</label><select class="library-price-select" id="import-rarity-${id}" data-import-rarity="${id}"><option value="">Not set</option>${catalog.RARITIES.map(r=>`<option ${card.rarity===r.name?'selected':''}>${r.name}</option>`).join('')}</select>`:escape(card.rarity || 'Rarity not set');
+    return `<tr><td>${row.import?'New':row.chosenKey?'Update':'Keep'}</td><th scope="row">${escape(card.name)}<small>${escape(cardDetails(shown))}</small><small>${id}</small></th><td>${rarity}<small>${escape(catalog.conditionLabel(card))}</small></td><td><small>Current: ${card.valueCents==null?'Not priced':money.format(card.valueCents/100)}</small>${choices}<small>Matched: ${escape(row.matchedName)} · ${escape(row.matched)}</small></td></tr>`;
   }
   function renderPreview() {
     $('#library-preview').hidden = !pending;
+    $('#library-import-rarity-tools').hidden = !pending?.marketRows?.some(row=>row.import);
     $('#library-price-notice').hidden = !pending?.marketRows;
     $('#library-price-warnings').textContent = pending?.marketWarnings?.join('\n') || ''; $('#library-price-warnings').hidden = !pending?.marketWarnings?.length;
     if (!pending) { $('#library-preview-rows').replaceChildren(); $('#library-preview-summary').textContent=''; $('#library-preview-errors').textContent=''; $('#library-preview-errors').hidden=true; controls(); return; }
@@ -147,10 +149,17 @@
     pending.errors=pending.changes.flatMap(c=>model.validateLibraryCard(c));
   }
   $('#library-preview-rows').addEventListener('change',event=>{
+    const importId=event.target.dataset.importRarity;
+    if(importId&&!busy&&owner()&&pending?.marketRows){const row=pending.marketRows.find(r=>r.import&&r.card.id===importId);if(!row)return;row.card.rarity=event.target.value||null;priceChanges();renderPreview();$(`#import-rarity-${CSS.escape(importId)}`)?.focus();return}
     const id=event.target.dataset.marketChoice;if(!id||busy||!owner()||!pending?.marketRows)return;
     const row=pending.marketRows.find(r=>r.card.id===id);if(!row)return;
     row.chosenKey=event.target.value;priceChanges();renderPreview();
     $('#library-preview-rows').querySelector(`[data-market-choice="${CSS.escape(id)}"]`)?.focus();
+  });
+  $('#library-import-rarity-apply').addEventListener('click',()=>{
+    if(busy||!owner()||!pending?.marketRows)return;
+    const rarity=$('#library-import-rarity').value;if(!rarity){message('Choose a site rarity to apply to the new imports.',true);return}
+    pending.marketRows.filter(row=>row.import).forEach(row=>{row.card.rarity=rarity});priceChanges();renderPreview();
   });
   $('#library-market-prices').addEventListener('click',()=>void run(async active=>{
     if(!selected.size||selected.size>50)throw new Error('Select between 1 and 50 cards to fetch market prices.');
@@ -219,13 +228,6 @@
     const changes=[...selected.values()].map(c=>({...c,...(rarity?{rarity}:{}),...(value?{valueCents:catalog.decimalToUnits(value)}:{})}));
     pending={changes,skipped:[],errors:changes.flatMap(c=>model.validateLibraryCard(c).map(e=>`${c.name}: ${e}`)),added:0,updated:changes.length};renderPreview();
   })});
-  $('#library-add-form').addEventListener('submit',event=>{event.preventDefault();void run(async active=>{
-    if(!selected.size)throw new Error('Select saved library cards first.');
-    // Refetch the selected records: pack drafts use their current saved library values.
-    const cards=await client.lookupLibraryCards([...selected.keys()]);if(!active())return;
-    if(cards.length!==selected.size)throw new Error('Some selected cards could not be found. Refresh and try again.');
-    await window.RipprPackAdmin.addCards($('#library-pack').value,cards);
-  })});
   $('#library-cancel-preview').addEventListener('click',()=>{pending=null;renderPreview();message('Preview discarded. No saved cards changed.')});
   $('#library-commit').addEventListener('click',()=>void run(async active=>{
     if(!pending?.changes.length||pending.errors.length)return;
@@ -236,6 +238,7 @@
       pending.changes.splice(0,chunk.length);savedCount+=saved.length;
       if(pending.marketRows){const ids=new Set(chunk.map(c=>c.id));pending.marketRows=pending.marketRows.filter(row=>!ids.has(row.card.id))}
       for(const c of saved){if(selected.has(c.id))selected.set(c.id,c);const at=rows.findIndex(r=>r.id===c.id);if(at>=0)rows[at]=c}
+      document.dispatchEvent(new CustomEvent('rippr:librarysaved',{detail:{ids:saved.map(c=>c.id)}}));
       pending.added=pending.changes.filter(c=>!c.version).length;pending.updated=pending.changes.length-pending.added;
       renderPreview();renderRows();message(`${savedCount} saved. ${pending.changes.length} remaining.`);
     }
@@ -252,7 +255,7 @@
   window.addEventListener('beforeunload',event=>{if(owner()&&(pending||editing)){event.preventDefault();event.returnValue=''}});
   window.RipprLibraryAdmin={get dirty(){return Boolean(pending||editing)},get busy(){return busy}};
   for(const id of ['library-bulk-rarity','library-edit-rarity'])$('#'+id).insertAdjacentHTML('beforeend',catalog.RARITIES.map(r=>`<option>${r.name}</option>`).join(''));
+  $('#library-import-rarity').insertAdjacentHTML('beforeend',catalog.RARITIES.map(r=>`<option>${r.name}</option>`).join(''));
   $('#library-edit-company').innerHTML=catalog.GRADING_COMPANIES.map(c=>`<option>${c}</option>`).join('');
-  $('#library-pack').innerHTML=window.RIPPR_PACKS.map(p=>`<option value="${p.id}">${escape(p.name)}</option>`).join('');
   renderRows();renderPreview();
 })();
