@@ -1,6 +1,14 @@
-# rippr status — reveal and results polish
+# rippr status — collector cards and welcome screens
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest collector/welcome polish
+
+- Unified profile card frames, visible card values (including zero), rarity capsules, selection/focus finishes and action spacing. Long names remain keyboard-scrollable; missing card art is explicitly labeled rather than replaced with unrelated artwork.
+- Community cards use aligned title/copy/action areas, consistent badges and restrained hover/focus treatment. Missing avatars use Pip; missing featured artwork is labeled honestly. Like counts and account data remain authoritative.
+- Login/signup/code screens retain the current forms and compact 88px mobile welcome strip. Copy changes with the step, the approved Pip/real-pack composition is preserved, inputs/code entry have consistent finishes, and floating Pip respects reduced motion. Welcome art uses an optimized small WebP.
+- Three new fixture browser groups cover 320/390/1440px, long names/focus, zero values, missing art/avatar, login/signup/referral/Remember me visibility and verification/reduced motion. Full sign-in/persistence mechanics are unchanged.
+- Frontend-only. Shipping and accumulated Firebase deployment remain deferred. No new authentication provider, rules, rewards or account-writing behavior.
 
 ## Latest reveal/results polish
 
@@ -39,8 +47,8 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 ## Verification
 
 - **91 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 712 local references.
-- **34 browser groups** cover 21 customer journeys, 6 settings/navigation, 3 branded feedback states and 4 reveal/results layouts at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
+- Build and static HTML reference checks pass: 16 pages / 715 local references.
+- **37 browser groups** cover 21 customer journeys, 6 settings/navigation, 3 branded feedback states, 4 reveal/results layouts and 3 collector/welcome layouts at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 

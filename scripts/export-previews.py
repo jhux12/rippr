@@ -46,6 +46,7 @@ bootstrap = '''(() => {
 
 
 def common(text):
+    text=text.replace('<link rel="stylesheet" href="identity-polish.css">','<style>'+(ROOT/'identity-polish.css').read_text()+'</style>')
     text=text.replace('<link rel="stylesheet" href="brand-states.css">','<style>'+(ROOT/'brand-states.css').read_text()+'</style>')
     # Offline design previews deliberately do not contact production Firebase.
     for filename in ['firebase-config.js', 'firebase-client.js', 'account-state.js']:
@@ -64,7 +65,7 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
         offline_auth += 'window.RIPPR_REVEAL_BACK_URL=' + json.dumps(uri(ROOT / 'assets/reveal/rippr-card-back.webp', 'image/webp')) + ';'
     offline_auth += 'window.RIPPR_MASCOT_URLS=' + json.dumps(mascot_urls) + ';'
     offline_auth += "document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('img[data-pip]').forEach(img=>{img.src=window.RIPPR_MASCOT_URLS[img.dataset.pip];}));"
-    text = re.sub(r'\s+src="assets/mascot/pip-(?:hover|welcome|celebrate)\.png"', '', text)
+    text = re.sub(r'\s+src="assets/mascot/pip-(?:hover|welcome|celebrate)(?:-small)?\.(?:png|webp)"', '', text)
     text = text.replace('<link rel="stylesheet" href="mascot.css">', '<style>' + (ROOT / 'mascot.css').read_text() + '</style>')
     text = text.replace('</head>', '<script>' + offline_auth + '</script></head>')
     text=text.replace('<script src="referral-model.js" defer></script>','<script>'+(ROOT/'referral-model.js').read_text()+'</script>')
@@ -186,7 +187,7 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
     source_files = ['museum.html','museum.css','museum.js','community.html','community.css','community.js','landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
-                    'referral-model.js','referrals.js','referrals.css','catalog.js', 'opening-audio.js', 'opening-foil.js', 'opening-foil.css', 'opening-theater.css', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
+                    'identity-polish.css','brand-states.css','reveal-polish.css','referral-model.js','referrals.js','referrals.css','catalog.js', 'opening-audio.js', 'opening-foil.js', 'opening-foil.css', 'opening-theater.css', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:
         archive.write(ROOT / name, 'rippr/' + name)
     for folder in ['scripts', 'src', 'assets', 'admin', 'tests', 'functions', 'partials']:

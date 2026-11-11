@@ -69,6 +69,9 @@
   }
   function setBusy(value,kind='') { busy=value; operation=value?kind:''; controls(); }
   function renderStep() {
+    document.body.dataset.authMode=signup?'signup':'login';
+    $('#visual-title').textContent=step==='code'?'A little code. A new pull.':user?'Keep your collection.':signup?'Your collection starts here.':'Good to see you.';
+    document.querySelector('.visual-heading p').textContent=step==='code'?'Your next discovery is close.':signup?'One pack. One card. Something unexpected.':'Your cards. Your collection. Your next discovery.';
     $('#phone-step').hidden=referralPending||step!=='phone'; $('#code-step').hidden=referralPending||step!=='code'; $('#code-actions').hidden=referralPending||step!=='code';$('#skip-invite').hidden=!referralPending;
     phone.required=!referralPending&&step==='phone'; code.required=!referralPending&&step==='code';
     $('#auth-title').textContent=referralPending?'Check your invite code':step==='code'?'Enter your code':user?'Link your phone':signup?'Create your account':'Welcome back';

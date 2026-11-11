@@ -392,3 +392,8 @@ Notification switches save preferences but do not send email; the settings page 
 ## Reveal and results finishes
 
 `reveal-polish.css` refines typography, rarity/value presentation, action finishes and result cards while preserving the existing stage geometry and animation timing. Names split on spaced dash separators into a primary name and lighter detail. Long reveal/result names remain keyboard-scrollable and retain their full accessible name. Results include visible values, actual item disposition, a batch summary and missing-art fallback. Four additional fixture browser groups test phone/desktop/landscape, long names, mixed keep/sell outcomes and a failed sale retry. This is frontend-only.
+
+
+## Collector cards and welcome finishes
+
+`identity-polish.css` aligns profile and Community card framing, typography, badges, values, action states and focus treatment. Profile names scroll by keyboard when long, card values include valid zero values, missing card artwork is labeled explicitly, and missing Community avatars use Pip. Sign-in retains its two modes, referral-before-SMS flow, Remember me option, legacy linking and return destinations. Welcome copy follows the phone/code step; mobile retains an 88px strip and desktop retains real pack/Pip artwork. The optimized welcome WebP and reduced-motion-aware float keep it lightweight and restrained. Three additional fixture browser groups cover the collector and welcome layouts. No backend deployment is added by this frontend batch.
