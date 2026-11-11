@@ -88,6 +88,36 @@ service cloud.firestore {
       allow create: if owner() && validHomepageGrails() && request.resource.data.version == 1;
       allow update: if owner() && validHomepageGrails() && request.resource.data.version == resource.data.version + 1;
     }
+    // Private reusable catalog. Each record is independent of pack prices/odds.
+    function validLibraryCard(cardId) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','name','nameKey','image','setName','number','finish','source','sourceId','sourceRarity','referenceURL','rarity','valueCents','version','updatedBy','updatedAt'])
+        && d.keys().hasOnly(['id','name','nameKey','image','setName','number','finish','source','sourceId','sourceRarity','referenceURL','rarity','valueCents','grading','version','updatedBy','updatedAt'])
+        && cardId.matches('[a-zA-Z0-9_-]{1,64}') && d.id == cardId
+        && d.name is string && d.name.trim().size() > 0 && d.name.size() <= 100
+        && d.nameKey is string && d.nameKey.size() > 0 && d.nameKey.size() <= 200
+        && d.image is string && d.image.size() <= 2048
+        && ((d.image.matches('assets/[a-zA-Z0-9/_.-]+') && !d.image.matches('.*\\.\\..*')) || d.image.matches('https://[^/ @]+(/[^ ]*)?'))
+        && d.setName is string && d.setName.size() <= 120
+        && d.number is string && d.number.size() <= 30
+        && d.finish is string && d.finish.trim().size() > 0 && d.finish.size() <= 60
+        && d.source in ['manual','tcgdex','pack']
+        && d.sourceId is string && d.sourceId.size() <= 80
+        && d.sourceRarity is string && d.sourceRarity.size() <= 80
+        && d.referenceURL is string && d.referenceURL.size() <= 2048
+        && (d.referenceURL == '' || d.referenceURL.matches('https://(www\\.)?tcgplayer\\.com(/[^ ]*)?'))
+        && (d.rarity == null || d.rarity in ['Common','Uncommon','Rare','Ultra rare','Special rare','Epic','Legendary'])
+        && (d.valueCents == null || (d.valueCents is int && d.valueCents >= 0 && d.valueCents <= 100000000))
+        && validGrading(d)
+        && d.version is int && d.version > 0
+        && d.updatedBy == request.auth.uid && d.updatedAt == request.time;
+    }
+    match /cardLibrary/{cardId} {
+      allow read: if owner();
+      allow create: if owner() && validLibraryCard(cardId) && request.resource.data.version == 1;
+      allow update: if owner() && validLibraryCard(cardId) && request.resource.data.version == resource.data.version + 1;
+      allow delete: if false;
+    }
     // Free test balances and winnings are written exclusively by callable Functions.
     // Members may inspect only their own records; no browser can mint credit/items.
     match /testAccounts/{uid} {

@@ -7,7 +7,8 @@ import {
   sendEmailVerification, sendPasswordResetEmail, reload, getIdTokenResult,
   RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, PhoneAuthProvider, updatePhoneNumber, reauthenticateWithCredential
 } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
+import { getFirestore, connectFirestoreEmulator, doc, getDoc, getDocs, collection, query, orderBy, documentId, limit, startAfter, where, runTransaction, serverTimestamp } from 'firebase/firestore/lite';
+import { cleanLibraryCard, validateLibraryCard, nameKey, LIBRARY_BATCH_SIZE } from './library-model.js';
 import { getStorage, connectStorageEmulator, ref, uploadBytes, getDownloadURL, getBytes } from 'firebase/storage';
 import { defaultRewards, readRewards } from './reward-model.js';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
@@ -154,6 +155,55 @@ export async function loadPackContents(packId) {
   const snapshot = await getDoc(doc(getDatabase(), 'packContents', packId));
   const pack = snapshot.exists() ? readStoredPack(snapshot.data()) : defaultPack(packId);
   return { ...pack, priceCents:pack.priceCents ?? DEFAULT_PRICES[packId] };
+}
+
+// Separate reusable records: library edits never mutate a published pack.
+export async function loadLibraryPage({ search = '', cursor = null } = {}) {
+  await requireAdmin();
+  const key = nameKey(search).slice(0,100);
+  if (cursor && (cursor.search !== key || typeof cursor.nameKey !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(cursor.id))) throw new Error('Reload this library search.');
+  const constraints = [orderBy('nameKey'), orderBy(documentId())];
+  if (key) constraints.push(where('nameKey','>=',key), where('nameKey','<=',key+'\uf8ff'));
+  if (cursor) constraints.push(startAfter(cursor.nameKey,cursor.id));
+  constraints.push(limit(LIBRARY_BATCH_SIZE+1));
+  const result = await getDocs(query(collection(getDatabase(),'cardLibrary'),...constraints));
+  const visible = result.docs.slice(0,LIBRARY_BATCH_SIZE), last = visible.at(-1);
+  return { cards:visible.map(d => ({...cleanLibraryCard(d.data()),version:d.data().version})), cursor:result.docs.length > LIBRARY_BATCH_SIZE ? { search:key, nameKey:last.data().nameKey, id:last.id } : null };
+}
+export async function lookupLibraryCards(ids) {
+  await requireAdmin();
+  if (!Array.isArray(ids) || ids.length > 500 || ids.some(id => !/^[a-zA-Z0-9_-]{1,64}$/.test(id))) throw new Error('Choose up to 500 valid card IDs.');
+  const records = [];
+  // Bound read concurrency for large CSV previews.
+  for (let offset=0; offset<ids.length; offset+=10) {
+    const snapshots = await Promise.all(ids.slice(offset,offset+10).map(id=>getDoc(doc(getDatabase(),'cardLibrary',id))));
+    for (const snap of snapshots) if (snap.exists()) records.push({...cleanLibraryCard(snap.data()),version:snap.data().version});
+  }
+  return records;
+}
+export async function saveLibraryCards(cards) {
+  const owner = await requireAdmin();
+  if (!Array.isArray(cards) || !cards.length || cards.length > LIBRARY_BATCH_SIZE || new Set(cards.map(c=>c.id)).size !== cards.length) throw new Error('Save up to 50 unique library cards at a time.');
+  const records = cards.map(input => {
+    const card = cleanLibraryCard(input), issues = validateLibraryCard(card);
+    if (issues.length || !Number.isSafeInteger(input.version) || input.version < 0) throw new Error(issues[0] || 'Invalid library version. Reload the card.');
+    return {...card,version:input.version};
+  });
+  return runTransaction(getDatabase(), async tx => {
+    const refs = records.map(c=>doc(getDatabase(),'cardLibrary',c.id));
+    const previous = await Promise.all(refs.map(ref=>tx.get(ref)));
+    records.forEach((card,index)=>{
+      const version = previous[index].exists() ? previous[index].data().version : 0;
+      if (version !== card.version) throw Object.assign(new Error(`${card.name} changed in another session. Rebuild the preview before saving again.`),{code:'catalog/conflict'});
+    });
+    if (auth.currentUser?.uid !== owner.uid) throw new Error('Your account changed. Sign in again.');
+    const saved = records.map((card,index)=>{
+      const next = {...card,version:card.version+1};
+      tx.set(refs[index],{...next,nameKey:nameKey(card.name),updatedBy:owner.uid,updatedAt:serverTimestamp()});
+      return next;
+    });
+    return saved;
+  });
 }
 
 let functions;

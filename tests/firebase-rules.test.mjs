@@ -4,6 +4,7 @@ import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebas
 import { doc, setDoc, getDoc, deleteDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { defaultPack, OWNER_PHONE } from '../src/catalog-model.js';
+import { cleanLibraryCard, nameKey } from '../src/library-model.js';
 
 let env;
 const context = (phone, verified = true) => env.authenticatedContext(phone === OWNER_PHONE ? 'owner' : 'member', verified ? {phone_number:phone} : {});
@@ -13,6 +14,17 @@ before(async () => {
   await env.clearFirestore(); await env.clearStorage();
 });
 after(async () => { await env?.cleanup(); });
+test('library is owner-only, versioned, validates values/grades and never grants member writes',async()=>{
+  const owner=context(OWNER_PHONE),member=context('+12025550123'),anon=env.unauthenticatedContext();
+  const card=cleanLibraryCard({id:'rules-library',name:'Charizard',image:'assets/card-placeholder.svg'});
+  const data={...card,nameKey:nameKey(card.name),version:1,updatedBy:'owner',updatedAt:serverTimestamp()};
+  const target=doc(owner.firestore(),'cardLibrary/rules-library');
+  await assertSucceeds(setDoc(target,data));await assertSucceeds(getDoc(target));await assertSucceeds(getDocs(collection(owner.firestore(),'cardLibrary')));
+  for(const ctx of [member,anon]){await assertFails(getDoc(doc(ctx.firestore(),'cardLibrary/rules-library')));await assertFails(getDocs(collection(ctx.firestore(),'cardLibrary')));await assertFails(setDoc(doc(ctx.firestore(),'cardLibrary/not-owner'),{...data,id:'not-owner'}))}
+  for(const changes of [{valueCents:-1},{valueCents:100000001},{rarity:'Fake'},{grading:{company:'PSA',grade:'9.5'}},{referenceURL:'https://tcgplayer.com.evil.test/product/1'},{source:'fake'},{extra:'field'},{version:1}])await assertFails(setDoc(target,{...data,version:2,...changes}));
+  await assertSucceeds(setDoc(target,{...data,version:2,rarity:'Rare',valueCents:250,grading:{company:'PSA',grade:'10'}}));
+  await assertFails(deleteDoc(target));
+});
 test('verified phone owner can create and update a pack; visitors can read it', async () => {
   const target = doc(context(OWNER_PHONE).firestore(), 'packContents/basic');
   await assertSucceeds(setDoc(target,payload()));

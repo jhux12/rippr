@@ -185,6 +185,8 @@ landing=landing.replace('</body>','<script>'+bootstrap+'</script><script>'+(ROOT
 (OUT/'rippr-landing.html').write_text(common(landing))
 
 with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+    archive.write(ROOT / 'THIRD_PARTY_NOTICES.md', 'rippr/THIRD_PARTY_NOTICES.md')
+    archive.write(ROOT / 'docs/CARD-LIBRARY.md', 'rippr/docs/CARD-LIBRARY.md')
     source_files = ['museum.html','museum.css','museum.js','community.html','community.css','community.js','landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
                     'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',

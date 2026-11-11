@@ -4,6 +4,10 @@ A responsive five-tier pack-opening site with Firebase accounts, Pip branding, a
 
 The current development plan is in [docs/PROJECTS.md](docs/PROJECTS.md); the latest completed work and verification limits are in [docs/STATUS.md](docs/STATUS.md). Legal decisions and payment-provider setup remain with the business owner.
 
+## Reusable card library
+
+`/admin → Card library` now supports English Pokémon imports from TCGdex, CSV imports/value updates, preview/duplicate handling, bulk value and rarity edits, graded slabs and selection into pack drafts. A TCGplayer API key is not needed; optional TCGplayer links are references, with values supplied by the owner. Imported cards start unpriced and without a rippr rarity. Existing pack values/odds are never automatically rewritten. Deploy the updated owner-only Firestore rules before saving live library records. See [the library guide](docs/CARD-LIBRARY.md) for usage, CSV format, limits and live-provider verification status.
+
 ## Landing page
 
 `/landing` is a separate responsive landing page with the shared header/footer, five live pack links, saved homepage grails, and shipping/sign-up links. The hero uses a transparent Charizard slab cutout derived from the supplied reference. It builds into `dist/landing.html`; Firebase and Vercel route configurations are included. No backend or rules changes are required.

@@ -74,7 +74,6 @@
     });
     $('#page-title').textContent = { packs:'Packs', library:'Card library', members:'Members', settings:'Settings', rewards:'Daily rewards',shipping:'Shipping requests',support:'Support inbox',referrals:'Referrals' }[name];
     document.title = `${$('#page-title').textContent} — rippr Admin`;
-    if (name === 'library') renderLibrary();
     document.dispatchEvent(new CustomEvent('rippr:adminview',{detail:{name}}));
     setSidebar(false);
     if (focus) $('#workspace').focus({ preventScroll:true });
@@ -191,19 +190,9 @@
     if (!editorDirty) editor(pack().items.find(item => item.id === selectedItem) || pack().items.at(-1));
     setBusy(false); renderPack();
   }
-  function renderLibrary() {
-    const cards = new Map();
-    for (const tier of tiers) for (const item of packs.get(tier.id).items) {
-      const key = `${item.id}:${item.name}:${item.image}`;
-      if (!cards.has(key)) cards.set(key, { ...item, packs:[] });
-      cards.get(key).packs.push(tier);
-    }
-    const query = $('#library-search').value.trim().toLowerCase();
-    $('#library-grid').innerHTML = [...cards.values()].filter(item => item.name.toLowerCase().includes(query)).map(item => `<article class="library-card"><img src="${escape(imageURL(item.image))}" alt="${escape(item.name)}" loading="lazy"><h3>${escape(item.name)}</h3><span class="rarity-chip" style="--rarity:${model.RARITIES.find(rarity => rarity.name === item.rarity).color}">${escape(item.rarity)}</span><p>${item.packs.map(tier => tier.name).join(' · ')}</p><button type="button" class="button secondary" data-library-pack="${item.packs[0].id}" data-library-item="${escape(item.id)}">Edit in ${item.packs[0].name}</button></article>`).join('') || '<p class="empty-state">No cards found.</p>';
-  }
   async function signOut() {
-    if (busy || window.RipprHomepageAdmin?.busy) return;
-    if ((dirty.size || editorDirty || window.RipprHomepageAdmin?.dirty) && !await confirmAction('Sign out with unsaved changes?', 'Your unsaved edits will be discarded.', 'Sign out')) return;
+    if (busy || window.RipprHomepageAdmin?.busy || window.RipprLibraryAdmin?.busy) return;
+    if ((dirty.size || editorDirty || window.RipprHomepageAdmin?.dirty || window.RipprLibraryAdmin?.dirty) && !await confirmAction('Sign out with unsaved changes?', 'Your unsaved edits will be discarded.', 'Sign out')) return;
     try { await client.signOut(); renderAccess(); } catch { status('Could not sign out. Please retry.', true); }
   }
   function renderAccess() {
@@ -248,7 +237,6 @@
     editor(pack().items.find(item => item.id === row.dataset.item)); renderRows();
   });
   $('#card-search').addEventListener('input', renderRows);
-  $('#library-search').addEventListener('input', renderLibrary);
   $('#item-form').addEventListener('input', changedEditor);
   $('#item-form').addEventListener('change', changedEditor);
   $('#item-name').addEventListener('input', () => { $('#preview-name').textContent = $('#item-name').value || 'New card'; });
@@ -364,10 +352,25 @@
   $('#pack-settings-tab').addEventListener('click', () => chooseTab(true));
   $('.pack-tabs').addEventListener('keydown', event => { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); const settings = event.key === 'End' || (event.key !== 'Home' && $('#contents-tab').getAttribute('aria-selected') === 'true'); chooseTab(settings); $(settings ? '#pack-settings-tab' : '#contents-tab').focus(); } });
   document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => { if (!busy) view(button.dataset.view, mobile.matches); }));
-  $('#library-grid').addEventListener('click', async event => {
-    const button = event.target.closest('[data-library-pack]'); if (!button || busy || !await mayLeaveEditor()) return;
-    selectedPack = button.dataset.libraryPack; editor(pack().items.find(item => item.id === button.dataset.libraryItem)); renderPack(); chooseTab(false); view('packs', true);
-  });
+  window.RipprPackAdmin = {
+    confirm:confirmAction,
+    get busy() { return busy; },
+    cards() {
+      if (!owner() || loaded.size !== tiers.length) throw new Error('Load saved pack contents before copying cards.');
+      return [...new Map(tiers.flatMap(tier => packs.get(tier.id).items.map(item => [item.id, { ...item, source:'pack' }]))).values()];
+    },
+    async addCards(id, cards) {
+      if (!owner() || busy || !loaded.has(id)) throw new Error('Wait for saved pack contents to load before adding cards.');
+      if (!await mayLeaveEditor()) return null;
+      const result = window.RipprLibrary.addLibraryToPack(packs.get(id).items, cards);
+      selectedPack = id; $('#card-search').value = '';
+      pack().items = result.items;
+      if (result.added) markDirty();
+      editor(pack().items.at(-1)); renderPack(); chooseTab(false); view('packs', true);
+      status(`${result.added} cards added to the draft at 0% odds. ${result.skipped} existing IDs skipped. Set odds or use the EV calculator, then save changes.`);
+      return result;
+    }
+  };
   $('#sidebar-toggle').addEventListener('click', () => setSidebar(!document.body.classList.contains('sidebar-open')));
   $('#sidebar-backdrop').addEventListener('click', () => { setSidebar(false); $('#sidebar-toggle').focus(); });
   mobile.addEventListener('change', () => setSidebar(false));

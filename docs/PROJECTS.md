@@ -13,6 +13,8 @@ This is the working plan for the next development batches. Keep each project sma
 
 ## Completed foundation
 
+R-12 — **Reusable card library** is complete in code: owner-only paginated library, TCGdex English import preview, CSV/value updates, bulk rarity/value edits, raw/slab records and selection into pack drafts at 0% odds. Pack snapshots and existing odds are preserved. Requires the new Firestore rules; no new Function. Live provider access and Rules emulator verification remain limited by workspace network policy. See [CARD-LIBRARY.md](CARD-LIBRARY.md).
+
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
 | R-01 | Consistent fulfillment labels in My items | Complete in code; see deployment note | Request, review, packing, shipped and delivered reflect the saved shipment. Older items without a shipment still render. No sell/ship controls for fulfillment items. Mobile and desktop checked. |

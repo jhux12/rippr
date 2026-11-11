@@ -1,6 +1,15 @@
-# rippr status — condition and slab badges
+# rippr status — reusable card library
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest reusable card library
+
+- `/admin → Card library` is now a separate owner-only catalog, with paginated saved-name search, TCGdex English card import previews, CSV import/value updates, duplicate checks, bulk edits and optional TCGplayer reference links. No API key or scraping.
+- Cards start unpriced/without a rippr rarity until explicitly configured. Raw cards default to Near Mint; slabs preserve explicit grades and separate values/IDs. Library edits do not silently update pack economics or historical winnings.
+- Adding selected cards stages new 0%-odds entries in the existing pack editor; matching IDs and their odds/values are unchanged. Pack publishing and EV review remain explicit.
+- CSV saves are version-checked, atomic per 50-card batch and retry only remaining rows after partial progress. Private UI state clears on sign-out.
+- New Firestore rules protect/validate `cardLibrary`. Rules tests were added, but emulator execution again failed while downloading the uncached Google-hosted JAR. Direct TCGdex API requests are blocked by workspace policy; the official repository documentation/license were read and provider/browser tests use documented fixtures. Live API/CORS/artwork remain unverified here.
+- Usage and limits: [CARD-LIBRARY.md](CARD-LIBRARY.md). No production data, Functions deployment or shipping work in this batch.
 
 ## Latest condition badges
 
@@ -55,9 +64,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **94 offline tests pass**, including pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- **102 offline tests pass**, including library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 722 local references.
-- **40 browser groups** cover the prior 37 journeys/layouts plus 3 condition/admin grading groups at 320, 390 and 1440 pixels: auth form/return paths; real-service sell/ship; older inventory; museum draft/eligibility/save; order-history failure/retry; seasonal redemption; batch skip/theater exit/interrupted reveal.
+- **44 browser groups** cover the prior 40 journeys/layouts plus library import/bulk/pack-draft checks at 320, 390 and 1440 pixels and library recovery/conflict/sign-out checks. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
@@ -65,7 +74,7 @@ The browser suite intercepts all HTTP and uses fixtures. It does not establish r
 
 ## Deferred deployment
 
-Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed. The Firestore rules update is limited to validating optional homepage grading metadata.
+Inventory pagination, exact owned-pack verification and seasonal redemption use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The card library adds owner-only Firestore access/validation rules and a frontend bundle; it needs no new Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed.
 
 From the owner's authenticated Firebase checkout:
 
