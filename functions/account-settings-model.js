@@ -32,3 +32,17 @@ export function cleanSettingsPatch(data,current={}){
 export const addressLines=address=>address?[address.fullName,address.line1,address.line2,[address.city,address.region,address.postalCode].filter(Boolean).join(', '),address.country].filter(Boolean):[];
 export const SHIPMENT_STAGES=['Request received','Under review','Packing','Shipped','Delivered'];
 export function shipmentStage(status){const stages={'test-request':0,requested:0,received:0,review:1,'under-review':1,packing:2,shipped:3,delivered:4};return Object.prototype.hasOwnProperty.call(stages,status)?stages[status]:-1}
+
+// Shipment progress is separate from item ownership. A shipped card stays
+// unavailable for selling/re-shipping while remaining part of the collection.
+export function profileItemState(item, shipments=[]){
+ const status=item?.status;
+ if(status==='available')return {filter:'available',label:'Available',canManage:true};
+ if(status==='sold')return {filter:'sold',label:'Sold',canManage:false};
+ if(['shipping','shipped','delivered'].includes(status)){
+  const shipment=shipments.find(request=>request.id===item.shipmentId);
+  const progress=shipmentStage(shipment?shipment.status:status);
+  return {filter:'shipping',label:progress>=0?SHIPMENT_STAGES[progress]:shipment?'Status unavailable':'Shipping requested',canManage:false};
+ }
+ return {filter:status||'unknown',label:'Status unavailable',canManage:false};
+}
