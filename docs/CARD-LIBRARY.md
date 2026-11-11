@@ -7,21 +7,34 @@ This is a separate reusable catalog. Saving it does not publish or reprice packs
 
 1. Choose **Import Pokémon**. Search by card name (at least two letters), set ID, or both. For example, `Umbreon` and `swsh7`.
 2. Select up to 50 cards across search pages, then **Preview selected imports**.
-3. Review the name, set, number and artwork. Existing library IDs are skipped.
-4. Save to the library. In **Saved cards**, select cards and use bulk edit to set a rippr rarity and USD value. Those fields start unset; source rarity is not silently mapped to a prize tier or price.
+3. Review the name, set, number, artwork and listed TCGplayer USD market value. Existing library IDs are skipped. Choose the correct finish if multiple prices are available.
+4. Save to the library. In **Saved cards**, use bulk edit to set a rippr rarity. Cards without a listed price stay unpriced; you can enter their values manually. Source rarity is not silently mapped to a rippr prize tier.
 5. Review the physical finish in **Edit** before pricing. TCGdex supplies card-level artwork, which does not identify which physical foil variant you intend to stock. Use a separate CSV ID for a reverse holo, other finish, or graded slab.
 
 English TCGdex imports use stable IDs such as `tdx-en-swsh7-215`. Search is paginated (24 results); detail requests run four at a time and have a 15-second timeout. Recent responses are cached in memory. Missing artwork or malformed details produce an error rather than invented card data. No API key is required by this public endpoint.
 
 The adapter follows the official [TCGdex JavaScript SDK](https://github.com/tcgdex/javascript-sdk) query and card schemas. The [database README](https://github.com/tcgdex/cards-database) and [MIT license](https://github.com/tcgdex/cards-database/blob/master/LICENSE) were accessible during implementation. Direct `api.tcgdex.net` access is denied by this workspace's network policy, so current live search availability, CORS, artwork coverage and image delivery have **not** been verified here. Browser tests use intercepted documented responses. If a deployed browser cannot reach TCGdex, the page shows an error and CSV remains available.
 
-## Near Mint pricing requirement
+## TCGplayer market values
 
-The owner requires **Near Mint USD pricing for raw cards**, matched to the exact set, printing and finish. Slabs require a separate grader/grade valuation.
+The owner approved using **listed TCGplayer USD market values through TCGdex**. The raw-card Near Mint badge remains the owner's condition policy; the feed is not represented as verified Near Mint-only pricing. Graded slabs keep separate owner-entered values.
 
-Correction to earlier implementation guidance: TCGdex does document embedded TCGplayer market prices without an API key. Its official [market-pricing guide](https://github.com/tcgdex/documentation/blob/master/src/content/docs/markets-prices.mdx) and [card schema](https://github.com/tcgdex/documentation/blob/master/src/content/docs/reference/card.mdx) describe `pricing.tcgplayer` with `unit`, `updated`, finish keys and `marketPrice`. However, that documented structure does not identify condition. `normal` means non-foil, not Near Mint. The documentation alone therefore does not establish a Near Mint-only price. Its [FAQ](https://github.com/tcgdex/documentation/blob/master/src/content/docs/faq.mdx) also records current printing/listing mapping issues.
+New Pokémon import previews fetch listed market values automatically. A standard/non-foil quote is selected when available; otherwise a single unambiguous finish can be selected automatically. Multiple other finishes require a choice. You can choose **Import without value** and enter a manual price later. Existing IDs are skipped rather than overwritten during imports.
 
-Automatic market-price application remains disabled. A prototype for generic market-price previews was held back when the owner specified Near Mint. A regression test ensures even a card response containing current USD TCGplayer market prices imports with an unset value. Do not silently replace missing or unverified condition prices with zero, generic market prices, other conditions, other finishes or slab estimates. An explicitly condition-aware pricing source or authoritative confirmation of the feed's condition semantics is required before enabling automatic Near Mint pricing. Existing owner-entered CSV values remain usable.
+To update saved cards:
+
+1. Select up to 50 library cards and click **Get TCGplayer prices**.
+2. Review the matched card/set/number, current value, finish choices and source update time.
+3. An exact finish match is selected when available. For an unmatched finish, choose its quote explicitly or leave **Keep current value**.
+4. Click **Save to library**. Only selected price changes are saved; pack snapshots and past winnings remain unchanged.
+
+For an existing manually entered or copied card, **Edit → TCGdex card ID** links it to the exact provider card, for example `swsh7-215`. Find the ID in the Pokémon search results. The price preview shows the matched identity so you can check the link before accepting a value. Slabs are excluded even if linked.
+
+The adapter uses `pricing.tcgplayer` from the official [market-pricing guide](https://github.com/tcgdex/documentation/blob/master/src/content/docs/markets-prices.mdx) and [card schema](https://github.com/tcgdex/documentation/blob/master/src/content/docs/reference/card.mdx). It uses `marketPrice` for the chosen finish, requires USD and a valid update timestamp, and rounds to cents. It does not substitute a low/mid/high quote, EUR value, zero, another finish, or a slab estimate. Missing, zero, malformed or unavailable quotes leave existing values unchanged. Update times over seven days old are flagged in the preview. Each price request bypasses the in-memory response cache, with up to four concurrent requests and the same timeout as card imports.
+
+The provider's [FAQ](https://github.com/tcgdex/documentation/blob/master/src/content/docs/faq.mdx) records printing/listing mapping issues, so the preview explicitly asks the owner to review the matched printing and finish. TCGdex does not document the condition for these market references; `normal` means non-foil, not Near Mint. No certification of price accuracy or direct TCGplayer connection is claimed.
+
+This feature adds no Function, rule change, secret or API key beyond the already implemented library. Prices are refreshed on demand, not by a scheduled job. The source timestamp is displayed during review; saved values use the library's existing revision/update metadata. Live API/CORS verification remains subject to the network limitation above.
 
 ## Import and update CSV values
 
@@ -35,7 +48,7 @@ id,name,setName,number,finish,image,rarity,value,gradingCompany,grade,referenceU
 - To update prices, an `id,value` CSV is enough. Values are USD (`2.50`), never cents, and require at most two decimal places. Blank cells keep existing fields. Zero is a valid explicit value; blank new values stay unpriced.
 - Use **Update supplied fields** to edit existing IDs or **Skip existing cards** to leave them alone. Duplicate IDs within a file and invalid rows block saving until corrected. Existing image, finish, grade and source metadata are retained on partial updates.
 - Slabs require both `gradingCompany` and `grade`. Supported companies/grades match the pack editor. Use a distinct ID such as `umbreon-swsh7-215-psa10` and the slab photo. A raw and PSA-10 copy are separate records with separate values.
-- Optional `referenceURL` accepts HTTPS TCGplayer links. It is a reference only. No TCGplayer scraping, market-price synchronization, credential or purchase integration is included.
+- Optional `referenceURL` accepts HTTPS TCGplayer links. It is a reference only. Market values are fetched separately through TCGdex; the link itself is not scraped. No TCGplayer credential or purchase integration is included.
 - CSV quoting supports commas, embedded newlines, doubled quotes, UTF-8 BOM and CRLF. Exports escape spreadsheet formula prefixes. If you export a card name starting with a formula prefix, remove the protective apostrophe only when intentionally editing that name; a price-only import avoids changing it.
 
 Every import has a preview. Saving uses atomic batches of at most 50 cards and checks each card's revision. If batch two fails after batch one succeeds, only unsaved rows remain in the preview. Retry saves those remaining rows. A revision conflict requires discarding/rebuilding the preview from refreshed records; it never silently overwrites another session.
@@ -54,4 +67,4 @@ Library edits do not update previously added pack snapshots or historical winnin
 
 Deploy the updated **Firestore rules before using live library saves**. This feature adds no Cloud Function, secret, Storage rule, subscription or paid provider. Normal Firestore reads/writes still apply. The cumulative deferred backend command is in [STATUS.md](STATUS.md). No deployment or production data mutation was performed during development.
 
-Verification: domain tests cover pricing, exact-ID updates, grades/finishes, malformed CSV, duplicates, pack invariants and provider failures. Browser fixtures cover 320/390/1440px, import/edit/bulk/add flows, batch retry, revision conflicts and sign-out cleanup. Rules tests cover private owner access, revisions and field validation; emulator execution remains blocked by its uncached JAR download.
+Verification: domain tests cover USD market quotes, finish matching, missing/invalid prices, timestamp handling, exact-ID updates, grades, CSV, pack invariants and provider failures. Browser fixtures cover 320/390/1440px, priced imports, finish selection, linking existing cards, slab exclusion, unavailable-price retention, version conflicts, import/edit/bulk/add flows, batch retry and sign-out cleanup. Rules tests cover private owner access, revisions and field validation; emulator execution remains blocked by its uncached JAR download.

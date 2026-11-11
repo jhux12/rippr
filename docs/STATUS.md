@@ -1,17 +1,19 @@
-# rippr status — reusable card library
+# rippr status — TCGplayer market-value previews
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
 
-## Near Mint price-source follow-up
+## Latest TCGplayer market-value previews
 
-- The owner requires condition-specific Near Mint USD prices for raw cards. The official TCGdex documentation does provide TCGplayer market references without an API key, correcting the earlier assumption that it supplied only card metadata.
-- Its documented market-price structure is organized by finish and does not establish Near Mint condition. Its FAQ also notes printing/listing mapping errors. Generic automatic market-price application was therefore held back. No production values or pack economics changed.
-- Added a regression that rejects treating embedded market references as configured Near Mint values during card import. Automatic condition-specific pricing remains blocked until a source documents that condition or authoritative feed semantics are confirmed. See [CARD-LIBRARY.md](CARD-LIBRARY.md#near-mint-pricing-requirement).
+- The owner approved using listed TCGplayer USD market values through TCGdex instead of requiring a verified Near Mint-only feed. The item's Near Mint condition badge remains separate from the market reference; slabs keep their manual grade-specific values.
+- Pokémon imports now include market-price previews. Saved cards support **Get TCGplayer prices**, explicit finish choice, linking a manually entered card by TCGdex ID and display of the matched identity/source update time. No TCGplayer key or scraping.
+- Uses the chosen finish's `marketPrice`, with fresh requests. Missing, invalid, non-USD and zero quotes do not replace values. Old timestamps are visible/flagged. Graded slabs are excluded. All updates remain version-checked and previewed; packs and historical winnings are not silently repriced.
+- Five new domain cases cover quotes, finish matching, missing values, import defaults and fresh lookup/identity guards. Three browser groups cover pricing and priced imports at 320/390/1440px, including slab exclusion, manual linking, stale-version rejection and missing-price retention.
+- No new Function, Firestore/Storage rule, API key or deployment is needed for this frontend addition beyond the existing library setup. Live TCGdex API/CORS access remains unverified because this workspace denies the API domain. Tests use documented response fixtures. See [CARD-LIBRARY.md](CARD-LIBRARY.md#tcgplayer-market-values).
 
 ## Latest reusable card library
 
 - `/admin → Card library` is now a separate owner-only catalog, with paginated saved-name search, TCGdex English card import previews, CSV import/value updates, duplicate checks, bulk edits and optional TCGplayer reference links. No API key or scraping.
-- Cards start unpriced/without a rippr rarity until explicitly configured. Raw cards default to Near Mint; slabs preserve explicit grades and separate values/IDs. Library edits do not silently update pack economics or historical winnings.
+- Cards without a listed market quote start unpriced; rippr rarities are explicitly configured. Raw cards default to Near Mint; slabs preserve explicit grades and separate values/IDs. Library edits do not silently update pack economics or historical winnings.
 - Adding selected cards stages new 0%-odds entries in the existing pack editor; matching IDs and their odds/values are unchanged. Pack publishing and EV review remain explicit.
 - CSV saves are version-checked, atomic per 50-card batch and retry only remaining rows after partial progress. Private UI state clears on sign-out.
 - New Firestore rules protect/validate `cardLibrary`. Rules tests were added, but emulator execution again failed while downloading the uncached Google-hosted JAR. Direct TCGdex API requests are blocked by workspace policy; the official repository documentation/license were read and provider/browser tests use documented fixtures. Live API/CORS/artwork remain unverified here.
@@ -70,9 +72,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **103 offline tests pass**, including the Near Mint import guard, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 722 local references.
-- **44 browser groups** cover the prior 40 journeys/layouts plus library import/bulk/pack-draft checks at 320, 390 and 1440 pixels and library recovery/conflict/sign-out checks. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **108 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- Build and static HTML reference checks pass: 16 pages / 725 local references.
+- **47 browser groups** cover the prior 44 journeys/layouts plus TCGplayer price previews, finish choices, manual card linking, slab exclusion, missing-price retention and priced imports at 320, 390 and 1440 pixels. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 

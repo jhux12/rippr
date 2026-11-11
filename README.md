@@ -6,7 +6,7 @@ The current development plan is in [docs/PROJECTS.md](docs/PROJECTS.md); the lat
 
 ## Reusable card library
 
-`/admin → Card library` now supports English Pokémon imports from TCGdex, CSV imports/value updates, preview/duplicate handling, bulk value and rarity edits, graded slabs and selection into pack drafts. A TCGplayer API key is not needed; optional TCGplayer links are references, with values supplied by the owner. Imported cards start unpriced and without a rippr rarity. Existing pack values/odds are never automatically rewritten. Deploy the updated owner-only Firestore rules before saving live library records. See [the library guide](docs/CARD-LIBRARY.md) for usage, CSV format, limits and live-provider verification status.
+`/admin → Card library` now supports English Pokémon imports from TCGdex, CSV imports/value updates, preview/duplicate handling, bulk value and rarity edits, graded slabs and selection into pack drafts. A TCGplayer API key is not needed. New imports include listed TCGplayer USD market-value previews through TCGdex; select saved cards and use **Get TCGplayer prices** to refresh them. Finish choices, matched card identity and source update times are shown before saving. Slabs retain manual values, missing quotes leave saved values unchanged, and rippr rarities are set by the owner. Optional TCGplayer links remain references. Existing pack values/odds are never automatically rewritten. Deploy the updated owner-only Firestore rules before saving live library records. See [the library guide](docs/CARD-LIBRARY.md) for usage, CSV format, limits and live-provider verification status.
 
 ## Landing page
 

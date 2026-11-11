@@ -15,7 +15,7 @@ This is the working plan for the next development batches. Keep each project sma
 
 R-12 — **Reusable card library** is complete in code: owner-only paginated library, TCGdex English import preview, CSV/value updates, bulk rarity/value edits, raw/slab records and selection into pack drafts at 0% odds. Pack snapshots and existing odds are preserved. Requires the new Firestore rules; no new Function. Live provider access and Rules emulator verification remain limited by workspace network policy. See [CARD-LIBRARY.md](CARD-LIBRARY.md).
 
-R-13 — **Condition-specific automatic pricing** is blocked on a verified Near Mint source. TCGdex offers TCGplayer market references without a key, but the documented pricing schema does not identify condition and its FAQ flags printing mismatches. Owner requires exact Near Mint raw pricing and separate slab valuation. Generic market-price application is held back; a regression protects unpriced imports. No paid provider or production price changes are authorized by this investigation.
+R-13 — **Listed TCGplayer market values** is complete in code following the owner's updated direction to use listed market values. Imports include USD market-value previews; saved cards support on-demand refresh, finish selection, provider-ID linking and source update-time display. Missing prices, slab values, prior winnings and existing pack odds/values are preserved. No new API key, Function or rules change. Exact Near Mint-only market data is not claimed; live provider access remains unverified here.
 
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanLibraryCard, validateLibraryCard, csvCandidates, parseCSV, importPreview, libraryCSV, addLibraryToPack, libraryCardReady, referenceURLValid } from '../src/library-model.js';
-import { cardFromTCGdex, createTCGdex, tcgdexImage } from '../src/library-provider.js';
+import { cardFromTCGdex, createTCGdex, tcgdexImage, tcgplayerQuotes, matchingPriceQuote, importPriceQuote } from '../src/library-provider.js';
 import { defaultPack } from '../src/catalog-model.js';
 
 const raw = (extra = {}) => ({...cleanLibraryCard({id:'tdx-en-swsh7-215',name:'Umbreon VMAX',image:'https://assets.tcgdex.net/en/swsh/swsh7/215/high.webp',source:'tcgdex',sourceId:'swsh7-215',setName:'Evolving Skies',number:'215'}),...extra});
@@ -61,11 +61,46 @@ test('provider failures are actionable and never substitute fabricated cards or 
   const malformed=createTCGdex(async()=>({ok:true,text:async()=>'{}'}));await assert.rejects(malformed.search({name:'Pikachu'}),/Unexpected/);
   const timeout=createTCGdex(async()=>{throw Object.assign(new Error('aborted'),{name:'AbortError'})});await assert.rejects(timeout.card('base1-4'),/timed out/);
 });
-test('condition-unverified TCGplayer market references never become Near Mint values on import',()=>{
+test('metadata parsing never labels market references as verified Near Mint or slab values',()=>{
   const imported=cardFromTCGdex({id:'swsh7-215',name:'Umbreon VMAX',image:'https://assets.tcgdex.net/en/swsh/swsh7/215',localId:'215',set:{name:'Evolving Skies'},rarity:'Secret Rare',pricing:{tcgplayer:{unit:'USD',updated:new Date().toISOString(),normal:{marketPrice:123.45},holofoil:{marketPrice:234.56}}}});
   // The documented variant feed has no condition field. Normal means non-foil,
   // not Near Mint; it cannot establish a condition-specific sell-back valuation.
   assert.equal(imported.valueCents,null);
   assert.equal(libraryCardReady(imported),false);
   assert.equal(imported.grading,undefined);
+});
+test('TCGplayer quotes use listed USD market values per finish, rounded to cents',()=>{
+  const now=Date.now(),data={pricing:{tcgplayer:{unit:'USD',updated:new Date(now).toISOString(),normal:{marketPrice:1.005,lowPrice:0.01,midPrice:999},holofoil:{marketPrice:12.34},'reverse-holofoil':{marketPrice:4.56}},cardmarket:{unit:'EUR',trend:99}}};
+  const quotes=tcgplayerQuotes(data,now);
+  assert.deepEqual(quotes.map(q=>[q.finish,q.valueCents]),[['Standard',101],['Holofoil',1234],['Reverse holo',456]]);
+  assert(quotes.every(q=>q.currency==='USD'&&!q.stale));
+});
+test('missing, non-USD, invalid or zero prices never become fabricated values',()=>{
+  const now=Date.now(),feed={unit:'USD',updated:new Date(now).toISOString(),normal:{marketPrice:2}};
+  for(const replacement of [undefined,{...feed,unit:'EUR'},{...feed,updated:'unknown'},{...feed,updated:new Date(now+600000).toISOString()},{...feed,normal:{marketPrice:null}},{...feed,normal:{marketPrice:'2.00'}},{...feed,normal:{lowPrice:2}},{...feed,normal:{marketPrice:0}},{...feed,normal:{marketPrice:-1}},{...feed,normal:{marketPrice:1000001}}])assert.deepEqual(tcgplayerQuotes({pricing:{tcgplayer:replacement}},now),[]);
+  const old=tcgplayerQuotes({pricing:{tcgplayer:{...feed,updated:new Date(now-8*86400000).toISOString()}}},now);assert.equal(old[0].stale,true);assert.equal(old[0].valueCents,200);
+});
+test('finish matching preserves slab values and requires a choice for unknown or conflicting variants',()=>{
+  const feed={unit:'USD',updated:new Date().toISOString(),normal:{marketPrice:2},holo:{marketPrice:5},reverse:{marketPrice:3}};
+  const quotes=tcgplayerQuotes({pricing:{tcgplayer:feed}});
+  assert.equal(matchingPriceQuote(raw(),quotes).valueCents,200);
+  assert.equal(matchingPriceQuote(raw({finish:'Reverse holo'}),quotes).valueCents,300);
+  assert.equal(matchingPriceQuote(raw({finish:'1st edition'}),quotes),null);
+  assert.equal(matchingPriceQuote(raw({grading:{company:'PSA',grade:'10'}}),quotes),null);
+  const conflicting=tcgplayerQuotes({pricing:{tcgplayer:{...feed,holofoil:{marketPrice:9}}}});assert.equal(matchingPriceQuote(raw({finish:'Holofoil'}),conflicting),null);
+});
+test('new imports select standard or a single unambiguous finish, never the highest-priced variant',()=>{
+  const quote=(key,finish,valueCents)=>({key,finish,valueCents});
+  assert.equal(importPriceQuote([quote('normal','Standard',200),quote('holofoil','Holofoil',5000)]).valueCents,200);
+  assert.equal(importPriceQuote([quote('holofoil','Holofoil',500)]).key,'holofoil');
+  assert.equal(importPriceQuote([quote('holofoil','Holofoil',500),quote('reverse','Reverse holo',300)]),null);
+  assert.equal(importPriceQuote([]),null);
+});
+test('price refresh bypasses cached card data and rejects mismatched provider IDs',async()=>{
+  let calls=0;
+  const api=createTCGdex(async(url,opts)=>{calls++;if(calls>1)assert.equal(opts.cache,'no-store');return{ok:true,text:async()=>JSON.stringify({id:calls===4?'wrong-id':'swsh7-215',name:'Umbreon VMAX',set:{name:'Evolving Skies'},image:'https://assets.tcgdex.net/en/swsh/swsh7/215',pricing:{tcgplayer:{unit:'USD',updated:new Date().toISOString(),normal:{marketPrice:calls}}}})}});
+  await api.card('swsh7-215');await api.card('swsh7-215');assert.equal(calls,1);
+  assert.equal((await api.priceDetails('swsh7-215')).quotes[0].valueCents,200);
+  assert.equal((await api.priceDetails('swsh7-215')).quotes[0].valueCents,300);
+  await assert.rejects(api.priceDetails('swsh7-215'),/different card/);
 });

@@ -23,7 +23,7 @@
     $('#library-view').querySelectorAll('button,input,select').forEach(el=>{el.disabled=Boolean(blocked)});
     $('#library-commit').disabled = blocked || !pending?.changes.length || Boolean(pending?.errors.length);
     $('#library-provider-preview').disabled = blocked || !providerSelected.size;
-    for (const id of ['library-export','library-clear']) $('#'+id).disabled = blocked || !selected.size;
+    for (const id of ['library-export','library-clear','library-market-prices']) $('#'+id).disabled = blocked || !selected.size;
     $('#library-select-page').disabled = blocked || !rows.length;
     $('#library-edit-company').disabled = blocked || $('#library-edit-condition').value !== 'graded';
     $('#library-edit-grade').disabled = blocked || $('#library-edit-condition').value !== 'graded';
@@ -39,6 +39,7 @@
   function cardDetails(card) {
     return [card.setName,card.number && '#'+card.number,card.finish,card.sourceRarity && 'Printed rarity: '+card.sourceRarity].filter(Boolean).join(' · ');
   }
+  const providerIdentity = card => [card.setName,card.number && '#'+card.number,card.sourceRarity].filter(Boolean).join(' · ');
   function renderRows() {
     $('#library-rows').innerHTML = rows.map(c=>`<tr><td><input type="checkbox" data-library-select="${escape(c.id)}" aria-label="Select ${escape(c.name)}" ${selected.has(c.id)?'checked':''}></td><th scope="row"><div class="library-card-cell"><img src="${escape(image(c.image))}" alt="" loading="lazy" width="44" height="62"><span><strong>${escape(c.name)}</strong><small>${escape(cardDetails(c))}</small><small>${escape(c.id)}</small></span></div></th><td>${escape(c.rarity || 'Rarity not set')}<small>${escape(catalog.conditionLabel(c))}</small></td><td>${c.valueCents == null ? 'Not priced' : money.format(c.valueCents/100)}</td><td><button type="button" class="button secondary" data-library-edit="${escape(c.id)}">Edit</button></td></tr>`).join('');
     $('#library-empty').hidden = Boolean(rows.length); $('#library-more').hidden = !cursor;
@@ -59,11 +60,18 @@
     for (const id of ['saved','pokemon','csv']) $('#library-'+id+'-panel').hidden = id !== name;
     document.querySelectorAll('[data-library-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.libraryTab===name)));
   }
+  function priceRow(row) {
+    const card=row.card, quote=row.quotes[0], chosen=row.quotes.find(q=>q.key===row.chosenKey), shown=chosen?{...card,finish:chosen.finish}:card, id=escape(card.id);
+    const choices=quote?`<label class="library-price-choice" for="library-price-${id}">TCGplayer · USD</label><select id="library-price-${id}" class="library-price-select" data-market-choice="${id}"><option value="">${row.import?'Import without value':'Keep current value'}</option>${row.quotes.map(q=>`<option value="${escape(q.key)}" ${row.chosenKey===q.key?'selected':''}>${escape(q.finish)} · ${money.format(q.valueCents/100)}</option>`).join('')}</select><small>Feed updated ${escape(new Date(quote.updated).toLocaleString())}${quote.stale?' · over 7 days old':''}</small>`:'<small>No listed USD market price. Import stays unpriced.</small>';
+    return `<tr><td>${row.import?'New':row.chosenKey?'Update':'Keep'}</td><th scope="row">${escape(card.name)}<small>${escape(cardDetails(shown))}</small><small>${id}</small></th><td>${escape(card.rarity || 'Rarity not set')}<small>${escape(catalog.conditionLabel(card))}</small></td><td><small>Current: ${card.valueCents==null?'Not priced':money.format(card.valueCents/100)}</small>${choices}<small>Matched: ${escape(row.matchedName)} · ${escape(row.matched)}</small></td></tr>`;
+  }
   function renderPreview() {
     $('#library-preview').hidden = !pending;
+    $('#library-price-notice').hidden = !pending?.marketRows;
+    $('#library-price-warnings').textContent = pending?.marketWarnings?.join('\n') || ''; $('#library-price-warnings').hidden = !pending?.marketWarnings?.length;
     if (!pending) { $('#library-preview-rows').replaceChildren(); $('#library-preview-summary').textContent=''; $('#library-preview-errors').textContent=''; $('#library-preview-errors').hidden=true; controls(); return; }
-    $('#library-preview-summary').textContent = `${pending.added} new · ${pending.updated} updates · ${pending.skipped.length} existing IDs skipped. ${pending.changes.filter(c=>!model.libraryCardReady(c)).length} cards still need a value or rarity before use in packs.`;
-    $('#library-preview-rows').innerHTML = pending.changes.map(c=>`<tr><td>${c.version?'Update':'New'}</td><th scope="row">${escape(c.name)}<small>${escape(cardDetails(c))}</small><small>${escape(c.id)}</small></th><td>${escape(c.rarity || 'Rarity not set')}<small>${escape(catalog.conditionLabel(c))}</small></td><td>${c.valueCents == null ? 'Not priced' : money.format(c.valueCents/100)}</td></tr>`).join('');
+    $('#library-preview-summary').textContent = pending.marketRows ? `${pending.added} new cards · ${pending.updated} price ${pending.updated===1?'update':'updates'} selected · ${pending.skipped.length} skipped. Other saved values stay unchanged.` : `${pending.added} new · ${pending.updated} updates · ${pending.skipped.length} existing IDs skipped. ${pending.changes.filter(c=>!model.libraryCardReady(c)).length} cards still need a value or rarity before use in packs.`;
+    $('#library-preview-rows').innerHTML = pending.marketRows ? pending.marketRows.map(priceRow).join('') : pending.changes.map(c=>`<tr><td>${c.version?'Update':'New'}</td><th scope="row">${escape(c.name)}<small>${escape(cardDetails(c))}</small><small>${escape(c.id)}</small></th><td>${escape(c.rarity || 'Rarity not set')}<small>${escape(catalog.conditionLabel(c))}</small></td><td>${c.valueCents == null ? 'Not priced' : money.format(c.valueCents/100)}</td></tr>`).join('');
     $('#library-preview-errors').textContent = pending.errors.join('\n'); $('#library-preview-errors').hidden = !pending.errors.length;
     controls();
   }
@@ -94,6 +102,7 @@
   function edit(card) {
     editing = structuredClone(card);
     $('#library-edit-id').textContent = card.id;
+    $('#library-edit-sourceId').value = card.source==='tcgdex' ? card.sourceId : '';
     for (const field of ['name','setName','number','finish','image','referenceURL']) $('#library-edit-'+field).value = card[field];
     $('#library-edit-value').value = card.valueCents == null ? '' : (card.valueCents/100).toFixed(2);
     $('#library-edit-rarity').value = card.rarity || '';
@@ -105,6 +114,9 @@
   $('#library-editor-form').addEventListener('submit',event=>{
     event.preventDefault(); if (!editing || busy || !owner()) return;
     const card = {...editing};
+    const sourceId = $('#library-edit-sourceId').value.trim();
+    if(sourceId&&!/^[a-zA-Z0-9_-]{1,45}$/.test(sourceId)){$('#library-edit-error').textContent='Enter a valid TCGdex card ID, such as swsh7-215.';$('#library-edit-error').hidden=false;return}
+    if(sourceId){if(card.sourceId!==sourceId)card.sourceRarity='';card.source='tcgdex';card.sourceId=sourceId}else if(card.source==='tcgdex'){card.source='manual';card.sourceId='';card.sourceRarity=''}
     for (const field of ['name','setName','number','finish','image','referenceURL']) card[field] = $('#library-edit-'+field).value.trim();
     card.rarity = $('#library-edit-rarity').value || null;
     card.valueCents = $('#library-edit-value').value.trim() ? catalog.decimalToUnits($('#library-edit-value').value) : null;
@@ -129,6 +141,36 @@
   });
   $('#library-select-page').addEventListener('click',()=>{for(const c of rows){if(selected.size>=500&&!selected.has(c.id)){message('Select up to 500 cards at a time.',true);break}selected.set(c.id,c)}renderRows()});
   $('#library-clear').addEventListener('click',()=>{selected.clear();renderRows()});
+  function priceChanges() {
+    pending.changes=pending.marketRows.flatMap(row=>{const quote=row.quotes.find(q=>q.key===row.chosenKey);return quote?[{...model.cleanLibraryCard(row.card),version:row.card.version,valueCents:quote.valueCents,finish:quote.finish}]:row.import?[{...model.cleanLibraryCard(row.card),version:0}]:[]});
+    pending.added=pending.changes.filter(c=>!c.version).length;pending.updated=pending.changes.length-pending.added;
+    pending.errors=pending.changes.flatMap(c=>model.validateLibraryCard(c));
+  }
+  $('#library-preview-rows').addEventListener('change',event=>{
+    const id=event.target.dataset.marketChoice;if(!id||busy||!owner()||!pending?.marketRows)return;
+    const row=pending.marketRows.find(r=>r.card.id===id);if(!row)return;
+    row.chosenKey=event.target.value;priceChanges();renderPreview();
+    $('#library-preview-rows').querySelector(`[data-market-choice="${CSS.escape(id)}"]`)?.focus();
+  });
+  $('#library-market-prices').addEventListener('click',()=>void run(async active=>{
+    if(!selected.size||selected.size>50)throw new Error('Select between 1 and 50 cards to fetch market prices.');
+    if(!await mayReplacePreview()||!active())return;
+    const cards=await client.lookupLibraryCards([...selected.keys()]);if(!active())return;
+    if(cards.length!==selected.size)throw new Error('Some selected cards could not be found. Refresh the library and try again.');
+    const marketRows=[],skipped=[],marketWarnings=[];
+    for(let i=0;i<cards.length;i+=4){
+      const batch=await Promise.all(cards.slice(i,i+4).map(async card=>{
+        if(card.grading)return{card,reason:'Graded slab: keep its separate slab value.'};
+        if(card.source!=='tcgdex'||!card.sourceId)return{card,reason:'No TCGdex link. Edit this card and enter its exact TCGdex card ID, or import it through Import Pokémon.'};
+        try{const detail=await provider.priceDetails(card.sourceId),quotes=detail.quotes;return quotes.length?{card,quotes,matched:providerIdentity(detail.card),matchedName:detail.card.name,chosenKey:model.matchingPriceQuote(card,quotes)?.key || ''}:{card,reason:'No valid TCGplayer USD market quote is available. Current value retained.'}}catch(error){return{card,reason:error.message}}
+      }));
+      if(!active())return;
+      for(const row of batch){if(row.reason){skipped.push(row.card.id);marketWarnings.push(`${row.card.name}: ${row.reason}`)}else marketRows.push(row)}
+    }
+    pending={marketRows,marketWarnings,skipped,changes:[],errors:[],added:0,updated:0};priceChanges();renderPreview();
+    message('Review the TCGplayer market references below. Choose the correct finish for unmatched cards, then save to the library.');
+    $('#library-preview').scrollIntoView({behavior:'instant',block:'nearest'});
+  }));
   $('#library-export').addEventListener('click',()=>download('rippr-card-values.csv',model.libraryCSV([...selected.values()])));
   $('#library-template').addEventListener('click',()=>download('rippr-library-template.csv',model.libraryCSV([{id:'your-stable-card-id',name:'Card name',setName:'Set name',number:'001',finish:'Standard',image:'https://example.com/card.webp',rarity:'Common',valueCents:100}])));
   $('#library-search-form').addEventListener('submit',event=>{event.preventDefault();void run(active=>load(active))});
@@ -151,9 +193,14 @@
   });
   $('#library-provider-preview').addEventListener('click',()=>void run(async active=>{
     if(!await mayReplacePreview()||!active())return;
-    const ids=[...providerSelected.keys()],cards=[];
-    for(let i=0;i<ids.length;i+=4){cards.push(...await Promise.all(ids.slice(i,i+4).map(id=>provider.card(id))));if(!active())return}
-    await preview(cards,'skip',active);
+    const ids=[...providerSelected.keys()],details=[];
+    for(let i=0;i<ids.length;i+=4){details.push(...await Promise.all(ids.slice(i,i+4).map(id=>provider.priceDetails(id))));if(!active())return}
+    const existing=await client.lookupLibraryCards(details.map(d=>d.card.id));if(!active())return;
+    const known=new Set(existing.map(c=>c.id));
+    const marketRows=details.filter(d=>!known.has(d.card.id)).map(detail=>({card:{...detail.card,version:0},quotes:detail.quotes,chosenKey:model.importPriceQuote(detail.quotes)?.key || '',matchedName:detail.card.name,matched:providerIdentity(detail.card),import:true}));
+    pending={marketRows,marketWarnings:[],skipped:[...known],changes:[],errors:[],added:0,updated:0};priceChanges();renderPreview();
+    message('Review imported cards and their listed TCGplayer market values. Choose a finish when multiple prices are available, then save.');
+    $('#library-preview').scrollIntoView({behavior:'instant',block:'nearest'});
   }));
   $('#library-from-packs').addEventListener('click',()=>void run(async active=>{
     if(!await mayReplacePreview()||!active())return;
@@ -187,6 +234,7 @@
     while(pending.changes.length){
       const chunk=pending.changes.slice(0,50),saved=await client.saveLibraryCards(chunk);if(!active())return;
       pending.changes.splice(0,chunk.length);savedCount+=saved.length;
+      if(pending.marketRows){const ids=new Set(chunk.map(c=>c.id));pending.marketRows=pending.marketRows.filter(row=>!ids.has(row.card.id))}
       for(const c of saved){if(selected.has(c.id))selected.set(c.id,c);const at=rows.findIndex(r=>r.id===c.id);if(at>=0)rows[at]=c}
       pending.added=pending.changes.filter(c=>!c.version).length;pending.updated=pending.changes.length-pending.added;
       renderPreview();renderRows();message(`${savedCount} saved. ${pending.changes.length} remaining.`);
