@@ -15,6 +15,14 @@ English TCGdex imports use stable IDs such as `tdx-en-swsh7-215`. Search is pagi
 
 The adapter follows the official [TCGdex JavaScript SDK](https://github.com/tcgdex/javascript-sdk) query and card schemas. The [database README](https://github.com/tcgdex/cards-database) and [MIT license](https://github.com/tcgdex/cards-database/blob/master/LICENSE) were accessible during implementation. Direct `api.tcgdex.net` access is denied by this workspace's network policy, so current live search availability, CORS, artwork coverage and image delivery have **not** been verified here. Browser tests use intercepted documented responses. If a deployed browser cannot reach TCGdex, the page shows an error and CSV remains available.
 
+## Near Mint pricing requirement
+
+The owner requires **Near Mint USD pricing for raw cards**, matched to the exact set, printing and finish. Slabs require a separate grader/grade valuation.
+
+Correction to earlier implementation guidance: TCGdex does document embedded TCGplayer market prices without an API key. Its official [market-pricing guide](https://github.com/tcgdex/documentation/blob/master/src/content/docs/markets-prices.mdx) and [card schema](https://github.com/tcgdex/documentation/blob/master/src/content/docs/reference/card.mdx) describe `pricing.tcgplayer` with `unit`, `updated`, finish keys and `marketPrice`. However, that documented structure does not identify condition. `normal` means non-foil, not Near Mint. The documentation alone therefore does not establish a Near Mint-only price. Its [FAQ](https://github.com/tcgdex/documentation/blob/master/src/content/docs/faq.mdx) also records current printing/listing mapping issues.
+
+Automatic market-price application remains disabled. A prototype for generic market-price previews was held back when the owner specified Near Mint. A regression test ensures even a card response containing current USD TCGplayer market prices imports with an unset value. Do not silently replace missing or unverified condition prices with zero, generic market prices, other conditions, other finishes or slab estimates. An explicitly condition-aware pricing source or authoritative confirmation of the feed's condition semantics is required before enabling automatic Near Mint pricing. Existing owner-entered CSV values remain usable.
+
 ## Import and update CSV values
 
 Use **CSV import → Download CSV template**, or select saved cards and **Export selected CSV**. Import up to 500 rows / 2 MB at a time. Supported headers:

@@ -2,6 +2,12 @@
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
 
+## Near Mint price-source follow-up
+
+- The owner requires condition-specific Near Mint USD prices for raw cards. The official TCGdex documentation does provide TCGplayer market references without an API key, correcting the earlier assumption that it supplied only card metadata.
+- Its documented market-price structure is organized by finish and does not establish Near Mint condition. Its FAQ also notes printing/listing mapping errors. Generic automatic market-price application was therefore held back. No production values or pack economics changed.
+- Added a regression that rejects treating embedded market references as configured Near Mint values during card import. Automatic condition-specific pricing remains blocked until a source documents that condition or authoritative feed semantics are confirmed. See [CARD-LIBRARY.md](CARD-LIBRARY.md#near-mint-pricing-requirement).
+
 ## Latest reusable card library
 
 - `/admin → Card library` is now a separate owner-only catalog, with paginated saved-name search, TCGdex English card import previews, CSV import/value updates, duplicate checks, bulk edits and optional TCGplayer reference links. No API key or scraping.
@@ -64,7 +70,7 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **102 offline tests pass**, including library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- **103 offline tests pass**, including the Near Mint import guard, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 722 local references.
 - **44 browser groups** cover the prior 40 journeys/layouts plus library import/bulk/pack-draft checks at 320, 390 and 1440 pixels and library recovery/conflict/sign-out checks. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.

@@ -61,3 +61,11 @@ test('provider failures are actionable and never substitute fabricated cards or 
   const malformed=createTCGdex(async()=>({ok:true,text:async()=>'{}'}));await assert.rejects(malformed.search({name:'Pikachu'}),/Unexpected/);
   const timeout=createTCGdex(async()=>{throw Object.assign(new Error('aborted'),{name:'AbortError'})});await assert.rejects(timeout.card('base1-4'),/timed out/);
 });
+test('condition-unverified TCGplayer market references never become Near Mint values on import',()=>{
+  const imported=cardFromTCGdex({id:'swsh7-215',name:'Umbreon VMAX',image:'https://assets.tcgdex.net/en/swsh/swsh7/215',localId:'215',set:{name:'Evolving Skies'},rarity:'Secret Rare',pricing:{tcgplayer:{unit:'USD',updated:new Date().toISOString(),normal:{marketPrice:123.45},holofoil:{marketPrice:234.56}}}});
+  // The documented variant feed has no condition field. Normal means non-foil,
+  // not Near Mint; it cannot establish a condition-specific sell-back valuation.
+  assert.equal(imported.valueCents,null);
+  assert.equal(libraryCardReady(imported),false);
+  assert.equal(imported.grading,undefined);
+});
