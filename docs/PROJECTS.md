@@ -23,6 +23,8 @@ R-15 — **Prices and sorting before import** is complete in code: TCGplayer pri
 
 R-16 — **Larger pack prize pools** is complete in code: 1,000-entry shared/server/owner limit, a 900 KiB Firestore size guard, faster EV rounding for large pools, bulk selection within capacity, and 50-row/lazy-art admin rendering. Each opening still awards one card. Requires updated `ripprAccount` and Firestore rules; no data migration. Large-pool domain, purchase/idempotency and three viewport UI cases cover the boundary and overflow behavior. Rules emulator remains network-blocked.
 
+R-17 — **Dotted TCGdex IDs** is fixed in code: set search accepts IDs such as `sv03.5`, dotted card links and artwork paths validate correctly, and imported site keys use a collision-free bounded namespace while retaining original provider IDs. Legacy generated IDs stay unchanged. Domain and 320/390/1440px browser checks cover search, prices, import/save, manual links and pack draft/save. Frontend only; no new Firebase deployment.
+
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
 | R-01 | Consistent fulfillment labels in My items | Complete in code; see deployment note | Request, review, packing, shipped and delivered reflect the saved shipment. Older items without a shipment still render. No sell/ship controls for fulfillment items. Mobile and desktop checked. |

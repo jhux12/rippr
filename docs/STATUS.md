@@ -1,6 +1,13 @@
-# rippr status — larger pack pools
+# rippr status — dotted TCGdex set IDs
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest dotted-set import fix
+
+- The provider ID validator rejected periods, blocking valid set IDs such as `sv03.5` before any request. It now accepts periods inside ID segments while rejecting traversal, query/hash injection and whitespace.
+- Dotted artwork paths, card-detail/price requests and the manual TCGdex link field now accept the same IDs. Dotted imports retain their original provider ID and use a disjoint, reversible site-key namespace within the existing 64-character format. Existing generated IDs are unchanged.
+- Two domain cases and three browser groups cover `sv03.5` search, price/artwork display, import rarity/save, manual price links and pack draft/save at 320/390/1440px. API traffic remains fixture-based because live provider access is restricted here.
+- Frontend only. No new Firestore rules, Function, index, secret or data migration is needed for this fix.
 
 ## Latest 1,000-entry pack pools
 
@@ -96,9 +103,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **118 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- **120 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 726 local references.
-- **56 browser groups** cover the prior 53 journeys/layouts plus large-pool bulk selection, EV calculation, 1,000-entry draft/save, bounded rendering and overflow rejection at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **59 browser groups** cover the prior 56 journeys/layouts plus dotted set/card search, pricing, artwork, import/save and pack-draft flow at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanLibraryCard, validateLibraryCard, csvCandidates, parseCSV, importPreview, libraryCSV, addLibraryToPack, libraryCardReady, referenceURLValid, browseLibraryCards, libraryAddedTime } from '../src/library-model.js';
-import { cardFromTCGdex, createTCGdex, tcgdexImage, tcgplayerQuotes, matchingPriceQuote, importPriceQuote, providerPriceRange, sortProviderMatches } from '../src/library-provider.js';
+import { cardFromTCGdex, createTCGdex, tcgdexImage, tcgplayerQuotes, matchingPriceQuote, importPriceQuote, providerPriceRange, sortProviderMatches, validTCGdexId, libraryIdForTCGdex } from '../src/library-provider.js';
 import { defaultPack, MAX_PACK_ITEMS } from '../src/catalog-model.js';
 
 const raw = (extra = {}) => ({...cleanLibraryCard({id:'tdx-en-swsh7-215',name:'Umbreon VMAX',image:'https://assets.tcgdex.net/en/swsh/swsh7/215/high.webp',source:'tcgdex',sourceId:'swsh7-215',setName:'Evolving Skies',number:'215'}),...extra});
@@ -137,4 +137,17 @@ test('import search prices expose finish ranges and sort by the lowest listed va
 });
 test('rate-limit errors retain HTTP status so search can stop additional price requests',async()=>{
   const api=createTCGdex(async()=>({ok:false,status:429}));await assert.rejects(api.priceDetails('base1-4'),error=>error.status===429);
+});
+test('dotted set IDs work through set search, artwork, prices and valid stable library records',async()=>{
+  const data={id:'sv03.5-151',name:'Mew ex',localId:'151',set:{name:'151'},image:'https://assets.tcgdex.net/en/sv/sv03.5/151',rarity:'Double rare',pricing:{tcgplayer:{unit:'USD',updated:new Date().toISOString(),holofoil:{marketPrice:15.1}}}},urls=[];
+  const api=createTCGdex(async url=>{urls.push(url);return{ok:true,text:async()=>JSON.stringify(url.includes('/cards?')?[data]:data)}});
+  const result=await api.search({setId:'sv03.5'});assert.equal(new URL(urls[0]).searchParams.get('set.id'),'eq:sv03.5');assert.equal(result[0].image,'https://assets.tcgdex.net/en/sv/sv03.5/151/low.webp');
+  const detail=await api.priceDetails(result[0].id);assert.equal(new URL(urls[1]).pathname,'/v2/en/cards/sv03.5-151');assert.equal(detail.card.sourceId,'sv03.5-151');assert.equal(detail.quotes[0].valueCents,1510);assert.match(detail.card.id,/^tdx_[a-zA-Z0-9_-]+$/);assert.deepEqual(validateLibraryCard(detail.card),[]);
+  assert.equal(libraryIdForTCGdex('swsh7-215'),'tdx-en-swsh7-215');assert.equal(libraryIdForTCGdex('sv03.5-151'),detail.card.id);assert.notEqual(libraryIdForTCGdex('sv03.5-151'),libraryIdForTCGdex('sv03-5-151'));
+  assert(libraryIdForTCGdex('a'.repeat(43)+'.b').length<=64);
+});
+test('provider ID and image validation accept periods inside segments without permitting traversal or URL injection',()=>{
+  for(const id of ['sv03.5','sv03.5-151','swsh7-215','set.part.more-1'])assert(validTCGdexId(id));
+  for(const id of ['..','../sv03.5','.sv03','sv03.','sv03..5','sv03/5','sv03%2e5','sv03?x=1','sv03#x','https://evil.test','sv03.5\n']){assert.equal(validTCGdexId(id),false);assert.throws(()=>libraryIdForTCGdex(id))}
+  for(const url of ['https://assets.tcgdex.net/en/../secret','https://assets.tcgdex.net/en/%2e%2e/secret','https://assets.tcgdex.net/en/sv/sv03.5/151?x=1','https://user@assets.tcgdex.net/en/sv/sv03.5/151'])assert.equal(tcgdexImage(url),'');
 });

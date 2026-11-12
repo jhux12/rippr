@@ -21,7 +21,7 @@
     "test:referrals": "npm run build:functions && node --test tests/referrals.test.mjs",
     "test:museum": "npm run build:functions && node --test tests/museum.test.mjs",
     "check:site": "node scripts/check-site.mjs",
-    "test:browser": "npm run build:functions && node tests/browser/customer-journey.cjs && node tests/browser/account-settings-accessibility.cjs && node tests/browser/navigation-accessibility.cjs && node tests/browser/brand-states.cjs && node tests/browser/reveal-polish.cjs && node tests/browser/identity-polish.cjs && node tests/browser/condition-badges.cjs && node tests/browser/library-admin.cjs && node tests/browser/pack-library-picker.cjs && node tests/browser/import-search-prices.cjs && node tests/browser/large-pack-pools.cjs"
+    "test:browser": "npm run build:functions && node tests/browser/customer-journey.cjs && node tests/browser/account-settings-accessibility.cjs && node tests/browser/navigation-accessibility.cjs && node tests/browser/brand-states.cjs && node tests/browser/reveal-polish.cjs && node tests/browser/identity-polish.cjs && node tests/browser/condition-badges.cjs && node tests/browser/library-admin.cjs && node tests/browser/pack-library-picker.cjs && node tests/browser/import-search-prices.cjs && node tests/browser/large-pack-pools.cjs && node tests/browser/dotted-set-import.cjs"
   },
   "dependencies": {
     "firebase": "13.2.0"

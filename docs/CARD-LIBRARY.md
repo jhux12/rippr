@@ -5,13 +5,13 @@ This is a separate reusable catalog. Saving it does not publish or reprice packs
 
 ## Import Pokémon cards
 
-1. Choose **Import Pokémon**. Search by card name (at least two letters), set ID, or both. For example, `Umbreon` and `swsh7`.
+1. Choose **Import Pokémon**. Search by card name (at least two letters), set ID, or both. For example, `Umbreon` and `swsh7`. For Pokémon 151, use set ID `sv03.5` with the card name blank.
 2. Select up to 50 cards across search pages, then **Preview selected imports**.
 3. Review the name, set, number, artwork and listed TCGplayer USD market value. Set **Site rarity** on each card, or choose a rarity above the preview and **Apply to all imports**, then adjust individual cards. Existing library IDs are skipped. Choose the correct finish if multiple prices are available.
 4. **Save to library** stores cards without assigning them to any pack. You can also edit rarities later in Saved cards. Cards without a listed price stay unpriced; you can enter their values manually. Printed source rarity is not silently mapped to a site prize tier.
 5. Review the physical finish in **Edit** before pricing. TCGdex supplies card-level artwork, which does not identify which physical foil variant you intend to stock. Use a separate CSV ID for a reverse holo, other finish, or graded slab.
 
-English TCGdex imports use stable IDs such as `tdx-en-swsh7-215`. Search is paginated (24 results); detail requests run four at a time and have a 15-second timeout. Recent responses are cached in memory. Missing artwork or malformed details produce an error rather than invented card data. No API key is required by this public endpoint.
+English TCGdex imports use stable IDs such as `tdx-en-swsh7-215`. Dotted provider IDs (for example `sv03.5-151`) use a separate `tdx_` base64url namespace to stay within the site’s 64-character ID format without collisions with legacy generated IDs. The original dotted provider ID is retained in `sourceId` for price refreshes. Use exported site IDs unchanged in CSV updates. Existing undotted IDs are unchanged. Search is paginated (24 results); detail requests run four at a time and have a 15-second timeout. Recent responses are cached in memory. Missing artwork or malformed details produce an error rather than invented card data. No API key is required by this public endpoint.
 
 The adapter follows the official [TCGdex JavaScript SDK](https://github.com/tcgdex/javascript-sdk) query and card schemas. The [database README](https://github.com/tcgdex/cards-database) and [MIT license](https://github.com/tcgdex/cards-database/blob/master/LICENSE) were accessible during implementation. Direct `api.tcgdex.net` access is denied by this workspace's network policy, so current live search availability, CORS, artwork coverage and image delivery have **not** been verified here. Browser tests use intercepted documented responses. If a deployed browser cannot reach TCGdex, the page shows an error and CSV remains available.
 

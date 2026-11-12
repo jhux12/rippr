@@ -41,15 +41,23 @@ export function sortProviderMatches(cards,sort='source') {
     return a.name.localeCompare(b.name,'en')||a.id.localeCompare(b.id,'en');
   });
 }
-function providerId(id) { if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,45}$/.test(id)) throw new Error('Invalid TCGdex card or set ID.'); return id; }
+const providerSegment = /^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)*$/;
+export function validTCGdexId(id) { return typeof id==='string'&&id.length<=45&&id.trim()===id&&providerSegment.test(id); }
+function providerId(id) { if (!validTCGdexId(id)) throw new Error('Invalid TCGdex card or set ID.'); return id; }
+export function libraryIdForTCGdex(id) {
+  providerId(id);
+  // Keep existing IDs stable. Dotted provider IDs use a disjoint, reversible
+  // base64url namespace that fits the site's 64-character ID limit.
+  return id.includes('.')?'tdx_'+btoa(id).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,''):`tdx-en-${id}`;
+}
 export function tcgdexImage(base, quality = 'high') {
   if (typeof base !== 'string') return '';
-  try { const u = new URL(base); if (u.origin !== 'https://assets.tcgdex.net' || u.search || u.hash || !/^\/[a-zA-Z0-9/_-]+$/.test(u.pathname)) return ''; return `${base}/${quality}.webp`; } catch { return ''; }
+  try { const u = new URL(base); if (u.origin !== 'https://assets.tcgdex.net' || u.username || u.password || u.search || u.hash || u.href!==base || !u.pathname.slice(1).split('/').every(segment=>providerSegment.test(segment))) return ''; return `${base}/${quality}.webp`; } catch { return ''; }
 }
 export function cardFromTCGdex(data) {
   const id = providerId(data?.id), image = tcgdexImage(data.image);
   if (!image || typeof data.name !== 'string' || !data.name.trim() || !data.set?.name) throw new Error(`TCGdex card ${id} is missing card details or artwork. Try another card or import your own image by CSV.`);
-  return { id:`tdx-en-${id}`, name:data.name, image, setName:data.set.name, number:String(data.localId ?? ''), finish:'Standard', source:'tcgdex', sourceId:id, sourceRarity:data.rarity || '', referenceURL:'', rarity:null, valueCents:null };
+  return { id:libraryIdForTCGdex(id), name:data.name, image, setName:data.set.name, number:String(data.localId ?? ''), finish:'Standard', source:'tcgdex', sourceId:id, sourceRarity:data.rarity || '', referenceURL:'', rarity:null, valueCents:null };
 }
 export function createTCGdex(fetcher = (...args) => fetch(...args)) {
   const cache = new Map();

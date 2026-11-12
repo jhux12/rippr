@@ -157,7 +157,7 @@
     event.preventDefault(); if (!editing || busy || !owner()) return;
     const card = {...editing};
     const sourceId = $('#library-edit-sourceId').value.trim();
-    if(sourceId&&!/^[a-zA-Z0-9_-]{1,45}$/.test(sourceId)){$('#library-edit-error').textContent='Enter a valid TCGdex card ID, such as swsh7-215.';$('#library-edit-error').hidden=false;return}
+    if(sourceId&&!model.validTCGdexId(sourceId)){$('#library-edit-error').textContent='Enter a valid TCGdex card ID, such as swsh7-215 or sv03.5-151.';$('#library-edit-error').hidden=false;return}
     if(sourceId){if(card.sourceId!==sourceId)card.sourceRarity='';card.source='tcgdex';card.sourceId=sourceId}else if(card.source==='tcgdex'){card.source='manual';card.sourceId='';card.sourceRarity=''}
     for (const field of ['name','setName','number','finish','image','referenceURL']) card[field] = $('#library-edit-'+field).value.trim();
     card.rarity = $('#library-edit-rarity').value || null;
