@@ -357,3 +357,6 @@
 .arena[data-pack="mythic"] .stage-orbits{opacity:.16}
 .arena[data-pack="mythic"] .stage-particles{opacity:.45}
 .arena[data-pack="mythic"]:not(.is-revealing) .stage-atmosphere{background:radial-gradient(ellipse at 22% 35%,#b9abf514,transparent 48%),radial-gradient(ellipse at 78% 65%,#a8e9fa12,transparent 48%)}
+/* Keep rarity lighting outside the artwork and above the 3D card faces. */
+.reveal-art-stage .reveal-edge{inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);z-index:3;overflow:visible;filter:drop-shadow(0 0 4px var(--reveal-tone))}
+.reveal-edge rect{stroke-width:2.5;stroke-linecap:round}
