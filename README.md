@@ -368,6 +368,14 @@ npx firebase deploy --only functions:ripprMuseum,firestore:rules --project rippr
 
 The normal frontend build includes both pages; Firebase/Vercel route configurations support `/museum` and `/community`. No additional secrets or composite indexes are needed. Run `npm run test:museum` for ownership/privacy/like/pagination tests. Existing account, rewards, referral and catalog tests and mocked browser flows pass. Security Rules emulator tests are provided but remain unverified here because the uncached emulator JAR download from `storage.googleapis.com` is blocked by the environment policy. No production deployment was performed in this workspace.
 
+## Smooth repeated pack openings
+
+Opening phases use one session-owned deadline that pauses with the visuals while a tab is hidden or page-suspended. Skip/reset cancels old timers and motion, removes reveal actors and clears the bounded two-card image decode cache. Foil geometry paints once per frame, finished peel effects release retained fills, and pointer capture is released at transition boundaries. Audio sources/gains disconnect on completion, stop or failure; one context and two decode workers are reused.
+
+Rarity color changes stay local to the card. Decorative SVG work yields during opening, and the large card stays centered through the flip before settling with transform/scale. A short rarity lock pulse/ring and front sheen preserve the minimal navy/cyan direction; final details/actions follow the settle. Reduced motion and batch skip bypass these effects.
+
+`npm run test:browser` includes actual-motion 1/3/5-pack repeat, skip/reset, hidden/page-suspension and bounded-resource checks, plus isolated foil/audio cleanup tests. No Firebase deployment is added by this frontend update. See [performance scope](docs/PERFORMANCE.md#repeated-opening-motion-pass); automated lifecycle checks do not establish a device FPS.
+
 ## Community entry point and responsive museum
 
 Shared desktop navigation and the mobile menu now use **Packs → Rewards → My items → Community → How it works**. Community is active for both browsing and museum pages. The homepage, profile and museum toolbar no longer duplicate entry links; the Community page retains its internal My museum link.

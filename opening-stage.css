@@ -17,13 +17,13 @@
 .stage-beam {
   position:absolute; top:-12%; left:15%; width:70%; height:105%;
   background:radial-gradient(ellipse at 50% 4%,color-mix(in srgb,var(--stage-light) 32%,transparent),transparent 67%);
-  opacity:.85; filter:blur(8px); animation:stage-light-breathe 8s ease-in-out infinite;
+  opacity:.85; animation:stage-light-breathe 8s ease-in-out infinite;
 }
 .stage-beam::before,.stage-beam::after {
   content:''; position:absolute; top:0; left:42%; width:20%; height:88%;
   transform:skewX(-12deg); transform-origin:center top;
   background:linear-gradient(color-mix(in srgb,var(--stage-light) 29%,transparent),transparent 85%);
-  filter:blur(7px);
+  filter:blur(4px);
 }
 .stage-beam::after { left:46%; width:15%; transform:skewX(10deg); opacity:.5; }
 .stage-atmosphere {
@@ -65,7 +65,7 @@
 .stage-orbit-light {
   fill:none; stroke:#a5fbff; stroke-width:1.9; stroke-linecap:round;
   stroke-dasharray:17 983; animation:stage-orbit-travel 12s linear infinite;
-  filter:drop-shadow(0 0 3px #00e2ed) drop-shadow(0 0 7px #00e2ed);
+  filter:drop-shadow(0 0 3px #00e2ed);
 }
 .stage-orbit-light.orbit-light-two { stroke-dasharray:9 991; animation-delay:-6s; opacity:.75; }
 .arena .side-card {
@@ -90,7 +90,7 @@
 .arena .pack-shell {
   top:46.5%; height:var(--pack-height); width:calc(var(--pack-height)*var(--pack-ratio)); z-index:3;
   transform:translate(-50%,-50%) rotate(-3deg);
-  filter:drop-shadow(0 0 1px #b3efff) drop-shadow(0 0 9px #00dff228) drop-shadow(0 15px 12px #0008);
+  filter:drop-shadow(0 0 7px #00dff228) drop-shadow(0 15px 12px #0008);
   animation:stage-pack-hover 6s ease-in-out infinite;
 }
 .arena .pack-shell .pack.artwork::after { background:linear-gradient(110deg,transparent 30%,#ccfaff33 48%,transparent 65%); }
@@ -114,6 +114,8 @@
 .arena.zoomed .stage-orbits { opacity:.25; }
 .arena.zoomed .stage-reflection { opacity:.08; }
 .arena.zoomed .stage-beam { opacity:1; }
+/* Pause decorative SVG paint work while interaction and card motion take priority. */
+.arena.zoomed .stage-orbit-light,.arena.zoomed .stage-effects *,.arena.zoomed .stage-effects *::before,.arena.zoomed .stage-effects *::after { animation-play-state:paused; }
 .arena .rip-target { border:0; background:transparent; border-radius:3px; }
 .arena .rip-target:focus-visible { outline:1px solid #92f5ff; outline-offset:3px; }
 .pack-shell.ripping .foil-glint { opacity:.8; clip-path:inset(0 0 0 calc(var(--rip)*100%)); }
@@ -150,34 +152,38 @@
 .quantities[hidden]{display:none}
 
 /* Rarity suspense stays centered inside the unchanged showcase footprint. */
-@property --reveal-tone{syntax:'<color>';inherits:true;initial-value:#92b4d4}
-.arena.is-revealing{transition:--reveal-tone .12s linear}
+/* Color steps repaint the compact card glow once; never interpolate a color
+   inherited by every full-screen background and filtered decorative layer. */
+.arena.is-revealing{transition:none}
 .arena.is-revealing .reveal-stage{z-index:2}
 .arena.is-extracting .display{visibility:visible;z-index:3;pointer-events:none}
 .arena.is-extracting .pack-shell.unsealed .pack.artwork{animation:pack-release-card .9s cubic-bezier(.2,.6,.2,1) both}
 .arena.is-extracting .reveal-art-stage{animation:card-from-pack .9s cubic-bezier(.2,.6,.2,1) both}
 .arena.is-extracting .reveal-plinth,.arena.is-extracting .reveal-halo,.arena.is-extracting .reveal-motes{opacity:0}
 
-.showcase.opening-focus .arena.is-revealing{--stage-light:var(--reveal-tone);background:radial-gradient(ellipse at 50% 47%,color-mix(in srgb,var(--reveal-tone) 6%,transparent),transparent 54%),#030b15;border-color:#344e6b}
+.showcase.opening-focus .arena.is-revealing{--stage-light:var(--reveal-tone);background:radial-gradient(ellipse at 50% 47%,#1225355c,transparent 54%),#030b15;border-color:#344e6b}
 .arena.is-revealing .stage-effects{display:none}
 .arena.is-revealing .reveal-stage{position:absolute;inset:0;width:100%;height:100%;perspective:1200px;padding:0;text-align:center}
 .arena.is-revealing .reveal-stage[hidden]{display:none}
 .reveal-stage .reveal-meta{position:absolute;top:16px;right:18px;margin:0;color:#b0b8c9;font-size:10px;line-height:23px;letter-spacing:0}
 .reveal-rarity{position:absolute;top:12px;left:50%;transform:translateX(-50%);visibility:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:27px;min-width:0;max-width:100%;margin:0;padding:4px 12px;border:1px solid var(--rarity-color);border-radius:999px;background:color-mix(in srgb,var(--rarity-color) 7%,#080d19);box-shadow:inset 0 0 8px color-mix(in srgb,var(--rarity-color) 10%,transparent);color:var(--rarity-color);font-size:12px;font-weight:800;line-height:1.4;letter-spacing:1.1px;text-transform:uppercase}
 .reveal-rarity svg{width:13px;height:15px;fill:currentColor;flex:none}
-.reveal-art-stage{position:absolute;top:44px;left:50%;transform:translateX(-50%);width:auto;max-width:64%;height:min(280px,calc(100% - 170px));aspect-ratio:5/7;margin:0;isolation:isolate;perspective:1200px;transition:height .65s cubic-bezier(.4,0,.2,1),top .65s cubic-bezier(.4,0,.2,1)}
-.reveal-halo{position:absolute;inset:-20% -45%;z-index:-2;pointer-events:none;background:radial-gradient(ellipse,color-mix(in srgb,var(--reveal-tone) 22%,transparent),transparent 63%);filter:blur(18px);opacity:.7;transition:opacity .6s}
-.reveal-art-stage .spotlight-card{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;padding:0;border:0;border-radius:17px;background:none;overflow:visible;box-shadow:0 0 4px 1px color-mix(in srgb,var(--reveal-tone) 90%,white),0 0 18px color-mix(in srgb,var(--reveal-tone) 50%,transparent),0 0 44px color-mix(in srgb,var(--reveal-tone) 24%,transparent);animation:none!important}
+.reveal-art-stage{position:absolute;top:44px;left:50%;transform:translateX(-50%);width:auto;max-width:64%;height:min(280px,calc(100% - 170px));aspect-ratio:5/7;margin:0;isolation:isolate;perspective:1200px;transition:none}
+.reveal-art-stage::after{content:'';position:absolute;inset:-4px;z-index:4;border:1px solid color-mix(in srgb,var(--reveal-tone) 80%,white);border-radius:21px;opacity:0;pointer-events:none}
+.reveal-halo{position:absolute;inset:-20% -45%;z-index:-2;pointer-events:none;background:radial-gradient(ellipse,color-mix(in srgb,var(--reveal-tone) 22%,transparent),transparent 63%);opacity:.7;transition:opacity .3s}
+.reveal-art-stage .spotlight-card{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;padding:0;border:0;border-radius:17px;background:none;overflow:visible;box-shadow:0 0 3px 1px color-mix(in srgb,var(--reveal-tone) 90%,white),0 0 22px color-mix(in srgb,var(--reveal-tone) 40%,transparent);animation:none!important}
 .reveal-art-stage .spotlight-card::after{content:none}
 .reveal-card-turn{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateY(180deg);transition:transform .65s cubic-bezier(.4,0,.2,1)}
+.is-extracting .reveal-card-turn,.is-cycling .reveal-card-turn,.is-settling .reveal-card-turn,.is-flipping .reveal-card-turn{will-change:transform}
 .reveal-face{position:absolute;inset:0;border-radius:17px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#081326;border:2px solid #dbe6fa}
 .reveal-back{transform:rotateY(180deg);padding:5px;background:linear-gradient(130deg,#f4f7ff,#899caf 40%,#d8e7fa)}
 .reveal-back::before{content:"rippr✦";position:absolute;inset:0;display:grid;place-items:center;font:800 italic 38px Manrope,Arial,sans-serif;color:white;z-index:-1}
 .reveal-back img{display:block;width:100%;height:100%;object-fit:cover;border-radius:10px}
 .reveal-art-stage .spotlight-card .revealed-art{display:block;width:100%;height:100%;max-width:100%;margin:0;object-fit:contain;border-radius:0}
 .reveal-front{background:#030b15;border-color:color-mix(in srgb,var(--reveal-tone) 60%,white)}
+.reveal-front::after{content:'';position:absolute;inset:-25% -70%;pointer-events:none;background:linear-gradient(105deg,transparent 40%,#ffffff24 49%,#ffffff42 50%,transparent 60%);transform:translateX(50%);opacity:0}
 .reveal-art-fallback{padding:20px;color:#b6c7dc;font-size:13px}
-.reveal-edge{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;filter:drop-shadow(0 0 4px var(--reveal-tone))}
+.reveal-edge{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;transform-origin:center;transform-box:border-box}
 .reveal-edge rect{fill:none;stroke:color-mix(in srgb,var(--reveal-tone) 45%,white);stroke-width:2;vector-effect:non-scaling-stroke;stroke-dasharray:100;stroke-dashoffset:0}
 .reveal-plinth{position:absolute;bottom:-23px;left:50%;width:154%;max-width:72vw;height:15px;transform:translateX(-50%);border:1px solid color-mix(in srgb,var(--reveal-tone) 65%,transparent);border-radius:50%;background:radial-gradient(ellipse,var(--reveal-tone),color-mix(in srgb,var(--reveal-tone) 12%,transparent) 40%,transparent 73%);box-shadow:0 0 14px color-mix(in srgb,var(--reveal-tone) 30%,transparent),inset 0 0 12px color-mix(in srgb,var(--reveal-tone) 20%,transparent);z-index:-1;pointer-events:none}
 .reveal-information,.reveal-actions{visibility:hidden}
@@ -194,21 +200,27 @@
 .reveal-stage .reveal-actions button:disabled{cursor:default;opacity:.55}
 .arena.is-revealing .skip-opening{left:auto;right:16px;bottom:14px;transform:none;border:0;background:transparent;color:#e8e9f2;font-size:11px;min-height:34px;white-space:nowrap}
 .arena.is-revealing .skip-opening::after{content:' ▸▸';margin-left:6px;color:#b9bdd0;letter-spacing:-3px}
-.is-cycling .reveal-edge rect{stroke-dasharray:20 80;animation:rarity-edge-orbit 1.1s linear infinite}
+.is-cycling .reveal-edge{animation:rarity-edge-breathe .7s ease-in-out infinite alternate}
 .is-settling .reveal-rarity,.is-flipping .reveal-rarity,.is-card-revealed .reveal-rarity{visibility:visible}
 .is-settling .reveal-rarity{animation:rarity-label-land .3s ease-out both}
+.is-settling .reveal-art-stage::after{animation:rarity-lock-ring .46s ease-out}
+.is-settling .reveal-halo{animation:rarity-lock-glow .46s ease-out}
 .is-flipping .reveal-card-turn,.is-card-revealed .reveal-card-turn{transform:rotateY(0deg)}
 .is-flipping .reveal-edge{opacity:0}
-.is-card-revealed .reveal-information{animation:rarity-details-arrive .35s ease-out both}
-.is-card-revealed .reveal-actions{animation:rarity-actions-arrive .35s ease-out both}
-.is-card-revealed .reveal-actions{animation-delay:.06s}
+.is-card-revealed .reveal-information{animation:rarity-details-arrive .35s .46s ease-out both}
+.is-card-revealed .reveal-actions{animation:rarity-actions-arrive .35s .52s ease-out both}
+.is-card-revealed .reveal-front::after{animation:rarity-reveal-sheen .65s .03s ease-out}
 .reveal-motes{position:absolute;inset:-15% -35%;pointer-events:none;z-index:-1}
 .reveal-motes i{position:absolute;left:calc(8% + var(--i)*11%);top:var(--mote-top,45%);width:2px;height:2px;background:var(--reveal-tone);border-radius:50%;box-shadow:0 0 5px var(--reveal-tone);opacity:.4}
 .is-cycling .reveal-motes i{animation:rarity-mote-in 2.4s calc(var(--i)*30ms) ease-in-out both}
 .skip-reveal-motion .reveal-card-turn{transition:none}
+.skip-reveal-motion .reveal-stage *,.skip-reveal-motion .reveal-stage *::before,.skip-reveal-motion .reveal-stage *::after{animation:none!important;transition:none!important}
 @keyframes card-from-pack{0%{transform:translate(-50%,var(--extract-y,60px)) scale(var(--extract-scale,.8))}75%{transform:translate(-50%,-7px) scale(1)}100%{transform:translate(-50%,0) scale(1)}}
 @keyframes pack-release-card{0%,20%{opacity:1;translate:0 0}65%{opacity:.85;translate:0 75px}100%{opacity:0;translate:0 150px}}
-@keyframes rarity-edge-orbit{to{stroke-dashoffset:-100}}
+@keyframes rarity-edge-breathe{from{opacity:.45;transform:scale(.999)}to{opacity:1;transform:scale(1.006)}}
+@keyframes rarity-lock-ring{0%{opacity:.85;transform:scale(.995)}100%{opacity:0;transform:scale(1.13)}}
+@keyframes rarity-lock-glow{0%,100%{opacity:.7;transform:scale(1)}40%{opacity:1;transform:scale(1.1)}}
+@keyframes rarity-reveal-sheen{0%{opacity:0;transform:translateX(-50%)}20%{opacity:.6}75%{opacity:.4}100%{opacity:0;transform:translateX(50%)}}
 @keyframes rarity-label-land{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
 @keyframes rarity-actions-arrive{from{opacity:0;translate:0 5px}to{opacity:1;translate:0 0}}
 @keyframes rarity-details-arrive{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
@@ -253,7 +265,7 @@
 
 /* Lower tiers stay quieter; the seven existing rarity names remain unchanged. */
 .arena[data-reveal-rarity="Common"] .spotlight-card{box-shadow:0 0 3px #dbe6fa99,0 0 12px #adbdcf30}
-.arena[data-reveal-rarity="Common"] .reveal-halo{filter:blur(26px);background:radial-gradient(ellipse,#adbdcf13,transparent 63%)}
+.arena[data-reveal-rarity="Common"] .reveal-halo{background:radial-gradient(ellipse,#adbdcf13,transparent 63%)}
 .arena[data-reveal-rarity="Common"] .reveal-motes{opacity:.3}
 .arena[data-reveal-rarity="Uncommon"] .spotlight-card{box-shadow:0 0 3px #a3f7ce,0 0 15px #63dcad44}
 .arena[data-reveal-rarity="Uncommon"] .reveal-halo{opacity:.4}
@@ -265,7 +277,7 @@
 .rip-perforation::after{content:'›';position:absolute;right:-5px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:14px;height:14px;border:1px solid #b5f4fc;border-radius:50%;background:#062634;color:#d7fbff;font:700 13px/1 Arial,sans-serif}
 
 /* Enlarge only the suspense artwork; the stage and final reveal keep their size. */
-.arena:is(.is-extracting,.is-cycling,.is-settling) .reveal-art-stage{--suspense-height:min(max(var(--pack-height),calc(min(280px,calc(100% - 170px)) + 32px)),calc(100% - 96px));height:var(--suspense-height);top:max(44px,calc((100% - var(--suspense-height))/2))}
+.arena:is(.is-extracting,.is-cycling,.is-settling,.is-flipping) .reveal-art-stage{--suspense-height:min(max(var(--pack-height),calc(min(280px,calc(100% - 170px)) + 32px)),calc(100% - 96px));height:var(--suspense-height);top:max(44px,calc((100% - var(--suspense-height))/2))}
 .skip-reveal-motion .reveal-art-stage{transition:none;animation:none}
 .stage-mute{position:absolute;top:6px;left:6px;z-index:10;display:grid;place-items:center;width:44px;height:44px;padding:10px;border:0;border-radius:50%;background:#071824b8;color:#b5d4e2;cursor:pointer}
 .stage-mute:hover{background:#123246;color:#e0ffff}
@@ -299,8 +311,8 @@
 .arena[data-pack] .stage-orbit-light{stroke:color-mix(in srgb,var(--stage-light) 55%,white);filter:drop-shadow(0 0 3px var(--stage-light))}
 .arena[data-pack] .stage-orbit-line{stroke:color-mix(in srgb,var(--stage-light) 25%,transparent)}
 .arena[data-pack] .stage-spark{stroke:var(--stage-light);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--stage-light) 30%,transparent))}
-.arena[data-pack] .pack-shell{filter:drop-shadow(0 0 1px color-mix(in srgb,var(--stage-light) 50%,white)) drop-shadow(0 0 9px color-mix(in srgb,var(--stage-light) 14%,transparent)) drop-shadow(0 15px 12px #0008)}
-.arena[data-pack="basic"] .stage-beam{left:30%;width:40%;filter:blur(14px);opacity:.5}
+.arena[data-pack] .pack-shell{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--stage-light) 22%,transparent)) drop-shadow(0 15px 12px #0008)}
+.arena[data-pack="basic"] .stage-beam{left:30%;width:40%;opacity:.5}
 .arena[data-pack="basic"] .stage-particles{opacity:.28}
 .arena[data-pack="basic"] .stage-orbits{opacity:.12}
 .arena[data-pack="basic"] .stage-spark{display:none}
@@ -329,7 +341,7 @@
 .arena[data-pack="icy-rush"] .stage-orbits{opacity:.1}
 .arena[data-pack="icy-rush"] .stage-particles{fill:#e1f9ff;opacity:.7}
 .arena[data-pack="icy-rush"] .stage-particles .particle-drift{animation-duration:14s;animation-name:stage-snow-drift}
-.arena[data-pack="icy-rush"] .stage-beam{left:5%;width:90%;filter:blur(18px);opacity:.6}
+.arena[data-pack="icy-rush"] .stage-beam{left:5%;width:90%;opacity:.6}
 /* The pack atmosphere yields to the winning card's actual rarity. */
 .arena[data-pack].is-revealing{--stage-light:var(--reveal-tone)}
 @keyframes stage-current-flow{to{stroke-dashoffset:-266}}

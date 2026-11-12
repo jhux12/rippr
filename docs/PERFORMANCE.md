@@ -1,6 +1,6 @@
-# Asset performance — lossless payload pass
+# Frontend performance — assets and pack motion
 
-The pass preserves the approved artwork and pack geometry. It changes encoding only; no resizing, cropping, alpha masking, layout or animation timing was introduced. Original standalone PNG masters remain available.
+The asset pass below preserves the approved artwork and pack geometry. It changes encoding only; no resizing, cropping, alpha masking, layout or animation timing was introduced by that pass. Original standalone PNG masters remain available. The later motion pass is documented separately at the end.
 
 ## Encoded asset bytes
 
@@ -47,3 +47,18 @@ For the landing asset group, a local gzip estimate is 12,351,575 → 8,371,477 b
 ## Remaining performance work
 
 The five SVGs still each contain a complete sprite. A future individually cropped wrapper export could reduce duplicated unused image data further, but must prove exact pixel placement, alpha outline and foil-strip mapping before replacement. Keep that as a separate reviewed change.
+
+
+## Repeated-opening motion pass
+
+This later pass changes animation execution, not the asset encodings measured above.
+
+- Removed inherited color interpolation that repainted full-screen gradients; rarity steps recolor the local card glow. Paused decorative SVG animations during opening and reduced redundant blur/shadow/blend layers.
+- Replaced animated card height/top/left with a measured start/end transform/scale transition. The card retains the large suspense framing through the flip; labels/actions enter after it settles. No continuous layout tween is used.
+- Foil polygon painting is coalesced to one frame, with target width measured at drag start. Completed peel effects, cancelled frames, pointer capture and removed reveal DOM are released between runs.
+- One session-owned phase deadline pauses with visual effects while hidden or page-suspended. Skip/reset cancels old tasks. Up to two upcoming card images are warmed, and references clear when the batch ends.
+- Audio sources/gains disconnect on stop, end or failure. One context is reused, decoding uses two workers, and hidden/pagehide suspends playback.
+
+`opening-repeatability.cjs` exercises actual motion/foil/audio with local account fixtures across 29 batches and 83 awards at 320/390/1440px. It checks repeated 1/3/5-pack openings, skip/reset, pause/resume, start-geometry continuity and bounded DOM/animation/context/cache retention. `opening-resources.cjs` isolates coalesced painting, 25 peel cleanup cycles and 100 four-channel audio cycles, including failure/reset races. A separate geometry inspection covers 320/390/1440px portrait/desktop and 844×390 landscape. Reduced-motion reveal checks remain in the existing suite.
+
+These checks establish bounded lifecycle behavior and layout continuity in local Chromium. They are not heap snapshots, real-device FPS measurements or production Core Web Vitals results.

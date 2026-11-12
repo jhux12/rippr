@@ -1,13 +1,22 @@
-# rippr status — dotted TCGdex set IDs
+# rippr status — smoother repeated pack openings
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest pack-opening reliability and motion
+
+- Each opening owns one cancellable phase deadline and its scripted motion handles. Hidden tabs and page suspension freeze the current delay and visual effects together, then resume the same award. Reset/skip cancels stale work; the theater ignores stale inline visibility observations while expanded.
+- Foil dragging measures its target once and coalesces geometry painting to one animation frame. Finished peel effects release their retained fill layers; reset clears queued paints and pointer capture. Reveal actors and the bounded two-card image decode cache are discarded after a batch.
+- Audio reuses one context, disconnects ended/stopped/failed sources and gain nodes, bounds initial decoding to two workers and suspends on hidden/pagehide. Cues never delay or replay a stale reveal.
+- Rarity color stays local to the card rather than repainting the full-screen backdrop every interpolation frame. Decorative SVG work yields during opening. The large card stays centered through its flip, then settles using transform/scale; details follow after the settle. A short rarity lock pulse/ring and front sheen add emphasis without changing prizes, colors or keep/sell actions. Skip and reduced motion bypass these effects.
+- New real-motion browser checks cover 29 purchased batches / 83 fixture awards at 320/390/1440px, repeated 1/3/5-pack runs, skip/reset, visibility/page suspension, bounded actors/context/cache and continuous reveal geometry. Separate foil/audio checks cover 25 peel cleanups and 100 four-channel playback cycles. Additional phone/desktop/landscape geometry inspection confirms separated artwork/details/actions. These are lifecycle/layout checks, not device FPS benchmarks.
+- Frontend only. No new Firebase rules, Function, index, asset or data migration. Existing deferred backend deployment remains separate.
 
 ## Latest dotted-set import fix
 
 - The provider ID validator rejected periods, blocking valid set IDs such as `sv03.5` before any request. It now accepts periods inside ID segments while rejecting traversal, query/hash injection and whitespace.
 - Dotted artwork paths, card-detail/price requests and the manual TCGdex link field now accept the same IDs. Dotted imports retain their original provider ID and use a disjoint, reversible site-key namespace within the existing 64-character format. Existing generated IDs are unchanged.
 - Two domain cases and three browser groups cover `sv03.5` search, price/artwork display, import rarity/save, manual price links and pack draft/save at 320/390/1440px. API traffic remains fixture-based because live provider access is restricted here.
-- Frontend only. No new Firestore rules, Function, index, secret or data migration is needed for this fix.
+- Frontend only. No new Firestore rules, Function, index, secret or data migration is needed for this fix. The owner reports other dotted searches worked; the validator fix is confirmed, but that observation means it may not explain every failed live search. The API query combines any card-name filter with the exact set ID, and live provider behavior remains unverified here.
 
 ## Latest 1,000-entry pack pools
 
@@ -105,7 +114,7 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 - **120 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 726 local references.
-- **59 browser groups** cover the prior 56 journeys/layouts plus dotted set/card search, pricing, artwork, import/save and pack-draft flow at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **64 browser groups** include the prior 59 journeys/layouts plus three real-motion repeated-opening groups and two foil/audio resource-lifecycle groups. Dotted set/card search, pricing, artwork, import/save and pack-draft flow remain covered at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
@@ -143,7 +152,7 @@ To use an installed Chromium: `CHROMIUM_PATH=/usr/bin/chromium npm run test:brow
 
 **R-08 — Fulfillment operations (deferred by owner):** older admin shipping queue access, request lookup, status edits and conflict recovery. The admin request queue is still capped at 100; activity is still the latest 50 records. These limits are separate from the inventory work and are not claimed to be removed.
 
-Current work: keyboard/focus and error recovery in navigation and account settings. Notification preference copy now clearly distinguishes stored preferences from active email delivery. Actual notification delivery, error visibility and owner-supplied real fulfillment content remain later projects. Legal and payment-provider setup remain owned by the business owner.
+Latest completed frontend work: repeated-opening motion cleanup and layout continuity, alongside the library/import improvements above. The next review should include the owner’s actual phone/browser after the frontend release; automated Chromium lifecycle checks do not establish real-device frame rates. Actual notification delivery, error visibility and owner-supplied real fulfillment content remain later projects. Legal and payment-provider setup remain owned by the business owner.
 
 ## Updates
 

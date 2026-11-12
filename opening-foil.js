@@ -2,7 +2,9 @@
 (() => {
   'use strict';
   const clamp = value => Math.max(0, Math.min(1, Number(value) || 0));
+  const mounts = new WeakMap();
   function mount(shell) {
+    if (mounts.has(shell)) return mounts.get(shell);
     const artwork = shell.querySelector('.pack.artwork');
     const piece = shell.querySelector('.foil-piece');
     const strip = shell.querySelector('.tear-strip');
@@ -14,16 +16,19 @@
       return element;
     });
     const [underlay, edge, crease] = layers;
-    let direction = 1, animations = [];
+    let direction = 1, animations = [], frame = 0, pendingProgress = 0, pendingDirection = 1;
+    let lastProgress = -1, lastDirection = 0;
     shell.classList.add('has-physical-foil');
     function cancel() {
-      animations.forEach(animation => animation.cancel());
+      cancelAnimationFrame(frame); frame = 0;
+      animations.forEach(animation => { animation.onfinish = null; animation.oncancel = null; animation.cancel(); });
       animations = [];
       shell.classList.remove('foil-detaching');
     }
-    function setProgress(value, from = direction) {
-      const progress = clamp(value);
+    function paint(progress, from) {
       direction = from < 0 ? -1 : 1;
+      if (progress === lastProgress && direction === lastDirection) return;
+      lastProgress = progress; lastDirection = direction;
       const percent = progress * 100;
       const sign = direction;
       const mapX = x => direction === 1 ? x : 100 - x;
@@ -56,14 +61,28 @@
       crease.style.opacity = progress > 0 && progress < 1 ? String(.38 + progress * .3) : '0';
       if (strip) strip.style.opacity = '0';
     }
+    function flush() {
+      cancelAnimationFrame(frame); frame = 0;
+      paint(pendingProgress, pendingDirection);
+    }
+    function setProgress(value, from = direction) {
+      pendingProgress = clamp(value); pendingDirection = from < 0 ? -1 : 1;
+      // Pointer events can arrive faster than display refresh. Geometry is only
+      // rebuilt once per frame; reset/release boundaries always paint immediately.
+      if (pendingProgress === 0 || pendingProgress === 1) flush();
+      else if (!frame) frame = requestAnimationFrame(() => { frame = 0; paint(pendingProgress, pendingDirection); });
+    }
     function reset() {
       cancel();
+      piece.style.removeProperty('opacity'); underlay.style.removeProperty('opacity');
+      lastProgress = -1; lastDirection = 0;
       setProgress(0, 1);
     }
     function release(instant = false) {
       cancel();
       setProgress(1, direction);
       if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        piece.style.opacity = '0'; underlay.style.opacity = '0';
         shell.classList.add('foil-detaching');
         return 0;
       }
@@ -76,14 +95,28 @@
         {transform:`translate(${-direction * 35}%, 8%) rotate(${direction * 58}deg)`,opacity:0,offset:1}
       ];
       for (const layer of [piece, underlay]) {
-        animations.push(layer.animate(keyframes, {duration:580,easing:'cubic-bezier(.2,.65,.3,1)',fill:'forwards'}));
+        const animation = layer.animate(keyframes, {duration:580,easing:'cubic-bezier(.2,.65,.3,1)',fill:'forwards'});
+        animations.push(animation);
+        animation.onfinish = () => {
+          // Release completed compositing effects instead of keeping fill layers
+          // attached to the pack for the rest of a multi-pack opening.
+          layer.style.opacity = '0'; animation.onfinish = null; animation.oncancel = null;
+          animations = animations.filter(active => active !== animation);
+          animation.cancel();
+        };
+        animation.oncancel = () => {
+          animation.onfinish = null; animation.oncancel = null;
+          animations = animations.filter(active => active !== animation);
+        };
       }
       edge.style.opacity = '.4';
       shell.classList.add('foil-detaching');
       return 580;
     }
     reset();
-    return {setProgress, reset, release, cancel};
+    const api = {setProgress, reset, release, cancel};
+    mounts.set(shell, api);
+    return api;
   }
   window.RipprFoil = {mount};
 })();
