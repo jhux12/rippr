@@ -1,0 +1,18 @@
+rippr — Collect the unexpected.
+
+Packed. Protected. On the way.
+
+Hey Alex, your order has been marked as shipped. Follow its journey using the tracking details below.
+
+Order: RIP-10482
+Carrier: USPS
+Tracking number: Sample tracking number
+
+View order tracking: https://rippr.example/order-tracking.html
+
+Tracking scans can take time to appear. Any delivery date shown is an estimate from the carrier.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

@@ -1,0 +1,17 @@
+rippr — Collect the unexpected.
+
+Make room in the collection.
+
+Hey Alex, your order has been marked as delivered. We hope you enjoy your new cards.
+
+Order: RIP-10482
+Status: Marked as delivered
+
+View my order: https://rippr.example/order-tracking.html
+
+Can’t find the package or need help with its condition? Check with your household, then contact support with your order number.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

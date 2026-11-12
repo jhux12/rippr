@@ -1,0 +1,18 @@
+rippr — Collect the unexpected.
+
+Your collection starts here.
+
+Hey Alex, welcome to rippr. Discover Pokémon packs, check the odds, and keep your favorite pulls in one place.
+
+Choose a pack: Review the price and odds
+Make your pull: One card per pack
+Make it yours: Keep it or sell for site credit
+
+Explore packs: https://rippr.example/index.html#packs
+
+Selling a card adds site credit to your rippr balance. Site credit cannot be withdrawn as cash.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

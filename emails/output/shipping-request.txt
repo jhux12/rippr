@@ -1,0 +1,19 @@
+rippr — Collect the unexpected.
+
+Your next mail day is taking shape.
+
+Hey Alex, we received your shipping request. We’ll update your order tracking when its status changes.
+
+Request: RIP-10482
+Items: 2
+Status: Request received
+Shipping estimate: $6.99
+
+View shipping request: https://rippr.example/order-tracking.html
+
+This is a request confirmation, not a dispatch notice. Shipping estimates are not final charges. Track the request for confirmed costs and updates.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

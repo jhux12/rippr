@@ -1,0 +1,20 @@
+rippr — Collect the unexpected.
+
+Let’s get this sorted.
+
+Hey Alex, there’s a new reply to your support request.
+
+Request: RIP-10482
+
+Support reply:
+Hi Alex,
+Thanks for reaching out. We’ve updated your request. You can view the details and reply in your support conversation.
+
+View conversation: https://rippr.example/contact-support.html
+
+Continue the conversation in your support request. Never share verification codes or private payment information.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

@@ -1,0 +1,17 @@
+rippr — Collect the unexpected.
+
+Good things are better shared.
+
+Hey Alex, a referral met the reward requirements. Your referral reward has been added to your account.
+
+Reward: $1.00 site credit
+Status: Added to your balance
+
+View referrals: https://rippr.example/rewards.html
+
+Referral rewards are site credit, not cash. View the referral section for current eligibility requirements.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

@@ -457,3 +457,8 @@ Mythic (`mythic`, tier 6) follows Ultimate in the core carousel and `/landing`. 
 Mythic starts disabled and unpriced. Configure cards, odds and price in **Admin → Packs → Mythic**, enable and save. No live price or prize pool was invented. Shared pack IDs cover admin editing, server purchases, reward prizes and unopened inventory packs. A missing Mythic catalog cannot silently substitute the seed catalog when opening an inventory reward.
 
 Deploy **`functions:ripprAccount,firestore:rules`** after pulling this change; deploy the built frontend through the usual hosting workflow. No new function, secret or index is needed. Validation: all 16 domain test files; Mythic browser checks at 320/390/1440px for carousel sizing, disabled defaults, intrinsic artwork sizing, configured purchases, rarity reveal and batch skip; admin card picker regression. A local rules regression was added; emulator execution is blocked by the download policy for `storage.googleapis.com`.
+
+
+### Branded email templates
+
+Nine provider-neutral transactional templates live in `emails/templates.mjs`: welcome, pack receipt, shipping request, shipped, delivered, reward earned, referral credit, support confirmation and support reply. `npm run build:emails` builds HTML/plain-text samples and an offline desktop/mobile studio at `emails/output/preview.html`. See [emails/README.md](emails/README.md) for event inputs, origin configuration and sending integration. Browser preview and renderer tests cover all nine templates, markup escaping, safe URLs, monetary values, mobile layout and plain-text controls. No provider, automated sends or Firebase changes are enabled.

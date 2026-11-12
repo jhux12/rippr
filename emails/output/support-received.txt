@@ -1,0 +1,18 @@
+rippr — Collect the unexpected.
+
+You’re in the right place.
+
+Hey Alex, your support request is saved. You can view the conversation and add details from your account.
+
+Request: RIP-10482
+Topic: My collection
+Status: Received
+
+View support request: https://rippr.example/contact-support.html
+
+Please keep follow-up details in the same support conversation. Never share sign-in codes, passwords, or payment card details.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

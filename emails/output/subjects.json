@@ -1,0 +1,38 @@
+{
+  "welcome": {
+    "subject": "Welcome to rippr ✦",
+    "preheader": "Hey Alex, welcome to rippr. Discover Pokémon packs, check the odds, and keep your favorite pulls in one place."
+  },
+  "pack-receipt": {
+    "subject": "Your latest pulls are in ✦",
+    "preheader": "Hey Alex, your Plus pack opening is complete. Here is your purchase summary."
+  },
+  "shipping-request": {
+    "subject": "Shipping request RIP-10482 received",
+    "preheader": "Hey Alex, we received your shipping request. We’ll update your order tracking when its status changes."
+  },
+  "order-shipped": {
+    "subject": "Your cards are on the move — RIP-10482",
+    "preheader": "Hey Alex, your order has been marked as shipped. Follow its journey using the tracking details below."
+  },
+  "order-delivered": {
+    "subject": "Your delivery has arrived — RIP-10482",
+    "preheader": "Hey Alex, your order has been marked as delivered. We hope you enjoy your new cards."
+  },
+  "reward-earned": {
+    "subject": "Your rippr reward is ready ✦",
+    "preheader": "Hey Alex, you earned Basic pack. It has been added to your account."
+  },
+  "referral-earned": {
+    "subject": "Your invite earned a reward ✦",
+    "preheader": "Hey Alex, a referral met the reward requirements. Your referral reward has been added to your account."
+  },
+  "support-received": {
+    "subject": "We received your message — RIP-10482",
+    "preheader": "Hey Alex, your support request is saved. You can view the conversation and add details from your account."
+  },
+  "support-reply": {
+    "subject": "An update on your support request — RIP-10482",
+    "preheader": "Hey Alex, there’s a new reply to your support request."
+  }
+}
