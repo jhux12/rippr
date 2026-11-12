@@ -18,9 +18,9 @@ async function setup(browser,width){
   await page.addInitScript(()=>{
     window.fixtureHidden=false;
     Object.defineProperty(document,'hidden',{configurable:true,get:()=>fixtureHidden});
-    window.openingFixture={purchases:0,awards:0,contexts:0};
+    window.openingFixture={purchases:0,awards:0,contexts:0,soundsPlayed:0};
     const NativeAudio=window.AudioContext||window.webkitAudioContext;
-    if(NativeAudio){class CountedAudio extends NativeAudio{constructor(...args){super(...args);openingFixture.contexts++}}window.AudioContext=CountedAudio;window.webkitAudioContext=CountedAudio}
+    if(NativeAudio){class CountedAudio extends NativeAudio{constructor(...args){super(...args);openingFixture.contexts++}createBufferSource(){const source=super.createBufferSource(),start=source.start.bind(source);source.start=(...args)=>{if(source.buffer?.duration>.01)openingFixture.soundsPlayed++;return start(...args)};return source}}window.AudioContext=CountedAudio;window.webkitAudioContext=CountedAudio}
     window.RIPPR_ACCOUNT={ready:true,user:{uid:'animation-fixture'},wallet:{balanceCents:100000},items:[]};
     window.RipprFirebase={ready:Promise.resolve(),loadPackContents:async id=>({...RipprCatalog.defaultPack(id),priceCents:199})};
     window.RipprAccount={errorMessage:e=>e.message||'Fixture error',act:async(action,data)=>{
@@ -119,6 +119,7 @@ async function again(page,baseline){
         if(quantity===1){const geometry=await page.evaluate(()=>openingFixture.geometry);assert(geometry,'The full-motion reveal uses a compositor transition');for(const key of ['x','y','width','height'])assert(Math.abs(geometry.before[key]-geometry.after[key])<2,'No geometry jump when the revealed card settles: '+key)}
         await keepBatch(page,quantity);baseline=await again(page,baseline);
       }
+      assert(await page.evaluate(()=>openingFixture.soundsPlayed>=18),'Real WAV cues start throughout full-motion batches');
       // A hidden tab freezes both the phase and rarity color step, then resumes
       // the same award instead of skipping, replaying or buying another pack.
       await openBatch(page,1);purchases++;awards++;await rip(page);

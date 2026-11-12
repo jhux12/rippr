@@ -368,6 +368,12 @@ npx firebase deploy --only functions:ripprMuseum,firestore:rules --project rippr
 
 The normal frontend build includes both pages; Firebase/Vercel route configurations support `/museum` and `/community`. No additional secrets or composite indexes are needed. Run `npm run test:museum` for ownership/privacy/like/pagination tests. Existing account, rewards, referral and catalog tests and mocked browser flows pass. Security Rules emulator tests are provided but remain unverified here because the uncached emulator JAR download from `storage.googleapis.com` is blocked by the environment policy. No production deployment was performed in this workspace.
 
+## Audio and imported-card artwork recovery
+
+Opening grails/previews, reveals/results and My items retry artwork failures twice before falling back. Reveals, results and My items provide **Retry image** without a page refresh. Cached failures can recover using temporary request queries on the public TCGdex asset origin; saved URLs and signed/uploaded URLs are never rewritten. Removed/replaced images cancel stale retry work, and retries wait while hidden or page-suspended.
+
+Opening audio retries missing downloads, bounds loading to two workers and reuses its context on return from a hidden/restored page. A fresh gesture can retry a pending autoplay-blocked resume. Silent-frame priming and playback-session selection are used where supported; the mute control can enable a suspended context and plays a soft cue on unmute. Browser checks verify actual WAV decoding and a nonzero master audio signal as well as simulated mobile activation and failure recovery. Native iOS/Safari remains a device-verification step. This frontend update adds no Firebase deployment requirement.
+
 ## Smooth repeated pack openings
 
 Opening phases use one session-owned deadline that pauses with the visuals while a tab is hidden or page-suspended. Skip/reset cancels old timers and motion, removes reveal actors and clears the bounded two-card image decode cache. Foil geometry paints once per frame, finished peel effects release retained fills, and pointer capture is released at transition boundaries. Audio sources/gains disconnect on completion, stop or failure; one context and two decode workers are reused.

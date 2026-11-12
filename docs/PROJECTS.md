@@ -27,6 +27,8 @@ R-17 — **Dotted TCGdex IDs** is fixed in code: set search accepts IDs such as 
 
 R-18 — **Repeated-opening motion and resource cleanup** is complete in code: one cancellable/visibility-aware phase clock, retained-motion cleanup, frame-coalesced foil, bounded decoding/audio graphs and compositor-based large-card settling. Existing colors/layout/economy remain intact; a short rarity lock pulse and card sheen add emphasis. Real-motion multi-pack, skip/reset, hidden-page, geometry and resource checks join the browser suite. Frontend only; no new Firebase deployment.
 
+R-19 — **Audio and imported-artwork recovery** is complete in code: bounded image retries, manual Retry image for reveals/results/My items, stale-image cleanup, signed-URL preservation, recoverable clip loading, gesture/audio-session handling and visible-page audio resume. Tests cover transient network/decode failures, retry cleanup, autoplay-blocked resumes and real WAV output through the master graph. Native iOS/Safari and the owner’s exact live CDN failure remain unverified. Frontend only; no new Firebase deployment.
+
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
 | R-01 | Consistent fulfillment labels in My items | Complete in code; see deployment note | Request, review, packing, shipped and delivered reflect the saved shipment. Older items without a shipment still render. No sell/ship controls for fulfillment items. Mobile and desktop checked. |

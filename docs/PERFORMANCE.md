@@ -62,3 +62,12 @@ This later pass changes animation execution, not the asset encodings measured ab
 `opening-repeatability.cjs` exercises actual motion/foil/audio with local account fixtures across 29 batches and 83 awards at 320/390/1440px. It checks repeated 1/3/5-pack openings, skip/reset, pause/resume, start-geometry continuity and bounded DOM/animation/context/cache retention. `opening-resources.cjs` isolates coalesced painting, 25 peel cleanup cycles and 100 four-channel audio cycles, including failure/reset races. A separate geometry inspection covers 320/390/1440px portrait/desktop and 844×390 landscape. Reduced-motion reveal checks remain in the existing suite.
 
 These checks establish bounded lifecycle behavior and layout continuity in local Chromium. They are not heap snapshots, real-device FPS measurements or production Core Web Vitals results.
+
+
+## Media recovery follow-up
+
+`artwork-loader.js` is shared by opening and profile. Two delayed retries are bounded per failure sequence, signed URLs remain intact, and source removal/replacement cancels queued callbacks. The page keeps failed-image references only while a retry is pending; images otherwise live in a WeakMap. Retries pause during hidden/page-suspended periods. Manual recovery keeps the same saved award and account selection.
+
+Audio loading now retains only successful buffers, clears its loading promise when complete and can retry missing files. Fetches use bounded attempts/timeouts with two workers. Visible-page recovery reuses the context; gesture retries can recover a pending autoplay request. One silent activation frame disposes on completion like other sources. Muting, hidden-page suspension and existing source/gain cleanup remain intact.
+
+The browser suite adds interrupted/corrupt/503 image responses, source/removal races, signed-URL preservation and manual/hidden-tab recovery. A real AudioContext with the shipped WAV files is measured through an analyser on the master gain: nonzero playback, zero output while muted, audible unmute and tab-return recovery pass in Chromium. This verifies the browser audio graph; it does not prove speaker hardware/volume, native Safari policy or the live CDN's failure cause.

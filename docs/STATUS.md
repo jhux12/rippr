@@ -1,6 +1,15 @@
-# rippr status — smoother repeated pack openings
+# rippr status — audio and imported-artwork recovery
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest audio and imported-artwork recovery
+
+- Confirmed that image error handlers immediately hid artwork/replaced it permanently after one failure. Opening grails/previews, reveals/results and My items now share bounded two-retry recovery. Reveals/results/My items retain a branded **Retry image** action if automatic recovery fails. Delayed image success restores the original artwork without a page refresh or changing saved cards, prices, selections or keep/sell behavior.
+- Retry queries are runtime-only and restricted to the public TCGdex asset origin; signed/uploaded image URLs remain exactly unchanged. Source changes and removed images cancel queued retries. Hidden/page-suspended retries wait until return. The original cause of the owner's intermittent live CDN failures is not proven by these fixture tests.
+- Confirmed audio failure paths: failed first-load clips were marked loaded and never retried, while hidden-page suspension required another activation to resume. Loading now retries missing clips with two workers, bounded fetch attempts/timeouts, and clears completed load handles. Returning to a visible/restored page attempts to resume the existing context; a fresh gesture can retry an autoplay-blocked pending resume.
+- Added silent-frame gesture priming and playback audio-session selection where supported, plus an Enable sound label for a suspended context and an audible unmute cue. Mute and overlay/background stopping remain enforced. Mobile-specific activation/session behavior is fixture-tested; native iOS/Safari is not claimed verified.
+- Four new artwork groups simulate interrupted requests, corrupt images, 503s, cached failures, manual retry, source/removal races, signed URLs and hidden-tab recovery at 320/390/1440px. Audio resource tests now include failed loads and pending autoplay recovery, and a new real-AudioContext group verifies shipped WAV decoding, nonzero master output, tab recovery and silent mute. Repeated-opening tests now assert that real WAV cues start through full-motion batches.
+- Frontend only. Build, static references and self-contained preview exports include the new loader/styles. No additional Firebase deployment, data rewrite or backend change.
 
 ## Latest pack-opening reliability and motion
 
@@ -113,8 +122,8 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 ## Verification
 
 - **120 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 726 local references.
-- **64 browser groups** include the prior 59 journeys/layouts plus three real-motion repeated-opening groups and two foil/audio resource-lifecycle groups. Dotted set/card search, pricing, artwork, import/save and pack-draft flow remain covered at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- Build and static HTML reference checks pass: 16 pages / 730 local references.
+- **69 browser groups** include the prior 64 journeys/layouts/resource checks plus four artwork recovery/lifecycle groups and one real-audio-signal group. Dotted set/card search, pricing, artwork, import/save and pack-draft flow remain covered at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 

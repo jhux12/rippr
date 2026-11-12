@@ -1,0 +1,4 @@
+.artwork-retry{display:block;max-width:100%;margin:10px auto 0;padding:8px 12px;min-height:44px;border:1px solid #43758a;border-radius:7px;background:#0a2433;color:#b7edf4;font:650 11px/1.4 Manrope,Arial,sans-serif;cursor:pointer;overflow-wrap:anywhere}
+.artwork-retry:hover{border-color:#00d5e3;color:#e5fcff}
+.artwork-retry:focus-visible{outline:2px solid #78e4ee;outline-offset:3px}
+.reveal-art-fallback,.result-art-fallback,.item-art-note{text-align:center}
