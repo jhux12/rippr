@@ -245,3 +245,12 @@ test('homepage slab metadata is owner-only, validated and backward compatible',a
  await assertSucceeds(setDoc(target,data([{...item,grading:{company:'CGC',grade:'9.5'}}],3)));
  await assertFails(setDoc(doc(context('+12025550123').firestore(),'settings/homepageGrails'),{...data([item],4),updatedBy:'member'}));
 });
+
+test('Mythic is public to read, owner configured, and requires a price before enabling',async()=>{
+ const target=doc(context(OWNER_PHONE).firestore(),'packContents/mythic');
+ await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'packContents/mythic')));
+ await assertFails(setDoc(doc(context('+12025550123').firestore(),'packContents/mythic'),payload('member')));
+ await assertFails(setDoc(target,{...payload(),priceCents:null}));
+ await assertSucceeds(setDoc(target,{...payload(),enabled:false,priceCents:null}));
+ await assertSucceeds(setDoc(target,{...payload('owner',2),priceCents:2500}));
+});

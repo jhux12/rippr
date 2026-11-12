@@ -329,7 +329,7 @@ Homepage Grails worth discovering uses a single horizontal row instead of stacke
 
 ## Limited-time packs and tier stages
 
-The homepage keeps its existing pack stack and sizing. **Core packs / Limited time** switches between the five core tiers and Icy Rush; a collection remembers its selected pack during switching. A one-pack collection is centered and disables its unnecessary rotation controls. Core prices and catalogs are unchanged. The separate `/landing` page continues to present the five core tiers.
+The homepage keeps its existing pack stack and sizing. **Core packs / Limited time** switches between the six core tiers and Icy Rush; a collection remembers its selected pack during switching. A one-pack collection is centered and disables its unnecessary rotation controls. Core prices and catalogs are unchanged. The separate `/landing` page presents the six core tiers.
 
 Icy Rush (`icy-rush`) uses `assets/seasonal/pack-icy-rush.png`. Its initial catalog is disabled and unpriced; it becomes purchasable only after the owner sets its cards, odds and price in **Admin → Packs → Icy Rush**, enables it, and saves. No seasonal price, expiry or inventory count is fabricated. Daily reward settings can also award Icy Rush, with its image and name retained in account inventory. One pack still yields one card.
 
@@ -340,7 +340,7 @@ git pull origin main
 npx firebase deploy --only functions:ripprAccount,firestore:rules --project rippr-2b01c
 ```
 
-Stage atmospheres share the same geometry and reveal controls: Basic silver studio, Plus cyan currents, Premium purple prism, Elite coral energy, Ultimate gold celestial rings, and Icy Rush frost/snowflakes. Actual card rarity controls reveal colors. Mute, reduced motion, ambient pausing, batch skip, and per-card sell/keep actions are retained. Unconfigured prices render as a dash, not a free offer. Catalog/account/reward tests and browser checks cover the seasonal flow; the rules emulator download remains blocked by the environment's network policy for `storage.googleapis.com`.
+Stage atmospheres share the same geometry and reveal controls: Basic silver studio, Plus cyan currents, Premium purple prism, Elite coral energy, Ultimate gold celestial rings, Mythic platinum crystal geometry, and Icy Rush frost/snowflakes. Actual card rarity controls reveal colors. Mute, reduced motion, ambient pausing, batch skip, and per-card sell/keep actions are retained. Unconfigured prices render as a dash, not a free offer. Catalog/account/reward tests and browser checks cover the seasonal flow; the rules emulator download remains blocked by the environment's network policy for `storage.googleapis.com`.
 
 ## Full-screen opening view
 
@@ -448,3 +448,12 @@ The Rewards page follows the navy/cyan desktop/mobile design with a circular dai
 `claimWelcomeCase` awards one unopened Basic pack per account after a trusted backend records `firstVerifiedDepositAtMs` as integer epoch milliseconds. It does not accept deposit proof in client input. Free test top-ups do not populate that field or qualify. The future verified-payment adapter must record the first successful qualifying deposit; no payment integration is installed or enabled here. `welcomeCaseClaimedAtMs` locks further claims. Rewards still use the existing test-credit/test-item namespace.
 
 Deploy the updated existing `functions:ripprAccount` before using streak/welcome claims. Existing Firestore protections already deny client account writes; there is no new rule, index, secret or migration. An older backend leaves the new claims unavailable while daily spin continues to work. The new domain and viewport tests are part of `npm test`, `npm run test:rewards` and `npm run test:browser`.
+
+
+### Mythic pack
+
+Mythic (`mythic`, tier 6) follows Ultimate in the core carousel and `/landing`. Its transparent `assets/pack-mythic.webp` retains the generated platinum/iridescent artwork; all wrapper, shimmer, tear and foil layers use its intrinsic aspect ratio and alpha mask. Its navy stage adds faint crystal geometry with lavender/cyan atmospheric lighting, retaining the same stage footprint, motion lifecycle and actual-rarity reveal colors. Mobile tier selectors wrap without horizontal page overflow.
+
+Mythic starts disabled and unpriced. Configure cards, odds and price in **Admin → Packs → Mythic**, enable and save. No live price or prize pool was invented. Shared pack IDs cover admin editing, server purchases, reward prizes and unopened inventory packs. A missing Mythic catalog cannot silently substitute the seed catalog when opening an inventory reward.
+
+Deploy **`functions:ripprAccount,firestore:rules`** after pulling this change; deploy the built frontend through the usual hosting workflow. No new function, secret or index is needed. Validation: all 16 domain test files; Mythic browser checks at 320/390/1440px for carousel sizing, disabled defaults, intrinsic artwork sizing, configured purchases, rarity reveal and batch skip; admin card picker regression. A local rules regression was added; emulator execution is blocked by the download policy for `storage.googleapis.com`.

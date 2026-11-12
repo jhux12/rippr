@@ -18,8 +18,8 @@ export function packDocumentBytes(items) {
   }
   return 2048+size(items);
 }
-export const PACK_IDS = ['basic', 'plus', 'premium', 'elite', 'ultimate', 'icy-rush'];
-export const DEFAULT_PRICES = { basic:199, plus:499, premium:1499, elite:2999, ultimate:9999, 'icy-rush':null };
+export const PACK_IDS = ['basic', 'plus', 'premium', 'elite', 'ultimate', 'mythic', 'icy-rush'];
+export const DEFAULT_PRICES = { basic:199, plus:499, premium:1499, elite:2999, ultimate:9999, mythic:null, 'icy-rush':null };
 export const RARITIES = [
   { name: 'Common', color: '#adbdcf' },
   { name: 'Uncommon', color: '#63dcad' },
@@ -49,10 +49,10 @@ export function assertPackId(id) {
   if (!PACK_IDS.includes(id)) throw Object.assign(new Error('Unknown pack tier.'), { code: 'catalog/invalid-pack' });
 }
 export function packName(id) { return id === 'icy-rush' ? 'Icy Rush' : id[0].toUpperCase() + id.slice(1); }
-export function packImage(id) { return id === 'icy-rush' ? 'assets/seasonal/pack-icy-rush.png' : `assets/pack-${id}.svg`; }
+export function packImage(id) { return id === 'mythic' ? 'assets/pack-mythic.webp' : id === 'icy-rush' ? 'assets/seasonal/pack-icy-rush.png' : `assets/pack-${id}.svg`; }
 export function defaultPack(id) {
   assertPackId(id);
-  return { items: seeds.map(item => ({ ...item })), enabled: id !== 'icy-rush', priceCents: DEFAULT_PRICES[id], version: 0, source: 'default' };
+  return { items: seeds.map(item => ({ ...item })), enabled: !['icy-rush','mythic'].includes(id), priceCents: DEFAULT_PRICES[id], version: 0, source: 'default' };
 }
 export function validPackPrice(value) {
   return value === null || (Number.isSafeInteger(value) && value >= 0 && value <= 100000000);

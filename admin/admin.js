@@ -159,9 +159,9 @@
   function stagePrice() {
     const input = $('#pack-price');
     const price = input.value.trim() ? model.decimalToUnits(input.value) : null;
-    if (!model.validPackPrice(price) || (selectedPack==='icy-rush' && $('#pack-enabled').checked && price===null)) {
+    if (!model.validPackPrice(price) || (['icy-rush','mythic'].includes(selectedPack) && $('#pack-enabled').checked && price===null)) {
       chooseTab(true);
-      $('#pack-price-error').textContent = selectedPack==='icy-rush' && price===null ? 'Set a pack price before enabling Icy Rush.' : 'Enter a price from $0 to $1,000,000 with up to two decimal places.';
+      $('#pack-price-error').textContent = ['icy-rush','mythic'].includes(selectedPack) && price===null ? `Set a pack price before enabling ${model.packName(selectedPack)}.` : 'Enter a price from $0 to $1,000,000 with up to two decimal places.';
       $('#pack-price-error').hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus();
       return false;
     }

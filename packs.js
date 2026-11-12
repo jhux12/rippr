@@ -36,6 +36,13 @@ window.RIPPR_PACKS = [
     "tier": 5
   },
   {
+    "id": "mythic",
+    "name": "Mythic",
+    "image": "assets/pack-mythic.webp",
+    "accent": "#d8e5ff",
+    "tier": 6
+  },
+  {
     "id": "icy-rush",
     "name": "Icy Rush",
     "image": "assets/seasonal/pack-icy-rush.png",

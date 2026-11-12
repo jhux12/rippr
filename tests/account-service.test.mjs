@@ -153,3 +153,16 @@ test('support replies reopen resolved requests, retain author identity and respe
  time+=6000;await send(uid,'supportReply',{id:ticketId,expectedVersion:2,message:'Still need help.',author:'support',status:'resolved'});
  const ticket=(await send(uid,'supportList')).tickets[0];assert.equal(ticket.status,'open');assert.equal(ticket.version,3);assert.equal(ticket.messages[2].author,'customer');
 });
+
+test('Mythic requires configuration and then charges its saved price for one card',async()=>{
+ const uid=user();await act(uid,'topup',{amountCents:10000});
+ await assert.rejects(()=>purchase(uid,{packId:'mythic',expectedPriceCents:0}),code('failed-precondition'));
+ assert.equal((await snapshot(uid)).account.balanceCents,10000);
+ await db.runTransaction(async tx=>tx.set(db.doc('packContents/mythic'),{...defaultPack('mythic'),enabled:true,priceCents:2500,version:1}));
+ try{
+  await assert.rejects(()=>purchase(uid,{packId:'mythic',expectedPriceCents:199,expectedVersion:1}),code('failed-precondition'));
+  const result=await purchase(uid,{packId:'mythic',expectedPriceCents:2500,expectedVersion:1});
+  assert.equal(result.totalCents,2500);assert.equal(result.cards.length,1);
+  const saved=await snapshot(uid);assert.equal(saved.account.balanceCents,7500);assert.equal(saved.items[0].packId,'mythic');
+ }finally{await db.runTransaction(async tx=>tx.delete(db.doc('packContents/mythic')))}
+});

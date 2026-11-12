@@ -1,4 +1,4 @@
-export const REWARD_PACKS = ['basic','plus','premium','elite','ultimate','icy-rush'];
+export const REWARD_PACKS = ['basic','plus','premium','elite','ultimate','mythic','icy-rush'];
 export const REWARD_COOLDOWN_MS = 24*60*60*1000;
 export const defaultRewards = () => ({enabled:true,testingNoCooldown:true,version:0,prizes:[
  {id:'credit-25',kind:'credit',amountCents:25,chanceBps:4000},

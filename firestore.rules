@@ -6,7 +6,7 @@ service cloud.firestore {
         && request.auth.token.get('phone_number', '') == '+17654794230';
     }
     function validPackId(packId) {
-      return packId in ['basic', 'plus', 'premium', 'elite', 'ultimate', 'icy-rush'];
+      return packId in ['basic', 'plus', 'premium', 'elite', 'ultimate', 'mythic', 'icy-rush'];
     }
     function validContents(packId) {
       let data = request.resource.data;
@@ -16,7 +16,7 @@ service cloud.firestore {
         && data.enabled is bool
         && (!data.keys().hasAny(['priceCents']) || data.priceCents == null
           || (data.priceCents is int && data.priceCents >= 0 && data.priceCents <= 100000000))
-        && (packId != 'icy-rush' || !data.enabled || (data.get('priceCents', null) is int))
+        && (!(packId in ['icy-rush','mythic']) || !data.enabled || (data.get('priceCents', null) is int))
         && data.version is int && data.version > 0
         && data.totalChanceBps == 10000
         && data.updatedBy == request.auth.uid

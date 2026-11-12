@@ -191,9 +191,9 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           if(!owned.exists||owned.data().status!=='available'||owned.data().packId!==data.packId)fail('failed-precondition','This inventory pack is unavailable or already opened. View your items for its saved card.');
         }
         const saved = await tx.get(db.doc(`packContents/${data.packId}`));
-        // Seasonal defaults are illustrative, not a replacement for a removed
+        // Unconfigured pack defaults are illustrative, not a replacement for a removed
         // catalog. Keep an earned pack intact until its catalog is restored.
-        if(ownedRef&&data.packId==='icy-rush'&&!saved.exists)fail('failed-precondition','This seasonal pack needs its saved catalog restored before it can open.');
+        if(ownedRef&&['icy-rush','mythic'].includes(data.packId)&&!saved.exists)fail('failed-precondition','This pack needs its saved catalog restored before it can open.');
         let pack;
         try { pack = saved.exists ? readStoredPack(saved.data()) : defaultPack(data.packId); }
         catch { fail('failed-precondition','This pack needs its catalog corrected before it can open.'); }

@@ -130,3 +130,6 @@
 .pack-collections button span{margin-right:4px}
 .carousel-controls button:disabled{opacity:.4;cursor:default}
 @media(max-width:700px){.catalog-toolbar{display:grid;grid-template-columns:1fr auto;gap:12px}.catalog-toolbar .pack-collections{grid-column:1/-1;grid-row:2;margin:0;justify-self:start}.catalog-toolbar .carousel-controls{grid-column:2;grid-row:1}.pack-collections button{min-height:34px;padding:6px 14px}}
+
+/* Additional core tiers wrap without widening the mobile page. */
+.tier-selectors{flex-wrap:wrap}

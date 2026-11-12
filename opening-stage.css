@@ -348,3 +348,12 @@
 @keyframes stage-energy-flow{0%,100%{stroke-dashoffset:60;opacity:.3}50%{stroke-dashoffset:-150;opacity:.8}}
 @keyframes stage-snow-drift{from{transform:translate(0,-8px);opacity:.4}to{transform:translate(5px,14px);opacity:.8}}
 @media(prefers-reduced-motion:reduce){.stage-signature *{animation:none!important}}
+
+/* Mythic: platinum crystal chamber, sharing the same stage geometry. */
+.arena[data-pack="mythic"]{--pack-stage-light:#d8e5ff}
+.arena[data-pack="mythic"] .stage-signature{opacity:.23}
+.arena[data-pack="mythic"] .signature-crystal{stroke-width:.8}
+.arena[data-pack="mythic"] .stage-beam{left:22%;width:56%;animation-duration:12s}
+.arena[data-pack="mythic"] .stage-orbits{opacity:.16}
+.arena[data-pack="mythic"] .stage-particles{opacity:.45}
+.arena[data-pack="mythic"]:not(.is-revealing) .stage-atmosphere{background:radial-gradient(ellipse at 22% 35%,#b9abf514,transparent 48%),radial-gradient(ellipse at 78% 65%,#a8e9fa12,transparent 48%)}

@@ -65,6 +65,7 @@ const stageSignatures={
  premium:'<path d="m500 42 352 420H148Z"/><path class="signature-detail" d="m500 98 298 354H202Zm-290 27 580 320m0-320L210 445"/>',
  elite:'<path class="signature-streak" d="M76 380 286 170m-175 280 245-245m288 130 245-245m-175 280 210-210"/><path class="signature-detail" d="M88 430 370 148m260 244L912 110"/>',
  ultimate:'<circle cx="500" cy="270" r="214"/><circle class="signature-detail" cx="500" cy="270" r="240"/><path class="signature-detail" d="M500 22v18m0 460v18M252 270h18m460 0h18"/><path class="signature-star" d="m500 37 4 11 11 4-11 4-4 11-4-11-11-4 11-4Zm-243 81 3 8 8 3-8 3-3 8-3-8-8-3 8-3Zm482 280 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/>',
+ mythic:'<path class="signature-crystal" d="m500 28 236 124v236L500 512 264 388V152Zm0 0v484M264 152l472 236m0-236L264 388M500 28 358 270l142 242 142-242ZM264 152h472M264 388h472"/><path class="signature-detail" d="m190 98 46 46-46 46-46-46Zm620 254 46 46-46 46-46-46Z"/>',
  'icy-rush':'<path class="signature-ice" d="m112 474 76-104 45 67 65-28 52 65m300 0 58-79 54 27 47-59 79 111"/><g class="signature-snow"><path d="M181 107v30m-13-23 26 15m0-15-26 15M811 169v24m-10-18 20 12m0-12-20 12M752 75v20m-9-15 18 10m0-10-18 10M251 303v24m-10-18 20 12m0-12-20 12"/></g>'
 };
 const signature=document.createElement('div');signature.className='stage-signature';signature.setAttribute('aria-hidden','true');

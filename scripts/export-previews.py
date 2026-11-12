@@ -42,7 +42,7 @@ bootstrap = '''(() => {
   window.RIPPR_ASSET_URLS = urls;
   window.RIPPR_PACKS = CATALOG.map(pack => ({...pack, image:urls[pack.image]}));
   document.querySelectorAll('[data-asset]').forEach(img => { img.src = urls[img.dataset.asset]; });
-})();'''.replace('RASTERS', json.dumps(rasters)).replace('RECIPES', json.dumps(recipes)).replace('CATALOG', json.dumps(catalog)).replace('SEASONAL', json.dumps({'assets/seasonal/pack-icy-rush.png':uri(ROOT/'assets/seasonal/pack-icy-rush.png','image/png')}))
+})();'''.replace('RASTERS', json.dumps(rasters)).replace('RECIPES', json.dumps(recipes)).replace('CATALOG', json.dumps(catalog)).replace('SEASONAL', json.dumps({'assets/seasonal/pack-icy-rush.png':uri(ROOT/'assets/seasonal/pack-icy-rush.png','image/png'),'assets/pack-mythic.webp':uri(ROOT/'assets/pack-mythic.webp','image/webp')}))
 
 
 def common(text):

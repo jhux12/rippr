@@ -67,7 +67,7 @@
     carousel.style.setProperty('--accent', packs[current].accent);
     status.textContent = `${packs[current].name}, ${collection==='limited'?'limited edition':`tier ${packs[current].tier}`}, ${current+1} of ${packs.length}, one card per pack`;
     collectionPositions[collection]=current;
-    carousel.setAttribute('aria-label',collection==='limited'?'Limited time packs':'Five core pack tiers');
+    carousel.setAttribute('aria-label',collection==='limited'?'Limited time packs':`${packs.length} core pack tiers`);
     for(const control of document.querySelectorAll('.carousel-controls button'))control.disabled=packs.length<2;
     if (manual) paused = true;
     schedule();
