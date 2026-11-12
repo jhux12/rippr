@@ -1,6 +1,14 @@
-# rippr status — audio and imported-artwork recovery
+# rippr status — logo motion and sparkle loading
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest logo motion and sparkle loading
+
+- Shared public headers introduce the existing cyan sparkle with a 480 ms fade/small rotation, followed by a 340 ms wordmark fade with a 120 ms delay. Hover, primary tap and keyboard focus give the sparkle one 340 ms accent. The logo rests afterward; links retain their native behavior with no navigation delay.
+- Effects use opacity/transform without changing header dimensions. At most two entrance effects or one interaction effect are owned at once. Finished/cancelled handles are released; hiding/suspending the page or enabling reduced motion cancels active logo effects. Restoring the page or disabling reduced motion does not replay the entrance.
+- The same vector sparkle now marks shared loading panels, homepage retry, Community paging, profile account/paging, sign-in submission, landing grails, opening odds and the museum. Loading panels replace decorative Pip/line animation with the sparkle; museum placeholder frames stay static. Existing loading/status text carries the meaning, and buttons retain contrasting marks. CSS loading effects pause while hidden and become static with reduced motion; success/error transitions remove them.
+- Three new fixture browser groups check 320/390/1440px headers on home/opening/auth, bounded repeated interactions, native home navigation, stable header dimensions, reduced/hidden motion, centered loading and loading error/success/sign-out cleanup. The existing navigation, brand-state and complete customer-journey groups also pass: **30 focused browser groups** for this batch. The broader command now includes 72 groups; the prior full 69-group run remains recorded for the media-recovery batch.
+- Build/reference checks pass (16 pages / 730 local references). Frontend only, with no new animation library, generated art, external request or Firebase deployment requirement. Existing preview exports already inline the changed shared navigation and loading styles.
 
 ## Latest audio and imported-artwork recovery
 
@@ -121,9 +129,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **120 offline tests pass**, including metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- **Last full domain run: 120 offline tests passed**; no domain code changed in the logo batch. Coverage includes metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
 - Build and static HTML reference checks pass: 16 pages / 730 local references.
-- **69 browser groups** include the prior 64 journeys/layouts/resource checks plus four artwork recovery/lifecycle groups and one real-audio-signal group. Dotted set/card search, pricing, artwork, import/save and pack-draft flow remain covered at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **72 browser groups are configured.** The logo batch passed 30 focused groups, including the three new motion/loading groups; the prior full run passed all 69 groups in the media-recovery batch. These include artwork recovery/lifecycle and real-audio-signal checks. Dotted set/card search, pricing, artwork, import/save and pack-draft flow remain covered at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
@@ -161,7 +169,7 @@ To use an installed Chromium: `CHROMIUM_PATH=/usr/bin/chromium npm run test:brow
 
 **R-08 — Fulfillment operations (deferred by owner):** older admin shipping queue access, request lookup, status edits and conflict recovery. The admin request queue is still capped at 100; activity is still the latest 50 records. These limits are separate from the inventory work and are not claimed to be removed.
 
-Latest completed frontend work: repeated-opening motion cleanup and layout continuity, alongside the library/import improvements above. The next review should include the owner’s actual phone/browser after the frontend release; automated Chromium lifecycle checks do not establish real-device frame rates. Actual notification delivery, error visibility and owner-supplied real fulfillment content remain later projects. Legal and payment-provider setup remain owned by the business owner.
+Latest completed frontend work: subtle shared-header logo motion and sparkle loading feedback, following audio/artwork recovery and repeated-opening cleanup. The next review should include the owner’s actual phone/browser after the frontend release; automated Chromium lifecycle checks do not establish real-device frame rates. Actual notification delivery, error visibility and owner-supplied real fulfillment content remain later projects. Legal and payment-provider setup remain owned by the business owner.
 
 ## Updates
 

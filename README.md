@@ -430,3 +430,10 @@ Raw cards default to **Near Mint**, per the owner policy. In Admin → pack item
 The optional `grading:{company,grade}` metadata is preserved by catalog saves, awards, inventory, museum projections and request snapshots. Legacy raw entries remain compatible. Mark existing slab entries before displaying them as graded. Historical winnings retain their original snapshot and are not automatically backfilled from an edited catalog; old slab records without metadata need explicit, source-backed correction. No destructive data migration runs.
 
 Deploy updated `ripprAccount`, `ripprMuseum`, and Firestore rules for the full metadata flow; no Storage changes. The cumulative command remains in docs/STATUS.md for the deferred release. New rules tests are provided but their emulator download was unavailable here, so emulator/rule compilation is not reported as passed.
+
+
+## Logo motion and loading sparkle
+
+The shared public header gives the sparkle a short fade/rotation on page entry, followed by the wordmark. Hover, tap or keyboard focus adds one quick accent; the logo then rests. Effects use opacity/transform, release their handles and never change header sizing or delay the home link. Reduced motion skips them. Hiding/suspending the page stops active logo effects, and returning does not replay the entrance.
+
+Shared loading panels and selected pending controls use the same sparkle shape. Existing loading/status text remains readable, the mark is decorative, and button marks use contrasting text color. CSS loaders pause while hidden and stay static with reduced motion. No animation library, external artwork or Firebase update is required. Three additional motion/loading viewport groups join `npm run test:browser`.

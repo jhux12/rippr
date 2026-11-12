@@ -41,6 +41,7 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
   const ticket=++generation;loading=true;lastError=false;
   if(reset){cursor=null;museums=new Map();grid.innerHTML='<div class="brand-state brand-state--loading"><img src="assets/hero/pip-hover.webp" alt="" width="60" height="60"><p>Opening the gallery…</p></div>'}
   grid.setAttribute('aria-busy','true');more.disabled=true;status.textContent=reset?'Loading museums…':'Exploring more museums…';
+  more.setAttribute('aria-busy','true');
   try{
    const result=await window.RipprFirebase.museumAction('browse',{sort,search,cursor});
    if(ticket!==generation)return;
@@ -53,7 +54,7 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
    if(!museums.size)empty('The gallery is taking a moment.','Please try again to explore community collections.',true);
    else{more.hidden=false;more.textContent='Try again'}
   }finally{
-   if(ticket===generation){loading=false;grid.setAttribute('aria-busy','false');more.disabled=false;if(!lastError)more.textContent='Explore more museums'}
+   if(ticket===generation){loading=false;grid.setAttribute('aria-busy','false');more.disabled=false;more.setAttribute('aria-busy','false');if(!lastError)more.textContent='Explore more museums'}
   }
  }
  $('#community-search').addEventListener('submit',event=>{event.preventDefault();search=$('#community-query').value.trim();load(true)});

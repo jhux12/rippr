@@ -29,6 +29,8 @@ R-18 — **Repeated-opening motion and resource cleanup** is complete in code: o
 
 R-19 — **Audio and imported-artwork recovery** is complete in code: bounded image retries, manual Retry image for reveals/results/My items, stale-image cleanup, signed-URL preservation, recoverable clip loading, gesture/audio-session handling and visible-page audio resume. Tests cover transient network/decode failures, retry cleanup, autoplay-blocked resumes and real WAV output through the master graph. Native iOS/Safari and the owner’s exact live CDN failure remain unverified. Frontend only; no new Firebase deployment.
 
+R-20 — **Subtle logo motion and shared sparkle loading** is complete in code: one finite header entrance, a short hover/tap/focus accent, bounded opacity/transform effects, native links and stable header sizing. Existing loading panels and selected pending controls reuse the same decorative vector. Reduced motion is static; hidden/suspended pages stop logo effects and pause loaders. Three new viewport groups and 27 existing navigation/feedback/customer-journey groups pass. Frontend only; no new dependencies, assets or Firebase deployment.
+
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
 | R-01 | Consistent fulfillment labels in My items | Complete in code; see deployment note | Request, review, packing, shipped and delivered reflect the saved shipment. Older items without a shipment still render. No sell/ship controls for fulfillment items. Mobile and desktop checked. |

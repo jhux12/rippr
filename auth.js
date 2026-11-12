@@ -65,6 +65,8 @@
     $('#resend-code').textContent=remaining()>0?`Resend in ${remaining()}s`:'Resend code';
     $('#auth-submit').textContent=busy&&operation==='referral'?'Applying invite…':referralPending?'Apply invite & continue':busy&&operation==='verify'?'Verifying…':busy&&operation==='send'?'Sending…':step==='code'?'Verify & continue':'Send code';
     $('#legacy-submit').textContent=busy&&operation==='legacy'?'Signing in…':'Continue with existing account';
+    $('#auth-submit').setAttribute('aria-busy',String(busy&&['send','verify','referral'].includes(operation)));
+    $('#legacy-submit').setAttribute('aria-busy',String(busy&&operation==='legacy'));
     form.setAttribute('aria-busy',String(busy)); $('#legacy-form').setAttribute('aria-busy',String(busy));
   }
   function setBusy(value,kind='') { busy=value; operation=value?kind:''; controls(); }

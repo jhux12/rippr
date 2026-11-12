@@ -236,7 +236,7 @@
     const image=document.createElement('img');image.src=window.RIPPR_MASCOT_URLS?.hover||'assets/hero/pip-hover.webp';image.alt='';image.width=76;image.height=76;
     const title=document.createElement('h3');title.textContent=message;
     const copy=document.createElement('p');copy.textContent=retry?'Please try again to see the featured cards.':'A new lineup is on its way.';panel.append(image,title,copy);
-    if(retry){const button=document.createElement('button');button.type='button';button.className='primary-button';button.textContent='Try again';button.addEventListener('click',()=>{button.disabled=true;button.textContent='Loading…';loadHomepageGrails()});panel.append(button)}
+    if(retry){const button=document.createElement('button');button.type='button';button.className='primary-button';button.textContent='Try again';button.addEventListener('click',()=>{button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='Loading…';loadHomepageGrails()});panel.append(button)}
     grailGrid.replaceChildren(panel);grailGrid.setAttribute('aria-busy','false');scheduleGrails();
   }
   function renderHomepageGrails(saved) {

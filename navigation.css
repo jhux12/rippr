@@ -99,3 +99,20 @@
  .nav-actions{gap:12px}
  .site-navigation .nav-profile .nav-display-name{max-width:72px}
 }
+
+/* The logo's exact sparkle doubles as a decorative loading mark. */
+:root{--brand-sparkle:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2028%22%3E%3Cpath%20d%3D%22M12%200C13%209%2015%2012%2024%2014C15%2016%2013%2019%2012%2028C11%2019%209%2016%200%2014C9%2012%2011%209%2012%200Z%22%2F%3E%3C%2Fsvg%3E")}
+.nav-brand svg{transform-box:fill-box;transform-origin:center}
+:where(.brand-loading,.brand-state--loading,button[aria-busy="true"],.landing-track[aria-busy="true"] .landing-status,.museum-room[data-loading="true"] .museum-state,.odds-table-panel table[aria-busy="true"] .odds-loading)::before{
+ content:"";display:inline-block;flex:none;width:16px;height:19px;margin-inline-end:8px;vertical-align:-3px;
+ background:#00d4e3;mask:var(--brand-sparkle) center/contain no-repeat;-webkit-mask:var(--brand-sparkle) center/contain no-repeat;
+ animation:brand-sparkle-breathe 1.6s ease-in-out infinite;pointer-events:none;
+}
+.brand-state--loading::before{display:block;width:28px;height:33px;margin:0 auto 2px}
+button[aria-busy="true"]::before{background:currentColor}
+.museum-room[data-loading="true"] .museum-state{display:flex;align-items:center;gap:10px}
+.museum-room[data-loading="true"] .museum-state::before{margin:0}
+.museum-room[data-loading="true"] .museum-state>:empty{display:none}
+@keyframes brand-sparkle-breathe{0%,100%{opacity:.45;transform:scale(.88)}50%{opacity:1;transform:scale(1)}}
+html[data-brand-motion-paused] :where(.brand-loading,.brand-state--loading,button[aria-busy="true"],.landing-track[aria-busy="true"] .landing-status,.museum-room[data-loading="true"] .museum-state,.odds-table-panel table[aria-busy="true"] .odds-loading)::before{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){:where(.brand-loading,.brand-state--loading,button[aria-busy="true"],.landing-track[aria-busy="true"] .landing-status,.museum-room[data-loading="true"] .museum-state,.odds-table-panel table[aria-busy="true"] .odds-loading)::before{animation:none;opacity:1;transform:none}}

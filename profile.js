@@ -43,6 +43,7 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
   function pageControls(collection,buttonId,statusId){
     const a=account(),button=$('#'+buttonId),message=$('#'+statusId),more=Boolean(a.pageInfo?.[collection]?.hasMore||(collection==='items'&&a.hasMore));
     button.hidden=!more;button.disabled=Boolean(a.inventoryLoading?.[collection]);button.textContent=button.disabled?'Loading…':collection==='packs'?'Load more packs':'Load more cards';
+    button.setAttribute('aria-busy',String(button.disabled));
     message.textContent=a.inventoryErrors?.[collection]||'';message.hidden=!message.textContent;
     return more;
   }
@@ -71,6 +72,7 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
     $('#gate-login').hidden=!a?.ready||Boolean(user);
     $('#retry-account').hidden=!user||!a.accountError;
     $('#gate-message').textContent=!a?.ready?'Loading your account…':!user?'Log in to view your items and balance.':a.accountError||'Loading your items…';
+    $('#gate-message').classList.toggle('brand-loading',!a?.ready||Boolean(user&&!a.wallet&&!a.accountError));
     if(!user||!a.wallet)return;
     if(a.accountError)status(a.accountError);
     $('#profile-name').textContent=a.wallet.displayName;

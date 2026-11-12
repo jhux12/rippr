@@ -1,3 +1,36 @@
+/* One brief entrance and one owned interaction effect; no idle logo loop. */
+(() => {
+  const brand=document.querySelector('.site-navigation .nav-brand'),mark=brand?.querySelector('svg'),word=brand?.querySelector('span');
+  if(!mark?.animate||!word)return;
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),effects=new Set();let pulse=null,suspended=false;
+  function stop(){for(const effect of effects)effect.cancel();effects.clear();pulse=null}
+  function play(element,frames,options){
+    const effect=element.animate(frames,options);effects.add(effect);
+    const release=()=>{effects.delete(effect);if(pulse===effect)pulse=null};effect.finished.then(release,release);return effect;
+  }
+  function paused(){return reduced.matches||document.hidden||suspended}
+  function syncVisibility(){
+    document.documentElement.toggleAttribute('data-brand-motion-paused',document.hidden||suspended);
+    if(paused())stop();
+  }
+  if(!paused()){
+    play(mark,[{opacity:0,transform:'rotate(-12deg) scale(.82)'},{opacity:1,transform:'rotate(0deg) scale(1)'}],{duration:480,easing:'cubic-bezier(.22,1,.36,1)'});
+    play(word,[{opacity:0,transform:'translateX(4px)'},{opacity:1,transform:'translateX(0)'}],{duration:340,delay:120,fill:'backwards',easing:'ease-out'});
+  }
+  function accent(){
+    if(paused()||pulse?.playState==='running')return;
+    stop();pulse=play(mark,[{transform:'scale(1) rotate(0deg)',opacity:1},{transform:'scale(1.14) rotate(4deg)',opacity:.82,offset:.42},{transform:'scale(1) rotate(0deg)',opacity:1}],{duration:340,easing:'ease-out'});
+  }
+  brand.addEventListener('pointerenter',event=>{if(event.pointerType!=='touch')accent()});
+  brand.addEventListener('pointerdown',event=>{if(event.isPrimary&&event.button===0)accent()});
+  brand.addEventListener('focus',()=>{if(brand.matches(':focus-visible'))accent()});
+  reduced.addEventListener('change',syncVisibility);
+  document.addEventListener('visibilitychange',syncVisibility);
+  window.addEventListener('pagehide',()=>{suspended=true;syncVisibility()});
+  window.addEventListener('pageshow',()=>{suspended=false;syncVisibility()});
+  syncVisibility();
+})();
+
 (() => {
   'use strict';
   const header = document.querySelector('.site-navigation');

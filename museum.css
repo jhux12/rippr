@@ -62,12 +62,11 @@
 .museum-case img{transition:opacity 180ms ease}
 .museum-loading-displays{display:none;position:absolute;inset:0;pointer-events:none;z-index:1}
 .museum-room[data-loading="true"] .museum-loading-displays{display:block}
-.museum-loading-displays span{position:absolute;bottom:29%;left:50%;width:18%;aspect-ratio:.69;transform:translateX(-50%);border:1px solid #8be7ef55;border-radius:8px;background:linear-gradient(110deg,#0e2331b3 25%,#31546299 45%,#0e2331b3 65%);background-size:240% 100%;animation:museum-loading-light 1.6s ease-in-out infinite}
+.museum-loading-displays span{position:absolute;bottom:29%;left:50%;width:18%;aspect-ratio:.69;transform:translateX(-50%);border:1px solid #8be7ef55;border-radius:8px;background:linear-gradient(110deg,#0e2331b3 25%,#31546299 45%,#0e2331b3 65%);background-size:240% 100%}
 .museum-loading-displays span:first-child{left:12%;bottom:37%;width:13.5%;opacity:.5}
 .museum-loading-displays span:last-child{left:88%;bottom:37%;width:13.5%;opacity:.5}
 .museum-room[data-loading="true"] .museum-state{top:auto;bottom:20px;transform:translateX(-50%);padding:8px 16px;border:0;background:#07131e99;box-shadow:none;width:auto;max-width:calc(100% - 32px)}
 .museum-room[data-loading="true"] .museum-state h2{font-size:13px;line-height:1.5;letter-spacing:0;font-weight:600}
-@keyframes museum-loading-light{0%,100%{background-position:100% 50%;opacity:.55}50%{background-position:0 50%;opacity:.85}}
 @media(max-width:1000px){
  .museum-display{transition:none}
  .museum-case{backdrop-filter:none;box-shadow:inset 0 0 0 3px #a4eeff12,0 4px 12px #0005}
