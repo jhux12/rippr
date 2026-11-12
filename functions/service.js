@@ -5,7 +5,7 @@ import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
-import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS } from './reward-model.js';
+import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS, rewardExtras } from './reward-model.js';
 import { isAdminToken, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem, packImage, gradingFields } from './catalog-model.js';
 
 const fail = (code, message) => { throw new HttpsError(code, message); };
@@ -105,7 +105,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       return db.runTransaction(async tx=>{
         const [saved,wallet]=await Promise.all([tx.get(db.doc('rewardSettings/daily')),tx.get(account)]);
         let config;try{config=saved.exists?readRewards(saved.data()):defaultRewards()}catch{fail('failed-precondition','Daily rewards need their configuration corrected.')}
-        return {config,nextClaimAtMs:wallet.data()?.nextRewardAtMs||0,serverTimeMs:now()};
+        return {config,nextClaimAtMs:wallet.data()?.nextRewardAtMs||0,serverTimeMs:now(),extras:rewardExtras(wallet.data()||{},now())};
       });
     }
     if(action==='saveRewards' && !isAdminToken(claims,uid))fail('permission-denied','Only the verified owner phone account can save reward settings.');
@@ -150,6 +150,29 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         }
         result={prize,nextClaimAtMs:patch.nextRewardAtMs,balanceCents:patch.balanceCents??wallet.balanceCents,...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};
         activity={type:'reward',label:`Daily reward · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
+      } else if(action==='claimStreak'||action==='claimWelcomeCase'){
+        const time=now(),extras=rewardExtras(wallet,time);let prize;
+        if(action==='claimStreak'){
+          if(!extras.streak.ready)fail('failed-precondition','Your next streak reward is not ready yet.');
+          if(data.expectedDay!==extras.streak.day)fail('failed-precondition','Your streak changed. Reload rewards before claiming.');
+          prize=extras.streak.prizes[extras.streak.day-1];
+          patch.streakCount=extras.streak.count+1;patch.lastStreakAtMs=time;
+        }else{
+          // Only a trusted future payment adapter may record this timestamp.
+          // Free test top-ups and client-supplied flags do not qualify.
+          if(!extras.welcome.eligible)fail('failed-precondition','A verified first deposit is required for this bonus.');
+          if(extras.welcome.claimed)fail('failed-precondition','Your welcome case has already been claimed.');
+          prize=extras.welcome.prize;patch.welcomeCaseClaimedAtMs=time;
+        }
+        if(prize.kind==='pack'){
+          await requireRewardPackCatalogs(tx,db,[{...prize,chanceBps:10000}]);
+          tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:action==='claimStreak'?'streak-reward':'welcome-case',testItem:true,wonAt:stamp()});
+        }else{
+          if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Your test balance limit has been reached.');
+          patch.balanceCents=wallet.balanceCents+prize.amountCents;
+        }
+        result={prize,extras:rewardExtras({...wallet,...patch},time),balanceCents:patch.balanceCents??wallet.balanceCents,...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};
+        activity={type:'reward',label:`${action==='claimStreak'?'Daily streak':'Welcome case'} · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
       } else if (action === 'topup') {
         if (!freeTopups()) fail('failed-precondition','Free test top-ups are currently paused.');
         const cents = data.amountCents;

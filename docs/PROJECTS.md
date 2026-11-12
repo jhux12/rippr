@@ -31,6 +31,8 @@ R-19 — **Audio and imported-artwork recovery** is complete in code: bounded im
 
 R-20 — **Subtle logo motion and shared sparkle loading** is complete in code: one finite header entrance, a short hover/tap/focus accent, bounded opacity/transform effects, native links and stable header sizing. Existing loading panels and selected pending controls reuse the same decorative vector. Reduced motion is static; hidden/suspended pages stop logo effects and pause loaders. Three new viewport groups and 27 existing navigation/feedback/customer-journey groups pass. Frontend only; no new dependencies, assets or Firebase deployment.
 
+R-21 — **Daily spin, streak and welcome rewards** is complete in code: mockup-based responsive rewards page, wheel using unchanged daily spin rules/odds, seven-day server-validated streak claims and one-time verified-deposit welcome Basic pack. Earned packs use existing inventory redemption. Free test top-ups do not qualify for the welcome case; the payment-verification adapter remains owner-owned and unconnected. Requires updating the existing `ripprAccount` Function; no rule/index/migration. Six new domain scenarios and three viewport service/browser groups cover claims, motion and isolation.
+
 | ID | Project | Status | Completion criteria |
 | --- | --- | --- | --- |
 | R-01 | Consistent fulfillment labels in My items | Complete in code; see deployment note | Request, review, packing, shipped and delivered reflect the saved shipment. Older items without a shipment still render. No sell/ship controls for fulfillment items. Mobile and desktop checked. |

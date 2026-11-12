@@ -1,6 +1,16 @@
-# rippr status — logo motion and sparkle loading
+# rippr status — daily spin, streaks and welcome case
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Latest rewards page
+
+- Replaced the daily case reel with a responsive eight-or-more-slice wheel, keeping the existing `rewardSettings/daily` configuration, `claimReward` transaction, exact prize odds, catalog checks, cooldown and testing bypass unchanged. The server saves the prize before motion. Equal display slices are explicitly distinguished from actual odds; the odds dialog shows the configured percentages.
+- The navy/cyan layout follows the desktop/mobile mockup: spin plus welcome case on desktop, then seven-day streak; mobile stacks spin, streak and welcome. Existing pack artwork, Pip, shared header/footer and referral behavior are retained. The referral banner expands to reveal the existing invite code/actions. New transparent welcome-case artwork is losslessly encoded as a 578 KiB WebP.
+- Streak rewards are separate server-controlled claims: $0.05, $0.05, $0.10, $0.10, $0.25, $0.25 credit, then one unopened Basic pack. Claims are once per rolling 24 hours, reset after 48 hours without claiming, and cycle after day 7. The spin testing bypass does not bypass streak timing. Credits/packs, activity and claim metadata commit atomically with the existing operation-ID retry guard.
+- The one-time welcome case grants an unopened Basic pack only when trusted backend metadata `firstVerifiedDepositAtMs` is a positive, non-future millisecond timestamp. Free test top-ups and client-supplied flags do not qualify. No payment verification adapter is connected by this change; the case stays locked until that trusted integration exists. `welcomeCaseClaimedAtMs` enforces the once-per-account claim. Existing account write protections cover these fields; no rules change.
+- Wheel motion owns one transform effect, cancels on account change, pauses while hidden and settles immediately with reduced motion. Resizing preserves the same server-selected prize. No 90-tile reel, permanent motion handle or particle accumulation remains.
+- Six new domain scenarios cover streak boundaries/cycling/idempotency/concurrency, pack redemption, rollback, authentication, balance limits and deposit spoofing. Three new browser groups cover 320/390/1440px layout, real isolated account transactions, correct odds/cooldown, hidden/resize/reduced motion, pack awards, streak/welcome claims and account isolation. Standard build/reference checks pass (16 pages / 733 references).
+- Deploy the updated existing **ripprAccount** Function to enable streak/welcome claims. The daily spin continues with the prior backend; missing extras are shown unavailable rather than fabricated as claimed/unlocked. No new Function name, rule, index, migration or secret. This workspace has not deployed Firebase.
 
 ## Latest logo motion and sparkle loading
 
@@ -8,7 +18,7 @@ Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](
 - Effects use opacity/transform without changing header dimensions. At most two entrance effects or one interaction effect are owned at once. Finished/cancelled handles are released; hiding/suspending the page or enabling reduced motion cancels active logo effects. Restoring the page or disabling reduced motion does not replay the entrance.
 - The same vector sparkle now marks shared loading panels, homepage retry, Community paging, profile account/paging, sign-in submission, landing grails, opening odds and the museum. Loading panels replace decorative Pip/line animation with the sparkle; museum placeholder frames stay static. Existing loading/status text carries the meaning, and buttons retain contrasting marks. CSS loading effects pause while hidden and become static with reduced motion; success/error transitions remove them.
 - Three new fixture browser groups check 320/390/1440px headers on home/opening/auth, bounded repeated interactions, native home navigation, stable header dimensions, reduced/hidden motion, centered loading and loading error/success/sign-out cleanup. The existing navigation, brand-state and complete customer-journey groups also pass: **30 focused browser groups** for this batch. The broader command now includes 72 groups; the prior full 69-group run remains recorded for the media-recovery batch.
-- Build/reference checks pass (16 pages / 730 local references). Frontend only, with no new animation library, generated art, external request or Firebase deployment requirement. Existing preview exports already inline the changed shared navigation and loading styles.
+- Build/reference checks pass (16 pages / 733 local references). Frontend only, with no new animation library, generated art, external request or Firebase deployment requirement. Existing preview exports already inline the changed shared navigation and loading styles.
 
 ## Latest audio and imported-artwork recovery
 
@@ -129,9 +139,9 @@ Previous foundation fixes (fulfillment labels, reward prize readiness, expanded 
 
 ## Verification
 
-- **Last full domain run: 120 offline tests passed**; no domain code changed in the logo batch. Coverage includes metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
-- Build and static HTML reference checks pass: 16 pages / 730 local references.
-- **72 browser groups are configured.** The logo batch passed 30 focused groups, including the three new motion/loading groups; the prior full run passed all 69 groups in the media-recovery batch. These include artwork recovery/lifecycle and real-audio-signal checks. Dotted set/card search, pricing, artwork, import/save and pack-draft flow remain covered at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
+- **All 16 offline test files pass**, including six new streak/welcome scenarios. Coverage includes metadata/price separation and market-quote cases, library CSV/provider/pack invariants, pagination boundaries, timestamp ties, ownership isolation, retry/reset races, missing seasonal catalog and one-time redemption.
+- Build and static HTML reference checks pass: 16 pages / 733 local references.
+- **All 75 browser groups passed** for this rewards batch, including the three new wheel/streak/welcome groups and the existing animation, audio, artwork, account and admin coverage. Dotted set/card search, pricing, artwork, import/save and pack-draft flow remain covered at 320, 390 and 1440 pixels. Existing library groups now also check per-card/bulk import rarity and that imports do not change packs. Existing coverage includes auth, sell/ship, older inventory, museums, tracking, seasonal redemption, batch skip, reveal and grading editors.
 - Lossless image decode and browser alpha/geometry checks completed; source asset payload measurements recorded separately.
 - Whitespace/syntax checks pass.
 
@@ -139,7 +149,7 @@ The browser suite intercepts all HTTP and uses fixtures. It does not establish r
 
 ## Deferred deployment
 
-Inventory pagination, exact owned-pack verification, seasonal redemption and the larger pack-pool validator use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The card library adds owner-only Firestore access/validation rules, immutable added-date metadata and frontend tools; it needs no new Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix. No new Function names, Storage rules, secrets or payment integration are needed.
+Inventory pagination, exact owned-pack verification, seasonal redemption and the larger pack-pool validator use the updated existing **ripprAccount** Function. Condition metadata also requires the updated **ripprMuseum** Function and **firestore.rules** for homepage grading. The card library adds owner-only Firestore access/validation rules, immutable added-date metadata and frontend tools; it needs no new Function. The owner will deploy the combined backend changes after this work is complete. This also includes the previous daily reward readiness fix and the new streak/welcome reward claims. No new Function names, Storage rules, secrets or payment integration are needed.
 
 From the owner's authenticated Firebase checkout:
 
@@ -169,7 +179,7 @@ To use an installed Chromium: `CHROMIUM_PATH=/usr/bin/chromium npm run test:brow
 
 **R-08 — Fulfillment operations (deferred by owner):** older admin shipping queue access, request lookup, status edits and conflict recovery. The admin request queue is still capped at 100; activity is still the latest 50 records. These limits are separate from the inventory work and are not claimed to be removed.
 
-Latest completed frontend work: subtle shared-header logo motion and sparkle loading feedback, following audio/artwork recovery and repeated-opening cleanup. The next review should include the owner’s actual phone/browser after the frontend release; automated Chromium lifecycle checks do not establish real-device frame rates. Actual notification delivery, error visibility and owner-supplied real fulfillment content remain later projects. Legal and payment-provider setup remain owned by the business owner.
+Latest completed product work: the redesigned rewards page and server-controlled streak/welcome claims, following subtle logo motion and media recovery. The next review should include the owner’s actual phone/browser after the frontend release; automated Chromium lifecycle checks do not establish real-device frame rates. Actual notification delivery, error visibility and owner-supplied real fulfillment content remain later projects. Legal and payment-provider setup remain owned by the business owner.
 
 ## Updates
 

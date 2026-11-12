@@ -307,7 +307,7 @@ The pack-opening grails section uses a compact single-row carousel: four cards o
 
 ### Referrals
 
-The Rewards page retains the original daily case and possible-prize display, with a standalone referral card underneath. Other collection reward features have been rolled back. Members can copy invite links or apply one non-self code before their first opening. A qualifying **test-balance** purchase credits both accounts once in the same transaction; free inventory packs do not qualify. Defaults are $0.25 per person, a $1 minimum purchase and 20 bonuses per referrer. This is not verified real-deposit qualification; real-payment and anti-abuse integration remain future work.
+The Rewards page now displays the daily reward as a wheel, with streak/welcome panels and a compact expandable referral banner. The former collection challenge and cosmetic reward features remain rolled back. Members can copy invite links or apply one non-self code before their first opening. A qualifying **test-balance** purchase credits both accounts once in the same transaction; free inventory packs do not qualify. Defaults are $0.25 per person, a $1 minimum purchase and 20 bonuses per referrer. This is not verified real-deposit qualification; real-payment and anti-abuse integration remain future work.
 
 Admin → Referrals controls the enabled switch, credit amount, purchase minimum and per-referrer cap. Existing invite codes, bindings and payout history remain valid. Previously saved referral settings are read from the legacy collection reward configuration until saved into `rewardSettings/referrals`. The retired collection reward actions no longer award anything. Existing earned packs and account records are preserved.
 
@@ -437,3 +437,14 @@ Deploy updated `ripprAccount`, `ripprMuseum`, and Firestore rules for the full m
 The shared public header gives the sparkle a short fade/rotation on page entry, followed by the wordmark. Hover, tap or keyboard focus adds one quick accent; the logo then rests. Effects use opacity/transform, release their handles and never change header sizing or delay the home link. Reduced motion skips them. Hiding/suspending the page stops active logo effects, and returning does not replay the entrance.
 
 Shared loading panels and selected pending controls use the same sparkle shape. Existing loading/status text remains readable, the mark is decorative, and button marks use contrasting text color. CSS loaders pause while hidden and stay static with reduced motion. No animation library, external artwork or Firebase update is required. Three additional motion/loading viewport groups join `npm run test:browser`.
+
+
+## Daily spin, streak and welcome case
+
+The Rewards page follows the navy/cyan desktop/mobile design with a circular daily spin, seven-day streak, welcome case and compact expandable referral banner. The spin retains the existing `rewardSettings/daily` prizes, probabilities, admin testing bypass and cooldown; the server awards before animating. Display slices are equal and illustrative, while the prize-odds dialog lists exact configured chances. The wheel pauses while hidden, cancels on account changes, supports reduced motion and does not reroll on resize.
+
+`claimStreak` awards $0.05, $0.05, $0.10, $0.10, $0.25, $0.25 site credit and then one unopened Basic pack. Claims use a separate rolling 24-hour cooldown, reset after 48 hours without a claim, and repeat the seven-day cycle. All awards and metadata use the existing authenticated account transaction/idempotency path. Spin testing bypass does not apply to streak claims.
+
+`claimWelcomeCase` awards one unopened Basic pack per account after a trusted backend records `firstVerifiedDepositAtMs` as integer epoch milliseconds. It does not accept deposit proof in client input. Free test top-ups do not populate that field or qualify. The future verified-payment adapter must record the first successful qualifying deposit; no payment integration is installed or enabled here. `welcomeCaseClaimedAtMs` locks further claims. Rewards still use the existing test-credit/test-item namespace.
+
+Deploy the updated existing `functions:ripprAccount` before using streak/welcome claims. Existing Firestore protections already deny client account writes; there is no new rule, index, secret or migration. An older backend leaves the new claims unavailable while daily spin continues to work. The new domain and viewport tests are part of `npm test`, `npm run test:rewards` and `npm run test:browser`.

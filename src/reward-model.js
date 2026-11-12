@@ -34,3 +34,15 @@ export function drawReward(config,roll){
  let sum=0;for(const p of config.prizes){sum+=p.chanceBps;if(roll<sum)return {...p}}
  throw new Error('Incomplete prize odds.');
 }
+
+// Separate from daily spin odds and its testing cooldown bypass.
+export const streakPrizes=()=>[5,5,10,10,25,25].map((amountCents,i)=>({id:`streak-${i+1}`,kind:'credit',amountCents})).concat({id:'streak-7',kind:'pack',packId:'basic'});
+export const welcomePrize=()=>({id:'welcome-basic',kind:'pack',packId:'basic'});
+export function rewardExtras(wallet={},time=Date.now()){
+ const last=Number.isSafeInteger(wallet.lastStreakAtMs)?wallet.lastStreakAtMs:0;
+ const expired=last>0&&time-last>=2*REWARD_COOLDOWN_MS;
+ const count=!expired&&last&&Number.isSafeInteger(wallet.streakCount)&&wallet.streakCount>0?wallet.streakCount:0;
+ const nextClaimAtMs=count?last+REWARD_COOLDOWN_MS:0,ready=nextClaimAtMs<=time;
+ const deposit=Number.isSafeInteger(wallet.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=time;
+ return {streak:{count,lastClaimAtMs:last,ready,day:count%7+1,claimedDays:count%7||(count&&!ready?7:0),nextClaimAtMs,prizes:streakPrizes()},welcome:{eligible:deposit,claimed:Boolean(wallet.welcomeCaseClaimedAtMs),prize:welcomePrize()}};
+}
