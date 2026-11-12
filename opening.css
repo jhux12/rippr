@@ -27,3 +27,7 @@
 
 /* Do not expose partially decoded wrapper/mask layers on cold navigation. */
 .pack-shell:not([data-art-ready="true"]){visibility:hidden}
+/* Idle artwork centers through layout, independent of decoded image dimensions
+   and percentage-transform interpolation during first navigation. */
+.showcase:not(.opening-focus) .display{display:grid;place-items:center}
+.showcase:not(.opening-focus) .pack-shell{position:relative;left:auto;top:auto;margin:0;transform:none;transition:none}
