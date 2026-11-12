@@ -184,7 +184,7 @@
 .reveal-front::after{content:'';position:absolute;inset:-25% -70%;pointer-events:none;background:linear-gradient(105deg,transparent 40%,#ffffff24 49%,#ffffff42 50%,transparent 60%);transform:translateX(50%);opacity:0}
 .reveal-art-fallback{padding:20px;color:#b6c7dc;font-size:13px}
 .reveal-edge{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;transform-origin:center;transform-box:border-box}
-.reveal-edge rect{fill:none;stroke:color-mix(in srgb,var(--reveal-tone) 45%,white);stroke-width:2;vector-effect:non-scaling-stroke;stroke-dasharray:100;stroke-dashoffset:0}
+.reveal-edge rect{fill:none;stroke:color-mix(in srgb,var(--reveal-tone) 45%,white);stroke-width:2;vector-effect:non-scaling-stroke;stroke-dasharray:none;stroke-dashoffset:0}
 .reveal-plinth{position:absolute;bottom:-23px;left:50%;width:154%;max-width:72vw;height:15px;transform:translateX(-50%);border:1px solid color-mix(in srgb,var(--reveal-tone) 65%,transparent);border-radius:50%;background:radial-gradient(ellipse,var(--reveal-tone),color-mix(in srgb,var(--reveal-tone) 12%,transparent) 40%,transparent 73%);box-shadow:0 0 14px color-mix(in srgb,var(--reveal-tone) 30%,transparent),inset 0 0 12px color-mix(in srgb,var(--reveal-tone) 20%,transparent);z-index:-1;pointer-events:none}
 .reveal-information,.reveal-actions{visibility:hidden}
 .is-card-revealed .reveal-information,.is-card-revealed .reveal-actions{visibility:visible}
