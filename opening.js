@@ -5,6 +5,8 @@ const packId=typeof location!=='undefined'?new URLSearchParams(location.search).
 const inventoryPackId=new URLSearchParams(location.search).get('inventory');
 const selectedPack=packCatalog.find(pack=>pack.id===packId)||packCatalog.find(pack=>pack.id==='basic');
 if(selectedPack){
+ // Reserve intrinsic geometry before the first image response (including cold loads).
+ document.documentElement.style.setProperty('--pack-ratio',String(selectedPack.width/selectedPack.height||.56));
  document.title=`${selectedPack.name} — rippr`;
  $('.heading h1').textContent=selectedPack.name;
  $('.showcase').setAttribute('aria-label',`${selectedPack.name} pack showcase`);
@@ -359,7 +361,12 @@ const foil=window.RipprFoil?.mount(shell);
 let ripDirection=1;
 let drag=null,progress=0;
 const packImage=new Image();openButton.disabled=true;
-packImage.onload=()=>{document.documentElement.style.setProperty('--pack-ratio',String(packImage.naturalWidth/packImage.naturalHeight));artReady=true;updateOpen()};
+packImage.onload=async()=>{
+ try{await packImage.decode()}catch{}
+ if(!packImage.naturalWidth)return;
+ document.documentElement.style.setProperty('--pack-ratio',String(packImage.naturalWidth/packImage.naturalHeight));
+ artReady=true;shell.dataset.artReady='true';updateOpen();
+};
 packImage.onerror=()=>{phase.textContent='Pack image could not load. Please reload.'};
 packImage.src=selectedPack.image;
 let ripLabel=-1;

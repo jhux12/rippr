@@ -7,9 +7,10 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
  try{for(const width of [320,390,1440]){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.route('**/*',route=>{
+  await page.route('**/*',async route=>{
    const u=new URL(route.request().url());assert.equal(u.origin,origin,'No production calls');const name=u.pathname.slice(1);
    if(['firebase-client.js','account-state.js','navigation.js','footer.js'].includes(name))return route.fulfill({body:'',contentType:'application/javascript'});
+   if(name==='assets/pack-mythic.webp')await new Promise(resolve=>setTimeout(resolve,700));
    const target=path.resolve(root,name);assert(target.startsWith(root+path.sep));
    if(!fs.existsSync(target))return route.abort();return route.fulfill({body:fs.readFileSync(target),contentType:types[path.extname(target)]||'application/octet-stream'});
   });
@@ -28,7 +29,10 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const bounds=await page.locator('#tier-selectors').boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width);
   await page.screenshot({path:'/tmp/mythic-home-'+width+'.png',fullPage:true});
-  await page.goto(origin+'/opening.html?pack=mythic');await page.waitForFunction(()=>artReady&&contentsReady);
+  await page.goto(origin+'/opening.html?pack=mythic',{waitUntil:'domcontentloaded'});
+  assert(Math.abs(await page.evaluate(()=>Number(document.documentElement.style.getPropertyValue('--pack-ratio')))-2/3)<.001,'Intrinsic geometry is reserved before artwork loads');
+  await page.waitForFunction(()=>artReady&&contentsReady);
+  const centered=await page.evaluate(()=>{const a=document.querySelector('.arena').getBoundingClientRect(),p=document.querySelector('#pack-shell').getBoundingClientRect();return Math.abs(p.x+p.width/2-a.x-a.width/2)<1});assert(centered,'Cold-load pack is centered without refresh');
   assert(await page.locator('#open').isDisabled());
   assert.equal(await page.locator('.arena').getAttribute('data-pack'),'mythic');
   assert.equal(await page.locator('.signature-crystal').count(),1);

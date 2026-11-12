@@ -24,3 +24,6 @@
 
 /* Batch skip also suppresses the card details and action entrance effects. */
 .skip-reveal-motion .reveal-stage,.skip-reveal-motion .reveal-stage *,.skip-reveal-motion .reveal-stage *::before,.skip-reveal-motion .reveal-stage *::after{animation:none!important;transition:none!important}
+
+/* Do not expose partially decoded wrapper/mask layers on cold navigation. */
+.pack-shell:not([data-art-ready="true"]){visibility:hidden}
