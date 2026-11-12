@@ -88,6 +88,8 @@ service cloud.firestore {
       allow create: if owner() && validHomepageGrails() && request.resource.data.version == 1;
       allow update: if owner() && validHomepageGrails() && request.resource.data.version == resource.data.version + 1;
     }
+    // Server-only delivery records may contain private account details and links.
+    match /emailOutbox/{id} { allow read, write: if false; }
     // Private reusable catalog. Each record is independent of pack prices/odds.
     function validLibraryCard(cardId) {
       let d = request.resource.data;

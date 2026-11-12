@@ -42,8 +42,8 @@ Only pass final server records. Never send from client-reported purchase, prize 
 | `support-received` | Saved ticket: `reference`, `topic` |
 | `support-reply` | Saved staff reply: `reference`, `message` |
 
-## Sending integration remains separate
+## Sending integration
 
-No provider, SMTP credential, sender address, domain or automation is configured by this change. No production messages or Firebase changes are triggered. Phone-only users may not have an email address; do not require one to use rippr or invent recipients. Connect a provider only after confirming a recipient's email and appropriate account preferences; `emailForUpdates` currently stores an address but does not verify ownership.
+The backend now wires all eight account emails except pack receipts to committed account events. Pack receipts stay as preview assets only. Sending remains disabled until a provider secret, verified sender and real site origin are configured. See [the deployment guide](../docs/EMAILS.md) for the new Functions, confirmation flow, preferences, retry behavior and activation steps.
 
-When connecting sending: authenticate the sender domain (SPF, DKIM and DMARC), use a monitored reply-to address, deduplicate by event ID and message type, log provider delivery results, retry transient failures, and honor bounces/suppressions. These templates describe account activity, not promotions. Reward reminders or marketing campaigns need separate opt-in, unsubscribe/preference handling and the business’s required footer/address. No fabricated ratings, delivery promises, urgency or odds appear in these emails.
+An additional internal `verify-email` message confirms addresses from Account settings; it is not listed in the nine-template design gallery. Phone signup remains unchanged. No historical events are replayed when the sender is enabled. Never point preview samples at recipients directly; render from the event's saved server data.

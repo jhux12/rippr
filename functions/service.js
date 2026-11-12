@@ -1,3 +1,4 @@
+import {EMAIL_ACTIONS,emailVerification} from './email-verification.js';
 import {inventoryPage} from './inventory-service.js';
 import {REFERRAL_ACTIONS,referralService,readReferralConfig,validateSignupReferral} from './referral-service.js';
 import {SUPPORT_ACTIONS,supportService} from './support-service.js';
@@ -38,12 +39,13 @@ async function requireRewardPackCatalogs(tx, db, prizes) {
 
 // This namespace is exclusively for free, nonredeemable test credit and test items.
 // Never migrate it into a real-money wallet or physical fulfillment automatically.
-export function accountService(db, { freeTopups = () => true, now = () => Date.now() } = {}) {
+export function accountService(db, { freeTopups = () => true, now = () => Date.now(), emailOptions = () => ({}) } = {}) {
   return async function operate(uid, input, claims = {}) {
     if(input?.action==='validateReferral')return validateSignupReferral(db,input);
     if (!uid) fail('unauthenticated', 'Log in to use your account.');
     const { action, operationId, accountUid, ...data } = input || {};
     if(accountUid && accountUid!==uid) fail('unauthenticated','Your sign-in changed. Please retry from your current account.');
+    if(EMAIL_ACTIONS.includes(action))return emailVerification(db,uid,input,{...emailOptions(),now});
     if(SUPPORT_ACTIONS.includes(action))return supportService(db,uid,input,claims,now);
     if(REFERRAL_ACTIONS.includes(action))return referralService(db,uid,input,claims,initial);
     const account = db.doc(`testAccounts/${uid}`);
@@ -250,7 +252,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           activity = { type:'shipping', label:`Test shipping request · ${ids.length} item${ids.length===1?'':'s'}`, amountCents:0 };
         }
       } else if (action === 'settings') {
-        try { patch=cleanSettingsPatch(data,wallet); } catch(error){ fail('invalid-argument',error.message); }
+        try { patch=cleanSettingsPatch(data,wallet); if('emailForUpdates' in patch&&patch.emailForUpdates.trim().toLowerCase()!==wallet.emailForUpdates?.trim().toLowerCase()){patch.verifiedEmailForUpdates=null;patch.emailVerifiedAtMs=0;} } catch(error){ fail('invalid-argument',error.message); }
         result={settings:patch};
       } else if (action === 'profile') {
         patch = cleanProfile(data);

@@ -254,3 +254,11 @@ test('Mythic is public to read, owner configured, and requires a price before en
  await assertSucceeds(setDoc(target,{...payload(),enabled:false,priceCents:null}));
  await assertSucceeds(setDoc(target,{...payload('owner',2),priceCents:2500}));
 });
+
+
+test('email outbox cannot be read, created or changed by clients, including the owner',async()=>{
+ for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')]){
+  const target=doc(client.firestore(),'emailOutbox/private-email');
+  await assertFails(getDoc(target));await assertFails(setDoc(target,{status:'pending',to:'victim@example.test',type:'welcome'}));
+ }
+});
