@@ -56,7 +56,15 @@
   setBusy(true);message('#sms-status','Saving…');
   try{await window.RipprAccount.act('smsConsent',{enabled,disclosureVersion:model.SMS_CONSENT_VERSION,expectedPhoneNumber});if(!validSession(ticket,actor))return;smsDirty=false;message('#sms-status',enabled?'Preference saved. Text alerts are not sending yet.':'Text alerts turned off. Phone sign-in is unchanged.')}catch(error){if(validSession(ticket,actor))message('#sms-status',errorText(error),true)}finally{if(validSession(ticket,actor)){setBusy(false);render()}}
  });
- document.querySelectorAll('[data-sms-policy]').forEach(button=>button.addEventListener('click',()=>document.querySelector('.rippr-footer [data-footer-dialog="'+button.dataset.smsPolicy+'"]').click()));
+ document.querySelectorAll('[data-sms-policy]').forEach(button=>button.addEventListener('click',()=>{
+  const kind=button.dataset.smsPolicy==='privacy'?'privacy':'terms',dialog=document.querySelector('#footer-info-dialog');
+  if(!dialog)return;
+  document.querySelector('#footer-info-title').textContent=kind==='privacy'?'Privacy — review draft':'Text alerts — prelaunch terms';
+  const copy=document.querySelector('#footer-info-copy');copy.replaceChildren();
+  const note=document.createElement('p');note.textContent=kind==='privacy'?'Your text preference is stored with your verified phone number. Marketing texts are not sending yet. See the draft privacy policy for current data handling.':'Marketing texts are not sending yet. Saving this preference does not start a messaging program. Final provider, frequency, STOP/HELP and messaging terms must be reviewed before launch.';
+  const link=document.createElement('a');link.href=kind+'.html';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Read '+(kind==='privacy'?'privacy policy':'terms')+' draft (opens in a new tab)';copy.append(note,link);
+  dialog.addEventListener('close',()=>button.focus({preventScroll:true}),{once:true});dialog.showModal();
+ }));
  $('#settings-avatar').addEventListener('error',event=>{event.target.src=window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png'},{once:true});
  $('#change-photo').addEventListener('click',()=>$('#photo-file').click());
  $('#photo-file').addEventListener('change',async event=>{const file=event.target.files[0];event.target.value='';if(!file||busy||!user())return;const ticket=generation,actor=user().uid;setBusy(true);message('#profile-save-status','Uploading photo…');try{const photoURL=await client.uploadProfileImage(file);if(!validSession(ticket,actor))return;await window.RipprAccount.act('settings',{photoURL});if(validSession(ticket,actor))message('#profile-save-status','Photo saved.')}catch(error){if(validSession(ticket,actor))message('#profile-save-status',errorText(error),true)}finally{if(validSession(ticket,actor)){setBusy(false);render()}}});

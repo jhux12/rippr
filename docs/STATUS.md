@@ -1,3 +1,7 @@
+# Latest: policy review drafts
+
+Prepared five responsive, visibly marked drafts: Terms, Privacy, Refunds, Shipping & delivery, and Pack & credit disclosures. Shared desktop/mobile footer links now open standalone pages; no login or JavaScript is needed for policy access. Current sandbox/one-card/site-credit/Near Mint and grading behavior is described without inventing live refunds, shipping deadlines, operator details or legal clearance. Added [POLICY-REVIEW.md](POLICY-REVIEW.md) with missing owner/counsel decisions and launch/assent requirements. Tax remains off; no live-money, shipping, SMS, account acceptance or provider mutation is enabled. Owner reports completed payment/refund and email acceptance checks. Frontend only; no Firebase deployment needed.
+
 # Latest: dedicated Checkout result pages
 
 Added `/payment-success` and `/payment-canceled` with shared navigation/footer, compact responsive navy/cyan layouts, sandbox disclosure and account/pack/support links. Success polls only the authenticated server status, handles pending/review/refunded/failure states, keeps the operation ID for refresh and clears stale account results. Existing Profile return links remain supported. New Checkout requests use the dedicated result URLs; already-created sessions retain their original destinations. Frontend build/reference and Stripe domain tests pass; browser checks cover both pages at 320/390/1440px. Deploy frontend first, then `functions:ripprStripe`. No tax/live-payment setting changed or deployment performed here.

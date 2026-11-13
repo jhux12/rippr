@@ -3,5 +3,5 @@
 window.RIPPR_FOOTER_CONFIG = window.RIPPR_FOOTER_CONFIG || {
   discordUrl: '',
   instagramUrl: '',
-  supportEmail: ''
+  supportEmail: 'hello@rippr.gg'
 };

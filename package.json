@@ -32,7 +32,8 @@
     "test:stripe:browser": "node tests/browser/stripe-topup.cjs",
     "configure:stripe": "node scripts/configure-stripe.mjs",
     "test:payments:browser": "node tests/browser/payments-admin.cjs",
-    "test:operations": "npm run test:emails && node --test tests/phone-auth.test.mjs tests/account-service.test.mjs && npm run test:emails:browser && node tests/browser/customer-journey.cjs && node tests/browser/account-settings-accessibility.cjs && node tests/browser/navigation-accessibility.cjs && npm run check:site"
+    "test:operations": "npm run test:emails && node --test tests/phone-auth.test.mjs tests/account-service.test.mjs && npm run test:emails:browser && node tests/browser/customer-journey.cjs && node tests/browser/account-settings-accessibility.cjs && node tests/browser/navigation-accessibility.cjs && npm run check:site",
+    "test:policies:browser": "node tests/browser/policies.cjs"
   },
   "dependencies": {
     "firebase": "13.2.0"

@@ -47,3 +47,7 @@ body.has-site-footer>main:not([class]){width:100%}
 body.has-site-footer>.auth-layout{margin-bottom:28px}
 body.has-site-footer>.rippr-footer{margin-top:auto}
 .rippr-footer .footer-info-dialog [data-footer-dialog]{display:inline-flex;align-items:center;min-height:34px;color:#78e7f1;text-decoration:underline;text-underline-offset:3px}
+
+.footer-mobile-legal{flex-wrap:wrap;row-gap:12px}.footer-legal-column a{overflow-wrap:anywhere}
+.rippr-footer .footer-mobile-legal{min-width:0;flex-wrap:wrap}.rippr-footer .footer-mobile-legal a{display:inline-flex;align-items:center;min-height:32px;max-width:100%;white-space:normal;overflow-wrap:anywhere;color:#adc7d9;font:400 11px/1.5 Manrope,Arial,sans-serif}.rippr-footer .footer-mobile-legal a:hover{color:#00e2ed}
+.guide-page .rippr-footer .footer-link-group{flex-wrap:wrap;min-width:0}.guide-page .rippr-footer .footer-link-group a{white-space:normal;overflow-wrap:anywhere}
