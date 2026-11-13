@@ -133,6 +133,8 @@ service cloud.firestore {
     }
     // Free test balances and winnings are written exclusively by callable Functions.
     // Members may inspect only their own records; no browser can mint credit/items.
+    // DOB and consent audit records are served only through authenticated Functions.
+    match /accountEligibility/{document=**} { allow read, write: if false; }
     match /testAccounts/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;

@@ -4,7 +4,7 @@ Owner approved these defaults November 13, 2026. They are proposed live-service 
 
 | Decision | Approved default | Implementation / remaining gate |
 | --- | --- | --- |
-| Eligibility | Adults 18+, US-only, cleared states only | Live purchases stay disabled. Need reviewed state allowlist, DOB/acknowledgment and verification controls before paid access; no state is assumed cleared |
+| Eligibility | Adults 18+, US-only, cleared states only | Sandbox DOB/acknowledgment/version gates now exist (ELIGIBILITY.md). Live purchases stay disabled pending reviewed state allowlist, verified age/location and final-policy acceptance; no state is assumed cleared |
 | Unused purchased credit | Request within 14 calendar days, original payment method, no refund fee | Future live wallet/refund workflow must reconcile unused purchased principal and applicable tax, prevent double recovery and preserve mandatory rights |
 | Unopened purchased packs | Cancellation within 14 calendar days if unopened | Must atomically check unopened status, funding provenance and prior refunds; do not refund both a pack and the same credit |
 | Opened packs | No outcome/duplicate/value-change refunds alone | Independently investigate unauthorized charges, incorrect odds, technical errors and missing awards; preserve mandatory remedies |

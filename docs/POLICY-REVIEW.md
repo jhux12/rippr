@@ -1,6 +1,6 @@
 # Policy draft review before live launch
 
-Prepared November 13, 2026. These are website-ready review drafts, not a legal opinion, determination of the business model’s legality, or final terms. Their visible draft banners and noindex tags must remain until reviewed. No customer acceptance version, checkbox, age verification, region restriction or acceptance log is introduced by this batch.
+Prepared November 13, 2026. These are website-ready review drafts, not a legal opinion, determination of the business model’s legality, or final terms. Their visible draft banners and noindex tags must remain until reviewed. A later sandbox eligibility batch now records self-reported adult DOB and versioned draft Terms/Privacy acceptance; see ELIGIBILITY.md. Verified age/location controls, state clearance and final launch-term acceptance remain required.
 
 ## Pages
 

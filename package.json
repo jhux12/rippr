@@ -10,7 +10,7 @@
     "build": "node scripts/build.mjs",
     "serve": "python3 -m http.server 3000 --bind 127.0.0.1 --directory dist",
     "emulators": "firebase emulators:start --only auth,firestore,storage,functions --project demo-rippr",
-    "test": "npm run build:functions && node --test tests/catalog-model.test.mjs tests/homepage-grails.test.mjs tests/odds-calculator.test.mjs tests/phone-auth.test.mjs tests/account-service.test.mjs tests/rewards.test.mjs tests/reward-extras.test.mjs tests/referrals.test.mjs tests/museum.test.mjs tests/site-check.test.mjs tests/profile-fulfillment.test.mjs tests/inventory-pagination.test.mjs tests/account-pagination.test.mjs tests/condition-badges.test.mjs tests/library-model.test.mjs tests/large-pack-pools.test.mjs tests/email-templates.test.mjs tests/email-delivery.test.mjs tests/sms-consent.test.mjs tests/stripe-payments.test.mjs tests/payment-review.test.mjs",
+    "test": "npm run build:functions && node --test tests/catalog-model.test.mjs tests/homepage-grails.test.mjs tests/odds-calculator.test.mjs tests/phone-auth.test.mjs tests/account-service.test.mjs tests/rewards.test.mjs tests/reward-extras.test.mjs tests/referrals.test.mjs tests/museum.test.mjs tests/site-check.test.mjs tests/profile-fulfillment.test.mjs tests/inventory-pagination.test.mjs tests/account-pagination.test.mjs tests/condition-badges.test.mjs tests/library-model.test.mjs tests/large-pack-pools.test.mjs tests/email-templates.test.mjs tests/email-delivery.test.mjs tests/sms-consent.test.mjs tests/stripe-payments.test.mjs tests/payment-review.test.mjs tests/eligibility.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-rippr 'node tests/firebase-rules.test.mjs'",
     "deploy:rules": "firebase deploy --only firestore:rules,storage --project rippr-2b01c",
     "deploy": "npm run build && firebase deploy --only hosting --project rippr-2b01c",
@@ -33,7 +33,9 @@
     "configure:stripe": "node scripts/configure-stripe.mjs",
     "test:payments:browser": "node tests/browser/payments-admin.cjs",
     "test:operations": "npm run test:emails && node --test tests/phone-auth.test.mjs tests/account-service.test.mjs && npm run test:emails:browser && node tests/browser/customer-journey.cjs && node tests/browser/account-settings-accessibility.cjs && node tests/browser/navigation-accessibility.cjs && npm run check:site",
-    "test:policies:browser": "node tests/browser/policies.cjs"
+    "test:policies:browser": "node tests/browser/policies.cjs",
+    "test:eligibility": "node --test tests/eligibility.test.mjs",
+    "test:eligibility:browser": "node tests/browser/eligibility.cjs"
   },
   "dependencies": {
     "firebase": "13.2.0"

@@ -1,3 +1,4 @@
+import {guardedAccount,guardedStripe} from './eligibility-service.js';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
@@ -18,7 +19,7 @@ const stripeTax=defineBoolean('STRIPE_TOPUP_AUTOMATIC_TAX',{default:false,descri
 const stripeTaxCode=defineString('STRIPE_TOPUP_TAX_CODE',{default:''});
 const stripeSecret=defineSecret('STRIPE_TEST_SECRET_KEY'),stripeWebhookSecret=defineSecret('STRIPE_TEST_WEBHOOK_SECRET');
 const stripeOptions=()=>({enabled:stripeTestEnabled.value(),siteUrl:stripeSite.value(),automaticTax:stripeTax.value(),taxCode:stripeTaxCode.value()});
-const operate = accountService(getFirestore(), { freeTopups:()=>freeTestTopups.value(),emailOptions:emailConfig,stripeTopups:()=>stripeTestEnabled.value() });
+const operate = guardedAccount(getFirestore(),accountService(getFirestore(), { freeTopups:()=>freeTestTopups.value(),emailOptions:emailConfig,stripeTopups:()=>stripeTestEnabled.value() }));
 export const ripprAccount = onCall({ region:'us-central1', maxInstances:10, timeoutSeconds:30 }, request => operate(request.auth?.uid, request.data, request.auth?.token));
 
 const museumOperate = museumService(getFirestore());
@@ -54,7 +55,7 @@ import {stripeFailure} from './stripe-errors.js';
 import {stripeService,applyStripeEvent,requireTestKey} from './stripe-service.js';
 const stripeClient=()=>new Stripe(requireTestKey(stripeSecret.value()),{maxNetworkRetries:2,timeout:15000});
 export const ripprStripe=onCall({region:'us-central1',secrets:[stripeSecret],maxInstances:5,timeoutSeconds:60},async request=>{
- try{return await stripeService(getFirestore(),{getStripe:stripeClient,options:stripeOptions})(request.auth?.uid,request.data,request.auth?.token)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);logStripeError('Stripe sandbox Checkout failed',detail);throw new HttpsError('unavailable',detail.message,{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})});}
+ try{return await guardedStripe(getFirestore(),stripeService(getFirestore(),{getStripe:stripeClient,options:stripeOptions}))(request.auth?.uid,request.data,request.auth?.token)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);logStripeError('Stripe sandbox Checkout failed',detail);throw new HttpsError('unavailable',detail.message,{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})});}
 });
 export const ripprStripeWebhook=onRequest({region:'us-central1',secrets:[stripeSecret,stripeWebhookSecret],maxInstances:5,timeoutSeconds:120},async(req,res)=>{
  if(req.method!=='POST'){res.set('Allow','POST').status(405).send('POST required');return}

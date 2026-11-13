@@ -284,3 +284,7 @@ test('payment review, owner notes and live-wallet paths remain server-only',asyn
  for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')])for(const path of ['paymentReviewQueue/root/cases/private','paymentReviewAudit/private','paymentAuditByAccount/member/entries/private','liveAccounts/member','liveAccounts/member/creditLedger/private']){await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{balanceCents:10000,note:'forged'}))}
  await assertFails(setDoc(doc(context('+12025550123').firestore(),'testAccounts/member/creditLedger/forged'),{delta:{purchasedCents:10000}}));
 });
+
+test('DOB and policy acceptance records cannot be read or forged by browser clients',async()=>{
+ for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')])for(const path of ['accountEligibility/member','accountEligibility/member/acceptances/private']){await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{birthDate:'1990-01-01',adultSelfAttested:true,termsVersion:'forged'}))}
+});

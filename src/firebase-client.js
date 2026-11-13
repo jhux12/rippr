@@ -215,6 +215,13 @@ export async function saveLibraryCards(cards) {
 }
 
 let functions;
+function eligibilityRedirect(error){
+ if(error?.details?.reason==='eligibility-required'){
+  const next=location.pathname+location.search+location.hash;
+  if(!/^\/eligibility(?:\.html)?$/.test(location.pathname))location.assign('/eligibility.html?next='+encodeURIComponent(next));
+ }
+ throw error;
+}
 export async function accountAction(action, data = {}, operationId) {
   await ready;
   if (!auth.currentUser) throw Object.assign(new Error('Log in to use your account.'), { code:'functions/unauthenticated' });
@@ -226,7 +233,7 @@ export async function accountAction(action, data = {}, operationId) {
     }
   }
   const call = httpsCallable(functions, 'ripprAccount', { timeout:30000 });
-  return (await call({ action, ...data, ...(operationId ? { operationId } : {}) })).data;
+  try{return (await call({ action, ...data, ...(operationId ? { operationId } : {}) })).data}catch(error){return eligibilityRedirect(error)}
 }
 export async function loadInventoryPack(inventoryPackId) {
   await ready;
@@ -409,6 +416,6 @@ export async function validateSignupReferral(code){
 export async function stripeAction(action,data={},operationId){
  await ready;const uid=auth.currentUser?.uid;if(!uid)throw Object.assign(new Error('Log in to top up.'),{code:'functions/unauthenticated'});
  if(!functions){functions=getFunctions(app,'us-central1');if(window.RIPPR_FUNCTIONS_EMULATOR_URL){const url=localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);connectFunctionsEmulator(functions,url.hostname,Number(url.port))}}
- const result=await httpsCallable(functions,'ripprStripe',{timeout:60000})({action,...data,accountUid:uid,...(operationId?{operationId}:{})});
+ let result;try{result=await httpsCallable(functions,'ripprStripe',{timeout:60000})({action,...data,accountUid:uid,...(operationId?{operationId}:{})})}catch(error){return eligibilityRedirect(error)}
  if(auth.currentUser?.uid!==uid)throw Object.assign(new Error('Your account changed.'),{code:'functions/unauthenticated'});return result.data;
 }

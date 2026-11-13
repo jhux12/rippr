@@ -4,7 +4,7 @@
   const client = window.RipprFirebase, phoneModel = window.RipprPhone;
   const form = $('#auth-form'), phone = $('#phone'), code = $('#verification-code');
   const invite=$('#invite-code'),params=new URLSearchParams(location.search),signup=params.get('mode')==='signup'||(!params.has('mode')&&params.has('ref'));
-  const remember=$('#remember-me');let submittedInvite='';
+  const remember=$('#remember-me');let submittedInvite='',submittedEligibility=null;
   const switchURL=new URL(location.href);switchURL.searchParams.set('mode',signup?'login':'signup');if(signup)switchURL.searchParams.delete('ref');
   $('#auth-mode-switch').href=switchURL.pathname+switchURL.search;$('#auth-mode-switch').textContent=signup?'Log in':'Create an account';$('#auth-switch-copy').textContent=signup?'Already have an account?':'New to rippr?';
   const legacyEmail = $('#legacy-email'), legacyPassword = $('#legacy-password');
@@ -13,6 +13,7 @@
   invite.value=signup?(new URLSearchParams(location.search).get('ref')||new URL(destination,location.origin).searchParams.get('ref')||'').slice(0,32).trim().toUpperCase():'';
   function rememberInvite(){const url=new URL(location.href),value=invite.value.trim().toUpperCase();if(value)url.searchParams.set('ref',value);else url.searchParams.delete('ref');history.replaceState(null,'',url)}
   invite.addEventListener('input',rememberInvite);
+  function clearEligibility(){submittedEligibility=null;$('#eligibility-dob').value='';$('#eligibility-terms').checked=false;$('#eligibility-privacy').checked=false;}
   const sentAt = new Map();
   let ready = false, busy = false, operation = '', step = 'phone', sentNumber = '', user = null, generation = 0, policyTrigger;
   const errors = {
@@ -60,10 +61,11 @@
   function resetPasswordVisibility() { legacyPassword.value=''; legacyPassword.type='password'; $('#password-toggle').setAttribute('aria-pressed','false'); $('#password-toggle').setAttribute('aria-label','Show password'); }
   function remaining(number=sentNumber) { return Math.max(0,Math.ceil(((sentAt.get(number)||0)+60000-Date.now())/1000)); }
   function controls() {
+    for(const input of document.querySelectorAll('#eligibility-fields input'))input.disabled=busy||!ready;
     for(const id of ['phone','verification-code','auth-submit','change-phone','legacy-email','legacy-password','legacy-submit','password-toggle','reset-password','link-signout','invite-code','skip-invite','remember-me']) $('#'+id).disabled=busy||!ready;
     $('#resend-code').disabled=busy||!ready||step!=='code'||remaining()>0;
     $('#resend-code').textContent=remaining()>0?`Resend in ${remaining()}s`:'Resend code';
-    $('#auth-submit').textContent=busy&&operation==='referral'?'Applying invite…':referralPending?'Apply invite & continue':busy&&operation==='verify'?'Verifying…':busy&&operation==='send'?'Sending…':step==='code'?'Verify & continue':'Send code';
+    $('#auth-submit').textContent=busy&&operation==='eligibility'?'Saving…':busy&&operation==='referral'?'Applying invite…':referralPending?'Apply invite & continue':busy&&operation==='verify'?'Verifying…':busy&&operation==='send'?'Sending…':step==='code'?'Verify & continue':'Send code';
     $('#legacy-submit').textContent=busy&&operation==='legacy'?'Signing in…':'Continue with existing account';
     $('#auth-submit').setAttribute('aria-busy',String(busy&&['send','verify','referral'].includes(operation)));
     $('#legacy-submit').setAttribute('aria-busy',String(busy&&operation==='legacy'));
@@ -79,12 +81,13 @@
     $('#auth-title').textContent=referralPending?'Check your invite code':step==='code'?'Enter your code':user?'Link your phone':signup?'Create your account':'Welcome back';
     $('#phone-intro').textContent=referralPending?'Retry applying your submitted referral or continue without it.':step==='code'?`Code sent to ${sentNumber}`:user?'Verify a number for this account.':signup?'Sign up with your phone number.':'Log in with your phone number.';
     $('#invite-code-group').hidden=!signup||Boolean(user)||step!=='phone'||referralPending;
+    $('#eligibility-fields').hidden=!signup||Boolean(user)||step!=='phone'||referralPending;
     $('#remember-group').hidden=signup||Boolean(user)||step!=='phone'||referralPending;
     $('#link-account-note').hidden=referralPending||!user; $('#legacy-access').hidden=referralPending||Boolean(user)||step==='code'||signup;
     controls();
   }
   function resetPhoneRequest() { generation++; client?.cancelPhoneSignIn?.(); step='phone'; sentNumber=''; code.value=''; [phone,code].forEach(clearError); clearStatus(); }
-  function redirect(){if(!redirecting){redirecting=true;referralPending=false;resetPhoneRequest();resetPasswordVisibility();location.replace(destination)}}
+  async function redirect(){if(redirecting)return;redirecting=true;setBusy(true,'eligibility');referralPending=false;resetPhoneRequest();resetPasswordVisibility();if(signup&&submittedEligibility){const actor=client.currentUser()?.uid;try{await client.accountAction('acceptEligibility',{...submittedEligibility,accountUid:actor},crypto.randomUUID());if(actor!==client.currentUser()?.uid){redirecting=false;submittedEligibility=null;return}}catch{location.replace('eligibility.html?next='+encodeURIComponent(destination));return}finally{submittedEligibility=null}}location.replace(destination)}
   async function showUser(next){
     user=next;
     if(next?.phoneNumber){
@@ -113,6 +116,7 @@
   async function sendCode() {
     if(busy||!ready)return;
     clearStatus(); clearError(phone); clearError(code);clearError(invite);
+    if(signup&&!client.currentUser()&&step==='phone'){try{submittedEligibility=window.RipprEligibility.read()}catch{return}}
     invite.value=signup?invite.value.trim().toUpperCase():'';if(signup)rememberInvite();if(invite.value&&!/^RIPPR-[A-F0-9]{16}$/.test(invite.value)){fieldError(invite,'Enter the complete RIPPR- invite code, or leave it blank.');return}
     const number=phoneModel.normalizePhoneNumber(step==='code'?sentNumber:phone.value);
     if(!number){fieldError(phone,errors['auth/invalid-phone-number']);return}
@@ -170,8 +174,8 @@
     catch(error){message(errorMessage(error))}finally{setBusy(false)}
   });
   async function signOut() {
-    if(busy||!ready)return; resetPhoneRequest();setBusy(true,'signout');
-    try{await client.signOut();phone.value='';submittedInvite='';invite.value='';rememberInvite();referralPending=false;finishAttempt=null;setBusy(false);await showUser(null);phone.focus()}
+    if(busy||!ready)return;clearEligibility(); resetPhoneRequest();setBusy(true,'signout');
+    try{await client.signOut();phone.value='';submittedInvite='';submittedEligibility=null;invite.value='';rememberInvite();referralPending=false;finishAttempt=null;setBusy(false);await showUser(null);phone.focus()}
     catch(error){message(errorMessage(error))}finally{setBusy(false)}
   }
   $('#link-signout').addEventListener('click',signOut);
@@ -184,7 +188,7 @@
       if(expected)return;
       submittedInvite='';invite.value='';rememberInvite();clearError(invite);resetPhoneRequest();resetPasswordVisibility();setBusy(false);
     }
-    if(next?.uid!==user?.uid){if(user?.uid){submittedInvite='';invite.value='';rememberInvite();clearError(invite)}resetPhoneRequest();finishAttempt=null;referralPending=false}showUser(next);
+    if(next?.uid!==user?.uid){if(user?.uid){clearEligibility();submittedInvite='';invite.value='';rememberInvite();clearError(invite)}resetPhoneRequest();finishAttempt=null;referralPending=false}showUser(next);
   });
   const dialog=$('#policy-dialog');
   document.querySelectorAll('[data-policy]').forEach(button=>button.addEventListener('click',()=>{
@@ -195,7 +199,7 @@
   $('#policy-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>policyTrigger?.focus());
   dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()});
   let cooldown=setInterval(controls,1000);
-  window.addEventListener('pagehide',()=>{clearInterval(cooldown);cooldown=null;resetPhoneRequest()});
+  window.addEventListener('pagehide',()=>{clearInterval(cooldown);cooldown=null;clearEligibility();resetPhoneRequest()});
   window.addEventListener('pageshow',event=>{if(event.persisted){redirecting=false;setBusy(false);showUser(client?.currentUser());if(!cooldown)cooldown=setInterval(controls,1000)}});
   renderStep();
   if(client)client.ready.then(async()=>{ready=true;if(!finishAttempt)setBusy(false);await showUser(client.currentUser())}).catch(()=>message('Sign-in could not load. Please reload the page.'));

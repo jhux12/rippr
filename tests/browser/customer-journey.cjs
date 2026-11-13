@@ -62,7 +62,7 @@ async function authJourney(browser, width) {
   }
   await page.goto(origin+'/auth.html?mode=signup&next='+encodeURIComponent('/journey-return.html?from=signup'));
   await waitFor(page,()=>!document.querySelector('#auth-submit').disabled);
-  assert(await page.locator('#remember-group').isHidden());assert(await page.locator('#invite-code-group').isVisible());
+  assert(await page.locator('#remember-group').isHidden());assert(await page.locator('#invite-code-group').isVisible());await page.locator('#eligibility-dob').fill('1990-01-01');await page.locator('#eligibility-terms').check();await page.locator('#eligibility-privacy').check();
   await page.locator('#phone').fill('2015550123');await page.locator('#invite-code').fill('RIPPR-0000000000000000');await page.locator('#auth-submit').click();
   await page.locator('#invite-code-error:not([hidden])').waitFor();assert.equal(await page.evaluate(()=>calls.filter(c=>c[0]==='sms').length),0);
   await page.locator('#invite-code').fill('RIPPR-AAAAAAAAAAAAAAAA');await page.locator('#auth-submit').click();await page.locator('#code-step:not([hidden])').waitFor();
