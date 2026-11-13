@@ -12,7 +12,11 @@ Prepared November 13, 2026. These are website-ready review drafts, not a legal o
 
 Shared footer links reach all five pages without requiring JavaScript or login. Legacy terms/privacy footer buttons route to these pages. The separate SMS prelaunch-consent dialog remains intact. Contact is the owner-confirmed monitored address hello@rippr.gg and the existing support page.
 
-## Owner/counsel decisions to fill in
+## Approved working decisions and remaining review
+
+The owner approved the proposed defaults on November 13, 2026. See [APPROVED-OPERATING-POLICIES.md](APPROVED-OPERATING-POLICIES.md) for the complete decision register, enforcement gaps and support intake process. The draft pages now include those defaults. The checklist below remains for final legal/operational validation; items described as undecided in the initial drafting notes are superseded by that register.
+
+## Final review checklist
 
 1. **Operator — supplied by owner:** pullz.gg LLC; 320 N Meridian St, Ste 823 #122, Indianapolis, IN 46204, United States. Added to all five policy pages. Legal name/address are owner-supplied and not independently registry-verified. Confirm any DBA requirement, place of establishment and responsible privacy contact before final approval.
 2. **Eligibility and model:** adult-only proposed terms, launch states and excluded locations, appropriate verification and state-specific review of paid randomized card allocation, stored credit, promotions and sellback mechanics. Written Stripe acceptance for the actual model remains separate from legal review and API success.

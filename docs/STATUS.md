@@ -1,3 +1,7 @@
+# Latest: approved operating defaults
+
+Owner-approved working defaults are incorporated into all five policy drafts: 18+/US cleared-state eligibility, 14-day unused purchased-credit/unopened-pack requests, no outcome-only refunds, nonexpiring nontransferable credit, support-assisted closure, future contiguous-US tracked shipping and 3–5-business-day dispatch target, wrong/damaged-item remedies, and retention/deletion targets. [APPROVED-OPERATING-POLICIES.md](APPROVED-OPERATING-POLICIES.md) records implementation gates and the existing support intake process. These future-service defaults are explicitly labelled; no state is cleared, live-money/refund adapter enabled, data purge scheduled or shipping activated. Final legal approval/effective date and enforcement remain required.
+
 # Latest: policy operator details
 
 Added owner-supplied pullz.gg LLC and the Indianapolis business mailing address to all five policy drafts. Removed the now-resolved operator/address placeholders in Terms and Privacy and updated the owner checklist. Draft labels and outstanding legal/launch decisions remain; no payment, tax or backend configuration changed.
