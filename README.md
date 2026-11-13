@@ -471,3 +471,8 @@ Account settings includes a separate, unchecked prelaunch text-alert preference 
 ### Stripe sandbox balance funding
 
 Stripe-hosted Checkout can fund **test** balances after signed webhook confirmation. New Functions: `ripprStripe` and `ripprStripeWebhook`; `ripprAccount` also needs redeployment for the funding flag/payment holds. Live keys/events and non-test wallets are rejected. Optional Stripe Tax requires an explicit taxable-event decision and tax code, defaults off, and never adds collected tax to spendable credit. See [docs/STRIPE.md](docs/STRIPE.md) for the locally prepared plan, failed planner/tool setup, secrets, endpoint events, activation and deployment. `npm run configure:stripe -- --enable` enables sandbox funding and disables free credits only after the owner chooses to run it. Nothing was deployed or charged here.
+
+
+### Credit sources and payment reviews
+
+The sandbox wallet now tracks Stripe-funded, promotional, sellback and legacy test credit, with per-operation journal entries and unchanged aggregate totals. Profile Settings shows the sources. **Admin → Payments** provides paginated owner-only review/ledger access, Stripe-verified resolution, notes, optimistic version checks and sandbox debt handling. No Stripe refund is issued from this screen and no old test value becomes live money. Deploy the account, Stripe callable, webhook and updated rules together. See [payment operations](docs/PAYMENT-OPERATIONS.md) and [launch readiness](docs/LAUNCH-READINESS.md).

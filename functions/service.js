@@ -1,3 +1,4 @@
+import {postCredits} from './wallet-ledger.js';
 import {recordSmsChoice} from './sms-consent-model.js';
 import {EMAIL_ACTIONS,emailVerification} from './email-verification.js';
 import {inventoryPage} from './inventory-service.js';
@@ -124,7 +125,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       }
       const wallet = current.exists ? current.data() : initial(uid);
       if(wallet.paymentHold&&['purchase','openInventoryPack','ship','sell'].includes(action))fail('failed-precondition','Your balance needs payment review. Contact support.');
-      let patch = {}, result, activity;
+      let patch = {}, result, activity,creditMoves=[];
       if(action==='saveRewards'){
         const config=data.config,issues=validateRewards(config);
         if(issues.length)fail('invalid-argument',issues[0]);
@@ -147,7 +148,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         patch.nextRewardAtMs=config.testingNoCooldown?0:time+REWARD_COOLDOWN_MS;
         if(prize.kind==='credit'){
           if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Your test balance limit has been reached.');
-          patch.balanceCents=wallet.balanceCents+prize.amountCents;
+          patch.balanceCents=wallet.balanceCents+prize.amountCents;creditMoves.push({bucket:'promotionalCents',cents:prize.amountCents});
         }else{
           const packId=prize.packId;
           tx.create(account.collection('packs').doc(operationId),{id:operationId,packId,name:rewardLabel(prize),image:packImage(packId),status:'available',source:'daily-reward',testItem:true,wonAt:stamp()});
@@ -173,7 +174,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:action==='claimStreak'?'streak-reward':'welcome-case',testItem:true,wonAt:stamp()});
         }else{
           if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Your test balance limit has been reached.');
-          patch.balanceCents=wallet.balanceCents+prize.amountCents;
+          patch.balanceCents=wallet.balanceCents+prize.amountCents;creditMoves.push({bucket:'promotionalCents',cents:prize.amountCents});
         }
         result={prize,extras:rewardExtras({...wallet,...patch},time),balanceCents:patch.balanceCents??wallet.balanceCents,...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};
         activity={type:'reward',label:`${action==='claimStreak'?'Daily streak':'Welcome case'} · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
@@ -182,7 +183,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const cents = data.amountCents;
         if (!Number.isInteger(cents) || cents < 100 || cents > 100000) fail('invalid-argument','Choose between $1 and $1,000 in test credit.');
         if (wallet.balanceCents + cents > 1000000) fail('failed-precondition','Your test balance can hold up to $10,000.');
-        patch.balanceCents = wallet.balanceCents + cents;
+        patch.balanceCents = wallet.balanceCents + cents;creditMoves.push({bucket:'promotionalCents',cents});
         result = { balanceCents:patch.balanceCents };
         activity = { type:'topup', label:'Free test top-up', amountCents:cents };
       } else if (action === 'purchase' || action==='openInventoryPack') {
@@ -217,10 +218,11 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           const { chanceBps, symbol, ...card } = pulled;
           return { ...card, catalogItemId:card.id, id:`${operationId}-${i}`, packId:data.packId, status:'available', testItem:true, pack:i+1 };
         });
+        creditMoves.push({spend:total});
         patch = { balanceCents:wallet.balanceCents-total, packsOpened:wallet.packsOpened+cards.length, cardsCollected:wallet.cardsCollected+cards.length, grailsFound:wallet.grailsFound+cards.filter(c=>c.grail).length };
         if(referrer?.exists&&(referrer.data().referralCount||0)<referrals.limit&&referrer.data().balanceCents+referrals.creditCents<=100000000&&patch.balanceCents+referrals.creditCents<=100000000){
-          patch.balanceCents+=referrals.creditCents;patch.referralAwarded=true;
-          tx.update(referralAccount,{balanceCents:referrer.data().balanceCents+referrals.creditCents,referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});
+          patch.balanceCents+=referrals.creditCents;patch.referralAwarded=true;creditMoves.push({bucket:'promotionalCents',cents:referrals.creditCents});
+          tx.update(referralAccount,{...postCredits(tx,referralAccount,referrer.data(),{id:'referral-'+operationId,kind:'referral',moves:[{bucket:'promotionalCents',cents:referrals.creditCents}],atMs:now()}),referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});
           tx.create(referralAccount.collection('activity').doc(operationId),{type:'referral',label:'Referral bonus · test credit',amountCents:referrals.creditCents,createdAt:stamp(),testOnly:true});
           tx.create(account.collection('activity').doc('referral-'+operationId),{type:'referral',label:'Welcome referral bonus · test credit',amountCents:referrals.creditCents,createdAt:stamp(),testOnly:true});
         }
@@ -237,7 +239,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const value = items.reduce((sum, s)=>sum+s.data().valueCents,0);
         if (action === 'sell') {
           if (wallet.balanceCents+value > 100000000) fail('failed-precondition','Your test balance limit has been reached.');
-          patch.balanceCents = wallet.balanceCents+value;
+          patch.balanceCents = wallet.balanceCents+value;creditMoves.push({bucket:'sellbackCents',cents:value});
           refs.forEach(ref=>tx.update(ref,{ status:'sold', soldAt:stamp() }));
           result = { balanceCents:patch.balanceCents, soldCents:value, count:ids.length };
           activity = { type:'sale', label:`Sold ${ids.length} item${ids.length===1?'':'s'} to test balance`, amountCents:value };
@@ -265,6 +267,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         patch = cleanProfile(data);
         result = { profile:patch };
       } else fail('invalid-argument','Unknown account action.');
+      if(creditMoves.length){const ledger=postCredits(tx,account,wallet,{id:operationId,kind:action,moves:creditMoves,atMs:now()});if(ledger.balanceCents!==patch.balanceCents)fail('internal','Wallet reconciliation failed.');patch={...patch,...ledger}}
       tx.set(account,{ ...(!current.exists ? wallet : {}), ...patch, updatedAt:stamp() },{ merge:true });
       if (activity) tx.create(account.collection('activity').doc(operationId),{ ...activity, createdAt:stamp(), testOnly:true });
       tx.create(operation,{ fingerprint, result, createdAt:stamp() });

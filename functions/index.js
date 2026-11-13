@@ -54,7 +54,7 @@ import {stripeFailure} from './stripe-errors.js';
 import {stripeService,applyStripeEvent,requireTestKey} from './stripe-service.js';
 const stripeClient=()=>new Stripe(requireTestKey(stripeSecret.value()),{maxNetworkRetries:2,timeout:15000});
 export const ripprStripe=onCall({region:'us-central1',secrets:[stripeSecret],maxInstances:5,timeoutSeconds:60},async request=>{
- try{return await stripeService(getFirestore(),{getStripe:stripeClient,options:stripeOptions})(request.auth?.uid,request.data)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);logStripeError('Stripe sandbox Checkout failed',detail);throw new HttpsError('unavailable',detail.message,{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})});}
+ try{return await stripeService(getFirestore(),{getStripe:stripeClient,options:stripeOptions})(request.auth?.uid,request.data,request.auth?.token)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);logStripeError('Stripe sandbox Checkout failed',detail);throw new HttpsError('unavailable',detail.message,{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})});}
 });
 export const ripprStripeWebhook=onRequest({region:'us-central1',secrets:[stripeSecret,stripeWebhookSecret],maxInstances:5,timeoutSeconds:120},async(req,res)=>{
  if(req.method!=='POST'){res.set('Allow','POST').status(405).send('POST required');return}

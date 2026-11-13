@@ -13,3 +13,5 @@
 @media(min-width:601px){.shipping-heading img{width:112px;height:112px}.shipping-heading h2{margin-top:8px}.shipping-items{padding:10px;max-height:130px}.shipping-items img{height:82px}.shipping-dialog h3{margin-top:14px}.shipping-summary{padding:12px}.shipping-note{margin:10px 0}.shipping-buttons{margin-top:12px}}
 
 .inventory-pagination{display:flex;flex-direction:column;align-items:center;gap:10px;margin:18px 0}.inventory-pagination .collection-note{margin:0;text-align:center;max-width:460px}.inventory-pagination .button{min-height:44px;padding:10px 20px}
+
+.credit-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px;margin:14px 0 0}.credit-breakdown>div{min-width:0}.credit-breakdown dt{font-size:11px;color:#a5bed0}.credit-breakdown dd{margin:3px 0 0;font-size:14px;font-weight:700;color:#b7e7ee;font-variant-numeric:tabular-nums}.profile-payment-hold{padding:14px 18px;border:1px solid #9f7950;border-radius:10px;color:#f2d5aa;background:#2b2116;font-size:12px;line-height:1.7}

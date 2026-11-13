@@ -82,6 +82,9 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
     $('#stat-cards').textContent=a.wallet.cardsCollected;
     $('#stat-grails').textContent=a.wallet.grailsFound;
     $('#settings-email').textContent=user.phoneNumber||user.email||'';
+    const credit=a.wallet.creditBuckets||{purchasedCents:0,promotionalCents:0,sellbackCents:0,legacyTestCents:a.wallet.balanceCents||0};
+    $('#credit-breakdown').innerHTML=[['Stripe-funded',credit.purchasedCents],['Promotional',credit.promotionalCents],['Sellback',credit.sellbackCents],['Legacy test credit',credit.legacyTestCents]].map(([label,value])=>`<div><dt>${label}</dt><dd>${money(value)}</dd></div>`).join('');
+    $('#profile-payment-hold').hidden=!a.wallet.paymentHold;
     for(const id of selected){if(!a.items.some(item=>item.id===id&&item.status==='available'))selected.delete(id)}
     const packs=(a.packs||[]).filter(pack=>pack.status==='available');
     $('#unopened-packs').hidden=!packs.length&&!a.pageInfo?.packs?.hasMore;pageControls('packs','load-more-packs','pack-page-status');

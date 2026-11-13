@@ -1,3 +1,7 @@
+import {isAdminToken} from './catalog-model.js';
+import {paymentReviewService} from './payment-review-service.js';
+import {reviewRef,openReview} from './payment-review-model.js';
+import {postCredits} from './wallet-ledger.js';
 import {createHash} from 'node:crypto';
 import {FieldValue} from 'firebase-admin/firestore';
 import {HttpsError} from 'firebase-functions/v2/https';
@@ -15,10 +19,11 @@ export function stripeConfig(options){
 export function requireTestKey(key){if(typeof key!=='string'||!key.startsWith('sk_test_'))throw Object.assign(new Error('Only Stripe sandbox secret keys are supported.'),{code:'stripe-config-key'});return key}
 export function checkoutUrl(url){try{const value=new URL(url);if(value.protocol==='https:'&&value.hostname==='checkout.stripe.com'&&!value.username&&!value.password)return value.href}catch{}throw new Error('Stripe returned an invalid hosted Checkout URL.')}
 export function stripeService(db,{getStripe,options=()=>({enabled:false}),now=Date.now}={}){
- return async(uid,input)=>{
+ return async(uid,input,claims={})=>{
   if(!uid)fail('unauthenticated','Log in to top up your balance.');
   if(input?.accountUid&&input.accountUid!==uid)fail('unauthenticated','Your account changed. Please retry.');
   const account=db.doc('testAccounts/'+uid),action=input?.action;
+  if(action?.startsWith('admin')){if(!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage payment reviews.');return paymentReviewService(db,getStripe(),uid,input,claims,{now});}
   if(action==='status'){
    if(!validId(input.topupId))fail('invalid-argument','Choose a valid top-up.');
    const saved=await db.runTransaction(tx=>tx.get(account.collection(collection).doc(input.topupId)));
@@ -91,27 +96,29 @@ export async function applyStripeEvent(db,stripe,event,{now=Date.now}={}){
   if(original.livemode!==false||pi!==paymentIntentId||original.metadata?.uid!==uid||original.metadata?.topupId!==topupId)throw new Error('Refund/dispute does not match this Checkout.');
  }
  return db.runTransaction(async tx=>{
-  const [prior,saved,owner]=await Promise.all([tx.get(eventRef),tx.get(target),tx.get(account)]);
+  const caseRef=reviewRef(db,uid,topupId);
+  const [prior,saved,owner,review]=await Promise.all([tx.get(eventRef),tx.get(target),tx.get(account),tx.get(caseRef)]);
   if(prior.exists)return{duplicate:true};
   if(!saved.exists||!owner.exists)throw new Error('Payment record is not ready.');
   const job=saved.data(),wallet=owner.data();
   const ack=status=>tx.create(eventRef,{type,uid,topupId,status,processedAtMs:time});
   if(reversal){
+   if(type==='charge.refunded'&&job.status==='refunded'&&(job.refundedPrincipalCents>=job.amountCents||(Number.isSafeInteger(object.amount_refunded)&&object.amount_refunded<=(job.reconciledGrossRefundCents||0)))){ack('already-reconciled');return{duplicate:true}}
    if(job.paymentIntentId&&job.paymentIntentId!==paymentIntentId)throw new Error('Payment intent mismatch.');
-   tx.update(target,{status:'review',paymentIntentId,reviewReason:type,reviewAtMs:time});tx.update(account,{paymentHold:true,paymentHoldReason:'Stripe sandbox refund/dispute requires review',updatedAt:stamp()});ack('review');return{review:true};
+   tx.update(target,{status:'review',paymentIntentId,reviewReason:type,reviewAtMs:time});tx.update(account,{...openReview(tx,caseRef,review,wallet,job,{uid,topupId,reason:type,eventId:event.id,atMs:time,disputeId:type==='charge.dispute.created'?object.id:null}),paymentHoldReason:'Stripe sandbox refund/dispute requires review',updatedAt:stamp()});ack('review');return{review:true};
   }
   if(job.sessionId!==session.id)throw new Error('Checkout ownership mismatch.');
   if(type==='checkout.session.expired'||type==='checkout.session.async_payment_failed'){
    if(!['credited','review'].includes(job.status))tx.update(target,{status:type.endsWith('expired')?'expired':'failed'});ack('closed');return{closed:true};
   }
-  if(job.creditedAtMs){ack('already-credited');return{duplicate:true};}
+  if(job.creditedAtMs||job.status==='refunded'){ack('already-credited');return{duplicate:true};}
   const tax=session.total_details?.amount_tax||0;
   if(session.mode!=='payment'||session.currency!=='usd'||session.client_reference_id!==uid||session.amount_subtotal!==job.amountCents||!Number.isSafeInteger(tax)||tax<0||(!job.automaticTax&&tax!==0)||session.amount_total!==job.amountCents+tax)throw new Error('Checkout amount or currency mismatch.');
-  if(wallet.currency!=='TEST_USD'||wallet.paymentHold||job.status==='review'||!Number.isSafeInteger(wallet.balanceCents)||wallet.balanceCents+job.amountCents>1000000){tx.update(target,{status:'review',reviewReason:'balance-or-payment-hold'});tx.update(account,{paymentHold:true,updatedAt:stamp()});ack('review');return{review:true}}
+  if(wallet.currency!=='TEST_USD'||wallet.paymentHold||job.status==='review'||!Number.isSafeInteger(wallet.balanceCents)||wallet.balanceCents+job.amountCents>1000000){tx.update(target,{status:'review',reviewReason:'balance-or-payment-hold'});tx.update(account,{...openReview(tx,caseRef,review,wallet,job,{uid,topupId,reason:'balance-or-payment-hold',eventId:event.id,atMs:time}),updatedAt:stamp()});ack('review');return{review:true}}
   const pi=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id;
   if(!pi)throw new Error('Paid Checkout has no payment intent.');
   tx.update(target,{status:'credited',paymentIntentId:pi,taxCents:tax,totalCents:session.amount_total,creditedAtMs:time});
-  tx.update(account,{balanceCents:wallet.balanceCents+job.amountCents,firstVerifiedDepositAtMs:Number.isSafeInteger(wallet.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=time?wallet.firstVerifiedDepositAtMs:time,firstVerifiedDepositMode:wallet.firstVerifiedDepositMode||'stripe-test',updatedAt:stamp()});
+  tx.update(account,{...postCredits(tx,account,wallet,{id:'stripe-'+topupId,kind:'stripe-test-funding',moves:[{bucket:'purchasedCents',cents:job.amountCents}],atMs:time,reference:session.id}),firstVerifiedDepositAtMs:Number.isSafeInteger(wallet.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=time?wallet.firstVerifiedDepositAtMs:time,firstVerifiedDepositMode:wallet.firstVerifiedDepositMode||'stripe-test',updatedAt:stamp()});
   tx.create(account.collection('activity').doc('stripe-'+topupId),{type:'stripe-topup',label:'Stripe sandbox top-up · test credit',amountCents:job.amountCents,createdAt:stamp(),testOnly:true});
   ack('credited');return{credited:true};
  });

@@ -278,3 +278,9 @@ test('Stripe webhook ledger and funding records cannot be forged from the browse
  await assertFails(getDoc(doc(member.firestore(),'stripeTestWebhookEvents/evt_forged')));
  await assertFails(setDoc(doc(member.firestore(),'testAccounts/member/stripeTestTopups/forged'),{status:'credited',amountCents:100000}));
 });
+
+
+test('payment review, owner notes and live-wallet paths remain server-only',async()=>{
+ for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')])for(const path of ['paymentReviewQueue/root/cases/private','paymentReviewAudit/private','paymentAuditByAccount/member/entries/private','liveAccounts/member','liveAccounts/member/creditLedger/private']){await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{balanceCents:10000,note:'forged'}))}
+ await assertFails(setDoc(doc(context('+12025550123').firestore(),'testAccounts/member/creditLedger/forged'),{delta:{purchasedCents:10000}}));
+});
