@@ -138,3 +138,9 @@ A saved attempt from before this change may still contain the removed field. Its
 
 
 The source-separated credit ledger and owner review workspace are documented in [PAYMENT-OPERATIONS.md](PAYMENT-OPERATIONS.md); remaining launch dependencies and the limits of verification are in [LAUNCH-READINESS.md](LAUNCH-READINESS.md).
+
+## Checkout result pages
+
+New Checkout sessions return to `payment-success.html?stripe_topup=<operationId>` or `payment-canceled.html`. Both use the shared navigation/footer and compact responsive result card. Success waits for the authenticated server record; pending, retry, review, failed, expired and refunded states do not grant credit. The dedicated success page keeps its operation ID so refresh can recheck it; no secret/session token is placed in that URL. Old sessions still returning to Profile remain supported. Cancellation performs no funding or status mutation.
+
+Deploy the frontend first through the normal Vercel flow, then deploy `functions:ripprStripe` to apply the new return URLs. Existing sessions retain their saved return URLs. Tax remains off and live charging remains disabled.

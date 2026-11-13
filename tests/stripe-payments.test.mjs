@@ -26,7 +26,7 @@ test('requires authenticated ownership, bounded integer amounts, test keys and e
 });
 test('server Checkout request fixes currency/amount/return origin and retries a lost response without a second session',async()=>{
  const f=fixture();await f.seed();const id=randomUUID();f.lose();await assert.rejects(()=>f.checkout('alice',2500,id));
- const opened=await f.checkout('alice',2500,id);assert.equal(f.sessions.size,1);assert.equal(opened.session.currency,'usd');assert.equal(opened.session.client_reference_id,'alice');assert.equal(opened.session.amount_subtotal,2500);assert.equal(opened.session.automatic_tax.enabled,false);assert(opened.session.success_url.startsWith('https://www.rippr.gg/profile.html?'));assert.equal((await f.get('testAccounts/alice')).balanceCents,0);
+ const opened=await f.checkout('alice',2500,id);assert.equal(f.sessions.size,1);assert.equal(opened.session.currency,'usd');assert.equal(opened.session.client_reference_id,'alice');assert.equal(opened.session.amount_subtotal,2500);assert.equal(opened.session.automatic_tax.enabled,false);assert(opened.session.success_url.startsWith('https://www.rippr.gg/payment-success.html?'));assert.equal(opened.session.cancel_url,'https://www.rippr.gg/payment-canceled.html');assert.equal((await f.get('testAccounts/alice')).balanceCents,0);
  await assert.rejects(()=>f.checkout('alice',5000,id),e=>e.code==='already-exists');
  await assert.rejects(()=>f.run('bob',{action:'status',topupId:id}),e=>e.code==='not-found');
 });

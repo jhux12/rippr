@@ -1,3 +1,7 @@
+# Latest: dedicated Checkout result pages
+
+Added `/payment-success` and `/payment-canceled` with shared navigation/footer, compact responsive navy/cyan layouts, sandbox disclosure and account/pack/support links. Success polls only the authenticated server status, handles pending/review/refunded/failure states, keeps the operation ID for refresh and clears stale account results. Existing Profile return links remain supported. New Checkout requests use the dedicated result URLs; already-created sessions retain their original destinations. Frontend build/reference and Stripe domain tests pass; browser checks cover both pages at 320/390/1440px. Deploy frontend first, then `functions:ripprStripe`. No tax/live-payment setting changed or deployment performed here.
+
 # Latest: operational review
 
 Owner selected tax at funding and reports $1/$5/$15 packs. Confirmation-email receipt and reply-to reception are owner-confirmed. Focused email/access/mobile checks passed: four domain test files, 32 browser groups, and 16-page/736-reference site validation. Added `npm run test:operations` and [OPERATIONS-CHECK.md](OPERATIONS-CHECK.md) with precise evidence and outstanding deployed checks. Public-domain access is blocked by the workspace allowlist; no production/provider mutation or deployment occurred. Tax stays unmodified and policy work remains deferred.

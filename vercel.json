@@ -56,6 +56,14 @@
     {
       "source": "/community",
       "destination": "/community.html"
+    },
+    {
+      "source": "/payment-success",
+      "destination": "/payment-success.html"
+    },
+    {
+      "source": "/payment-canceled",
+      "destination": "/payment-canceled.html"
     }
   ]
 }
