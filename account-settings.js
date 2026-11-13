@@ -4,14 +4,14 @@
  const verificationParams=new URLSearchParams(location.search);let verificationToken=verificationParams.get('verifyEmail');
  if(verificationToken){try{sessionStorage.setItem('rippr:verify-email',verificationToken)}catch{}verificationParams.delete('verifyEmail');history.replaceState(null,'',location.pathname+(verificationParams.size?'?'+verificationParams:'')+location.hash)}else{try{verificationToken=sessionStorage.getItem('rippr:verify-email')}catch{}}
  let confirmingEmail=false;
- let uid=null,generation=0,busy=false,dirty=false,phoneStage='current-send';
+ let uid=null,generation=0,busy=false,dirty=false,phoneStage='current-send',smsDirty=false,smsPhone=null;
  const user=()=>account()?.user;
  function message(id,text,error=false){const el=$(id);el.textContent=text;el.hidden=!text;el.classList.toggle('is-error',error);el.setAttribute('role',error?'alert':'status');if(error&&text){el.tabIndex=-1;el.focus()}}
  function errorText(error){if(error.code==='functions/resource-exhausted')return error.message;if(error.code?.startsWith('auth/'))return ({'auth/invalid-phone-number':'Enter a valid phone number.','auth/invalid-verification-code':'That code did not match. Try again.','auth/code-expired':'The code expired. Close this dialog and start again.','auth/credential-already-in-use':'That phone number belongs to another account. Accounts cannot be merged here.','auth/requires-recent-login':'Verify your current number again before changing it.','auth/too-many-requests':'Too many attempts. Please try again later.','auth/cancelled-phone-request':'Your sign-in changed. Start again.'})[error.code]||'Phone verification is unavailable. Check your connection and try again.';return error.code==='catalog/invalid-image'||error.code==='account/invalid-data'?error.message:window.RipprAccount.errorMessage(error)}
  function setBusy(value){busy=value;document.querySelectorAll('#settings-content input,#settings-content button,.settings-dialog input,.settings-dialog button').forEach(el=>el.disabled=value)}
  function validSession(ticket,actor){return ticket===generation&&actor===user()?.uid}
  function render(){
-  const a=account(),actor=user()?.uid;if(actor!==uid){generation++;uid=actor;dirty=false;busy=false;$('#settings-profile-form').reset();$('#address-form').reset();client.cancelPhoneChange?.();for(const d of document.querySelectorAll('.settings-dialog[open]'))d.close();setBusy(false);document.querySelectorAll('.service-message').forEach(el=>{el.textContent='';el.hidden=true})}
+  const a=account(),actor=user()?.uid;if(actor!==uid){generation++;uid=actor;dirty=false;smsDirty=false;busy=false;$('#settings-profile-form').reset();$('#address-form').reset();client.cancelPhoneChange?.();for(const d of document.querySelectorAll('.settings-dialog[open]'))d.close();setBusy(false);document.querySelectorAll('.service-message').forEach(el=>{el.textContent='';el.hidden=true})}
   const ready=Boolean(user()&&a.wallet);$('#settings-content').hidden=!ready;$('#account-gate').hidden=ready;$('#gate-login').hidden=!a?.ready||Boolean(user());$('#gate-retry').hidden=!user()||!a.accountError;
   $('#gate-login').href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);
   $('#gate-title').textContent='Make it yours.';$('#gate-copy').textContent=!a?.ready?'Loading your account…':!user()?'Log in to manage your profile and preferences.':a.accountError||'Loading your settings…';
@@ -26,6 +26,14 @@
   const box=$('#saved-address');box.replaceChildren();const lines=model.addressLines(a.wallet.address);for(const line of lines){const p=document.createElement('p');p.textContent=line;box.append(p)}if(!lines.length)box.textContent='Add a delivery address for future shipping requests.';
   const prefs={...model.DEFAULT_PREFERENCES,...a.wallet.preferences};let sound=prefs.soundEffects;try{const saved=localStorage.getItem('rippr:opening-muted');if(saved!==null)sound=saved!=='true'}catch{}
   $('#pref-sound').checked=sound;$('#pref-email').checked=prefs.emailUpdates;$('#pref-shipping').checked=prefs.shippingUpdates;
+  if(smsPhone!==phone){smsDirty=false;smsPhone=phone}
+  const consent=a.wallet.smsConsent,active=model.currentSmsConsent(consent,phone);
+  $('#sms-disclosure').textContent=model.SMS_CONSENT_TEXT;
+  $('#sms-phone').textContent=phone?'For your verified number ending in '+digits.slice(-4):'Link and verify a phone number to opt in.';
+  if(!smsDirty)$('#sms-alerts').checked=active;
+  $('#sms-alerts').disabled=busy||!phone;
+  $('#sms-save').disabled=busy||(!phone&&!consent?.enabled);
+
  }
  async function save(patch,status){if(busy||!user())return false;const ticket=generation,actor=user().uid;setBusy(true);message(status,'Saving…');try{model.cleanSettingsPatch(patch,account().wallet);await window.RipprAccount.act('settings',patch);if(!validSession(ticket,actor))return false;message(status,'Saved.');return true}catch(error){if(validSession(ticket,actor))message(status,errorText(error),true);return false}finally{if(validSession(ticket,actor)){setBusy(false);render()}}}
  $('#settings-profile-form').addEventListener('input',()=>{dirty=true;$('#verify-updates-email').disabled=true;message('#profile-save-status','')});
@@ -41,6 +49,14 @@
   if(busy||dirty||!user())return;const ticket=generation,actor=user().uid;setBusy(true);message('#profile-save-status','Requesting confirmation…');
   try{const result=await window.RipprAccount.act('requestEmailVerification');if(validSession(ticket,actor))message('#profile-save-status',result.verified?'Email already confirmed.':'Confirmation email queued. Check your inbox and spam folder. The link expires in 30 minutes.')}catch(error){if(validSession(ticket,actor))message('#profile-save-status',errorText(error),true)}finally{if(validSession(ticket,actor)){setBusy(false);render()}}
  });
+ $('#sms-alerts').addEventListener('change',()=>{smsDirty=true;message('#sms-status','')});
+ $('#sms-consent-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(busy||!user())return;
+  const ticket=generation,actor=user().uid,enabled=$('#sms-alerts').checked,expectedPhoneNumber=user().phoneNumber||null;
+  setBusy(true);message('#sms-status','Saving…');
+  try{await window.RipprAccount.act('smsConsent',{enabled,disclosureVersion:model.SMS_CONSENT_VERSION,expectedPhoneNumber});if(!validSession(ticket,actor))return;smsDirty=false;message('#sms-status',enabled?'Preference saved. Text alerts are not sending yet.':'Text alerts turned off. Phone sign-in is unchanged.')}catch(error){if(validSession(ticket,actor))message('#sms-status',errorText(error),true)}finally{if(validSession(ticket,actor)){setBusy(false);render()}}
+ });
+ document.querySelectorAll('[data-sms-policy]').forEach(button=>button.addEventListener('click',()=>document.querySelector('.rippr-footer [data-footer-dialog="'+button.dataset.smsPolicy+'"]').click()));
  $('#settings-avatar').addEventListener('error',event=>{event.target.src=window.RIPPR_MASCOT_URLS?.welcome||'assets/mascot/pip-welcome.png'},{once:true});
  $('#change-photo').addEventListener('click',()=>$('#photo-file').click());
  $('#photo-file').addEventListener('change',async event=>{const file=event.target.files[0];event.target.value='';if(!file||busy||!user())return;const ticket=generation,actor=user().uid;setBusy(true);message('#profile-save-status','Uploading photo…');try{const photoURL=await client.uploadProfileImage(file);if(!validSession(ticket,actor))return;await window.RipprAccount.act('settings',{photoURL});if(validSession(ticket,actor))message('#profile-save-status','Photo saved.')}catch(error){if(validSession(ticket,actor))message('#profile-save-status',errorText(error),true)}finally{if(validSession(ticket,actor)){setBusy(false);render()}}});
@@ -51,9 +67,9 @@
  $('#phone-change-form').addEventListener('submit',async event=>{event.preventDefault();if(busy||!user())return;const code=$('#phone-change-code');code.required=phoneStage.endsWith('-code');if(code.required&&!code.reportValidity())return;const previousStage=phoneStage,ticket=generation,actor=user().uid;setBusy(true);message('#phone-change-error','');try{if(phoneStage==='current-send'||phoneStage==='new-send'){await client.startPhoneChange($('#new-phone').value,{verifyCurrent:phoneStage==='current-send'});if(!validSession(ticket,actor))return;phoneStage=phoneStage==='current-send'?'current-code':'new-code';$('#phone-code-label').hidden=false;$('#new-phone-label').hidden=true;$('#phone-change-code').value='';$('#phone-instructions').textContent='Enter the verification code sent to your phone.';$('#phone-change-submit').textContent='Verify code'}else{const result=await client.confirmPhoneChange($('#phone-change-code').value);if(!validSession(ticket,actor))return;if(result.verifiedCurrent){phoneStage='new-send';$('#phone-code-label').hidden=true;$('#new-phone-label').hidden=false;$('#phone-instructions').textContent='Current number verified. Enter your new phone number.';$('#phone-change-submit').textContent='Send code'}else{$('#phone-dialog').close();message('#profile-save-status','Phone number updated.');await window.RipprAccount.refresh()}}}catch(error){if(validSession(ticket,actor))message('#phone-change-error',errorText(error),true)}finally{if(validSession(ticket,actor)){setBusy(false);render();if($('#phone-dialog').open&&phoneStage!==previousStage){if(!$('#phone-code-label').hidden)$('#phone-change-code').focus();else if(!$('#new-phone-label').hidden)$('#new-phone').focus()}}}});
  function announceDialog(){document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:false,dialogOpen:Boolean(document.querySelector('.settings-dialog[open]'))}}))}
  for(const dialog of document.querySelectorAll('.settings-dialog')){dialog.querySelectorAll('[data-settings-close]').forEach(b=>b.addEventListener('click',()=>{if(!busy)dialog.close()}));dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault()});dialog.addEventListener('close',()=>{if(dialog.id==='phone-dialog')client.cancelPhoneChange?.();announceDialog()})}
- $('#settings-signout').addEventListener('click',async()=>{if(busy)return;if(dirty&&!confirm('Discard unsaved profile changes and sign out?'))return;try{await client.signOut()}catch(error){message('#profile-save-status',errorText(error),true)}});
+ $('#settings-signout').addEventListener('click',async()=>{if(busy)return;if((dirty||smsDirty)&&!confirm('Discard unsaved changes and sign out?'))return;try{await client.signOut()}catch(error){message('#profile-save-status',errorText(error),true)}});
  $('#gate-retry').addEventListener('click',()=>window.RipprAccount.refresh());
  document.querySelectorAll('.settings-sidebar>a').forEach(link=>link.addEventListener('click',()=>{document.querySelectorAll('.settings-sidebar>a').forEach(el=>el.removeAttribute('aria-current'));link.setAttribute('aria-current','location')}));
- window.addEventListener('beforeunload',event=>{if(dirty&&user()){event.preventDefault();event.returnValue=''}});
+ window.addEventListener('beforeunload',event=>{if((dirty||smsDirty)&&user()){event.preventDefault();event.returnValue=''}});
  document.addEventListener('rippr:authchange',render);document.addEventListener('rippr:walletchange',render);render();
 })();

@@ -1,3 +1,4 @@
+import {recordSmsChoice} from './sms-consent-model.js';
 import {EMAIL_ACTIONS,emailVerification} from './email-verification.js';
 import {inventoryPage} from './inventory-service.js';
 import {REFERRAL_ACTIONS,referralService,readReferralConfig,validateSignupReferral} from './referral-service.js';
@@ -251,6 +252,11 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           result = { count:ids.length, shipmentId:operationId };
           activity = { type:'shipping', label:`Test shipping request · ${ids.length} item${ids.length===1?'':'s'}`, amountCents:0 };
         }
+      } else if (action === 'smsConsent') {
+        let consent;try{consent=recordSmsChoice(wallet.smsConsent,data,claims,now())}catch(error){fail('invalid-argument',error.message)}
+        patch.smsConsent=consent;
+        tx.create(account.collection('smsConsentEvents').doc(operationId),{...consent,uid,action:consent.enabled?'opt-in':'opt-out',createdAt:stamp()});
+        result={smsConsent:consent,sendingEnabled:false};
       } else if (action === 'settings') {
         try { patch=cleanSettingsPatch(data,wallet); if('emailForUpdates' in patch&&patch.emailForUpdates.trim().toLowerCase()!==wallet.emailForUpdates?.trim().toLowerCase()){patch.verifiedEmailForUpdates=null;patch.emailVerifiedAtMs=0;} } catch(error){ fail('invalid-argument',error.message); }
         result={settings:patch};

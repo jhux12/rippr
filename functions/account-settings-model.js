@@ -1,3 +1,4 @@
+export {SMS_CONSENT_VERSION,SMS_CONSENT_TEXT,currentSmsConsent} from './sms-consent-model.js';
 import {safeImageURL} from './catalog-model.js';
 const invalid=message=>{throw Object.assign(new Error(message),{code:'account/invalid-data'})};
 export const DEFAULT_PREFERENCES={soundEffects:true,emailUpdates:false,shippingUpdates:true};

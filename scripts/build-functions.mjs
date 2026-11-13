@@ -10,3 +10,5 @@ await copyFile(new URL('../src/referral-model.js',import.meta.url),new URL('../f
 await copyFile(new URL('../src/museum-model.js',import.meta.url),new URL('../functions/museum-model.js',import.meta.url));
 
 await copyFile(new URL('../emails/templates.mjs',import.meta.url),new URL('../functions/email-templates.js',import.meta.url));
+
+await copyFile(new URL('../src/sms-consent-model.js',import.meta.url),new URL('../functions/sms-consent-model.js',import.meta.url));

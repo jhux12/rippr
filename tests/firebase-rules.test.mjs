@@ -262,3 +262,11 @@ test('email outbox cannot be read, created or changed by clients, including the 
   await assertFails(getDoc(target));await assertFails(setDoc(target,{status:'pending',to:'victim@example.test',type:'welcome'}));
  }
 });
+
+
+test('browsers cannot manufacture SMS consent or consent history',async()=>{
+ const member=context('+12025550123');
+ await assertFails(setDoc(doc(member.firestore(),'testAccounts/member'),{smsConsent:{enabled:true}}));
+ await assertFails(setDoc(doc(member.firestore(),'testAccounts/member/smsConsentEvents/forged'),{enabled:true,source:'account-settings'}));
+ await assertFails(getDoc(doc(context(OWNER_PHONE).firestore(),'testAccounts/member/smsConsentEvents/forged')));
+});
