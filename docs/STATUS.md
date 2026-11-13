@@ -1,3 +1,7 @@
+# Latest: policy operator details
+
+Added owner-supplied pullz.gg LLC and the Indianapolis business mailing address to all five policy drafts. Removed the now-resolved operator/address placeholders in Terms and Privacy and updated the owner checklist. Draft labels and outstanding legal/launch decisions remain; no payment, tax or backend configuration changed.
+
 # Latest: policy review drafts
 
 Prepared five responsive, visibly marked drafts: Terms, Privacy, Refunds, Shipping & delivery, and Pack & credit disclosures. Shared desktop/mobile footer links now open standalone pages; no login or JavaScript is needed for policy access. Current sandbox/one-card/site-credit/Near Mint and grading behavior is described without inventing live refunds, shipping deadlines, operator details or legal clearance. Added [POLICY-REVIEW.md](POLICY-REVIEW.md) with missing owner/counsel decisions and launch/assent requirements. Tax remains off; no live-money, shipping, SMS, account acceptance or provider mutation is enabled. Owner reports completed payment/refund and email acceptance checks. Frontend only; no Firebase deployment needed.
