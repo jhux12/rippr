@@ -92,6 +92,8 @@ The key pasted into chat is a sandbox key. Rotate that secret before deployment 
 
 ## Tax setup (only after choosing the correct taxable event)
 
+Owner decision recorded November 13, 2026: collect applicable tax at funding. This does not set a tax code, establish registrations or enable Automatic Tax; the guarded configuration below must still be completed and tested.
+
 If the owner determines that top-up Checkout should collect tax, enable Stripe Tax in the same sandbox, configure the business origin and appropriate **test registrations**, and select the appropriate product tax code from Stripe. Set:
 
 ```dotenv

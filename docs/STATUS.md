@@ -1,3 +1,7 @@
+# Latest: operational review
+
+Owner selected tax at funding and reports $1/$5/$15 packs. Confirmation-email receipt and reply-to reception are owner-confirmed. Focused email/access/mobile checks passed: four domain test files, 32 browser groups, and 16-page/736-reference site validation. Added `npm run test:operations` and [OPERATIONS-CHECK.md](OPERATIONS-CHECK.md) with precise evidence and outstanding deployed checks. Public-domain access is blocked by the workspace allowlist; no production/provider mutation or deployment occurred. Tax stays unmodified and policy work remains deferred.
+
 # Latest: credit ledger and sandbox payment operations (not deployed here)
 
 Added purchased/promotional/sellback/legacy test buckets with immutable per-operation credit entries; aggregate balances stay unchanged. New funding is labelled as purchased sandbox credit; old balances remain legacy, never live value. Added a zero-initialized isolated USD ledger foundation, still unreachable from live payments. Admin → Payments adds paginated reviews/ledger, current Stripe proof, required notes, stale-edit guards, refund/debt reconciliation and account-switch cleanup. Live keys and payments remain rejected. See [PAYMENT-OPERATIONS.md](PAYMENT-OPERATIONS.md) for deployment and the sandbox acceptance matrix, and [LAUNCH-READINESS.md](LAUNCH-READINESS.md) for owner/external dependencies. No Stripe objects, real charges, refunds, messages or Firebase deployment were performed by this workspace.
