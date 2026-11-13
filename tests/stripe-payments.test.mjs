@@ -8,7 +8,7 @@ import {memoryDatabase} from './helpers/memory-database.mjs';
 const config={enabled:true,siteUrl:'https://www.rippr.gg',automaticTax:false};
 function fixture(tax=false){
  const db=memoryDatabase(),sessions=new Map(),keys=new Map();let creates=0,lost=false,time=1800000000000;
- const stripe={checkout:{sessions:{create:async(request,options)=>{creates++;if(keys.has(options.idempotencyKey))return sessions.get(keys.get(options.idempotencyKey));const id='cs_test_fixture'+creates,session={...request,id,url:'https://checkout.stripe.com/c/pay/'+id,livemode:false,expires_at:request.expires_at,currency:'usd',status:'open',payment_status:'unpaid',amount_subtotal:request.line_items[0].price_data.unit_amount,amount_total:request.line_items[0].price_data.unit_amount+(tax?123:0),total_details:{amount_tax:tax?123:0},payment_intent:'pi_fixture'+creates};keys.set(options.idempotencyKey,id);sessions.set(id,session);if(lost){lost=false;throw new Error('Response lost')}return session},retrieve:async id=>{const session=sessions.get(id);if(!session)throw new Error('Unknown session');return session}}},paymentIntents:{retrieve:async id=>{const session=[...sessions.values()].find(s=>s.payment_intent===id);return{livemode:false,metadata:session.metadata}}},charges:{retrieve:async()=>({payment_intent:[...sessions.values()][0].payment_intent})}};
+ const stripe={checkout:{sessions:{create:async(request,options)=>{assert(!Object.hasOwn(request,'payment_method_types'),'Current API uses Dashboard-managed payment methods');creates++;if(keys.has(options.idempotencyKey))return sessions.get(keys.get(options.idempotencyKey));const id='cs_test_fixture'+creates,session={...request,id,url:'https://checkout.stripe.com/c/pay/'+id,livemode:false,expires_at:request.expires_at,currency:'usd',status:'open',payment_status:'unpaid',amount_subtotal:request.line_items[0].price_data.unit_amount,amount_total:request.line_items[0].price_data.unit_amount+(tax?123:0),total_details:{amount_tax:tax?123:0},payment_intent:'pi_fixture'+creates};keys.set(options.idempotencyKey,id);sessions.set(id,session);if(lost){lost=false;throw new Error('Response lost')}return session},retrieve:async id=>{const session=sessions.get(id);if(!session)throw new Error('Unknown session');return session}}},paymentIntents:{retrieve:async id=>{const session=[...sessions.values()].find(s=>s.payment_intent===id);return{livemode:false,metadata:session.metadata}}},charges:{retrieve:async()=>({payment_intent:[...sessions.values()][0].payment_intent})}};
  const run=stripeService(db,{getStripe:()=>stripe,options:()=>({...config,automaticTax:tax,taxCode:tax?'txcd_99999999':''}),now:()=>time});
  const set=(path,value)=>db.runTransaction(async tx=>tx.set(db.doc(path),value));const get=path=>db.runTransaction(async tx=>(await tx.get(db.doc(path))).data());
  const checkout=async(uid='alice',amountCents=2500,id=randomUUID())=>{const result=await run(uid,{action:'checkout',operationId:id,amountCents,accountUid:uid});return{...result,id,session:[...sessions.values()].find(s=>s.metadata.topupId===id)}};
@@ -73,4 +73,14 @@ test('Stripe diagnostics distinguish setup failures without exposing provider pa
  assert.equal(failure.reason,'checkout');assert.equal(failure.reference,'req_ABC123');assert.equal(failure.param,'line_items[0][price_data]');assert(!JSON.stringify(failure).includes(fixture));
  assert.equal(stripeFailure({type:'StripeAuthenticationError'}).reason,'key');assert.equal(stripeFailure({code:'stripe-config-tax'}).reason,'tax');assert.equal(stripeFailure({code:'stripe-config-site'}).reason,'site');
  const injected=stripeFailure({type:fixture,code:fixture,param:'sk_test_bad',requestId:fixture,message:fixture});assert(!JSON.stringify(injected).includes(fixture));assert(!('param'in injected));
+});
+
+
+test('legacy unbound payment-method requests require a fresh intent without changing the old provider payload',async()=>{
+ const f=fixture();await f.seed();const id=randomUUID(),request={mode:'payment',payment_method_types:['card']};
+ await f.set('testAccounts/alice/stripeTestTopups/'+id,{uid:'alice',amountCents:500,status:'creating',createdAtMs:f.now(),request,automaticTax:false});
+ await assert.rejects(()=>f.checkout('alice',500,id),e=>e.code==='failed-precondition'&&e.message.includes('click Continue to Stripe again'));
+ assert.equal(f.creates(),0);assert.deepEqual((await f.get('testAccounts/alice/stripeTestTopups/'+id)).request,request);
+ const fresh=await f.checkout('alice',500);assert(!Object.hasOwn(fresh.session,'payment_method_types'));assert.equal(fresh.session.amount_subtotal,500);
+ fresh.session.payment_status='paid';await f.apply(f.event(fresh.session));assert.equal((await f.get('testAccounts/alice')).balanceCents,500);
 });

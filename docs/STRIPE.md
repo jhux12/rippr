@@ -126,3 +126,10 @@ After a failed Checkout attempt, run `npx firebase functions:log --only ripprStr
 
 
 If Checkout reports automatic tax without a code, run `npm run configure:stripe -- --enable --no-tax`, then redeploy `ripprStripe`. Verify the active value with `gcloud functions describe ripprStripe --gen2 --region=us-central1 --project=rippr-2b01c --format="value(serviceConfig.environmentVariables.STRIPE_TOPUP_AUTOMATIC_TAX)"`; it must print `false`. Do not choose a random product tax code merely to get past the error.
+
+
+### Dashboard-managed payment methods
+
+The current Checkout API rejects `payment_method_types`. New sessions omit it and use the payment methods configured in the Stripe sandbox Dashboard. Enable the appropriate methods there (Cards is sufficient for the basic sandbox test). The adapter already handles unpaid completions and asynchronous success/failure; only a canonical paid session grants credit.
+
+A saved attempt from before this change may still contain the removed field. Its provider request/idempotency key is never silently rewritten. An unbound legacy attempt returns “Checkout settings were updated. Please click Continue to Stripe again.” The client then clears that attempt key; the next explicit click starts a fresh operation with supported parameters. Previously bound sessions remain reusable until completion/expiry. No keys, tax settings, balance or successful payment is changed by this compatibility update.

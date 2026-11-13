@@ -40,7 +40,7 @@ export function stripeService(db,{getStripe,options=()=>({enabled:false}),now=Da
    const bucket=Math.floor(time/3600000),count=limited.data()?.bucket===bucket?limited.data().count||0:0;
    if(count>=10)fail('resource-exhausted','Too many Checkout attempts. Try again later.');
    const metadata={namespace,uid,topupId:id};
-   const request={mode:'payment',payment_method_types:['card'],client_reference_id:uid,metadata,payment_intent_data:{metadata},line_items:[{quantity:1,price_data:{currency:'usd',unit_amount:amount,...(config.automaticTax?{tax_behavior:'exclusive'}:{}),product_data:{name:'rippr site credit — sandbox',description:'Test balance only. No real payment or cash withdrawal.',...(config.automaticTax?{tax_code:config.taxCode}:{})}}}],automatic_tax:{enabled:config.automaticTax},...(config.automaticTax?{billing_address_collection:'required'}:{}),success_url:config.siteUrl+'profile.html?stripe_topup='+id,cancel_url:config.siteUrl+'profile.html?stripe_topup_cancelled=1',expires_at:Math.floor(time/1000)+3600};
+   const request={mode:'payment',client_reference_id:uid,metadata,payment_intent_data:{metadata},line_items:[{quantity:1,price_data:{currency:'usd',unit_amount:amount,...(config.automaticTax?{tax_behavior:'exclusive'}:{}),product_data:{name:'rippr site credit — sandbox',description:'Test balance only. No real payment or cash withdrawal.',...(config.automaticTax?{tax_code:config.taxCode}:{})}}}],automatic_tax:{enabled:config.automaticTax},...(config.automaticTax?{billing_address_collection:'required'}:{}),success_url:config.siteUrl+'profile.html?stripe_topup='+id,cancel_url:config.siteUrl+'profile.html?stripe_topup_cancelled=1',expires_at:Math.floor(time/1000)+3600};
    const record={uid,amountCents:amount,status:'creating',createdAtMs:time,request,automaticTax:config.automaticTax};
    tx.create(target,record);tx.set(rate,{bucket,count:count+1});return record;
   });
@@ -49,6 +49,10 @@ export function stripeService(db,{getStripe,options=()=>({enabled:false}),now=Da
    if(job.expiresAtMs<=time||['expired','review','failed'].includes(job.status))fail('failed-precondition','Start a new top-up. This Checkout is no longer available.');
    return{url:checkoutUrl(job.url),topupId:id};
   }
+  // Never change a frozen provider request under its existing idempotency key.
+  // The client clears a definitely rejected legacy attempt and asks for a fresh
+  // click/new operation ID; already-bound sessions above remain usable.
+  if(job.request&&Object.hasOwn(job.request,'payment_method_types'))fail('failed-precondition','Checkout settings were updated. Please click Continue to Stripe again.');
   if(time-job.createdAtMs>20*60000)fail('failed-precondition','This Checkout attempt expired. Start a new top-up.');
   const stripe=getStripe();
   const key=createHash('sha256').update(namespace+':'+uid+':'+id).digest('hex');
