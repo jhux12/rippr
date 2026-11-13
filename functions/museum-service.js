@@ -20,7 +20,8 @@ export function museumService(db,{now=()=>Date.now()}={}){
  async function readOwned(tx,uid,ids){return (await Promise.all(ids.map(id=>tx.get(account(uid).collection('items').doc(id))))).map(cardJSON).filter(Boolean)}
  async function readMuseum(uid,viewer,{own=false}={}){
   return db.runTransaction(async tx=>{
-   const [draft,published,wallet]=await Promise.all([tx.get(config(uid)),tx.get(directory.doc(uid)),tx.get(account(uid))]);
+   const [draft,published,wallet,closure]=await Promise.all([tx.get(config(uid)),tx.get(directory.doc(uid)),tx.get(account(uid)),tx.get(db.doc('accountClosureState/'+uid))]);
+   if(closure.exists&&closure.data().status!=='canceled')fail('not-found','This collection is unavailable.');
    if(own&&!wallet.exists)fail('failed-precondition','Your account is still loading. Please retry in a moment.');
    const data=own?(draft.exists?draft.data():null):(published.exists?published.data():null);
    if(!own&&(!data?.published||!wallet.exists))fail('not-found','This museum is private or unavailable.');
@@ -60,7 +61,8 @@ export function museumService(db,{now=()=>Date.now()}={}){
   if(action==='save'){
    let clean;try{clean=cleanMuseumDraft(data)}catch(error){fail('invalid-argument',error.message)}
    return db.runTransaction(async tx=>{
-    const [wallet,prior,pub]=await Promise.all([tx.get(account(uid)),tx.get(config(uid)),tx.get(directory.doc(uid))]);
+    const [wallet,prior,pub,closure]=await Promise.all([tx.get(account(uid)),tx.get(config(uid)),tx.get(directory.doc(uid)),tx.get(db.doc('accountClosureState/'+uid))]);
+    if(closure.exists&&closure.data().status!=='canceled')fail('failed-precondition','Account closure is in progress.');
     if(!wallet.exists)fail('failed-precondition','Your account is still loading. Please retry in a moment.');
     const version=nonnegative(prior.data()?.version);
     if(version!==clean.expectedVersion)fail('failed-precondition','Your museum changed in another session. Reload before saving.');
@@ -79,7 +81,8 @@ export function museumService(db,{now=()=>Date.now()}={}){
    if(data.uid===uid)fail('permission-denied','You cannot like your own museum.');
    return db.runTransaction(async tx=>{
     const target=directory.doc(data.uid),mine=target.collection('likes').doc(uid);
-    const [pub,like,wallet]=await Promise.all([tx.get(target),tx.get(mine),tx.get(account(uid))]);
+    const [pub,like,wallet,closure]=await Promise.all([tx.get(target),tx.get(mine),tx.get(account(uid)),tx.get(db.doc('accountClosureState/'+uid))]);
+    if(closure.exists&&closure.data().status!=='canceled')fail('failed-precondition','Account closure is in progress.');
     if(!wallet.exists)fail('failed-precondition','Your account is still loading. Please retry in a moment.');
     if(!pub.exists||!pub.data().published)fail('not-found','This museum is private or unavailable.');
     const previous=like.data()?.liked===true,current=pub.data(),likeCount=nonnegative(current.likeCount);

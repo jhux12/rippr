@@ -20,7 +20,7 @@ Privacy drafts now disclose this additional data. No new email or SMS marketing 
 
 ## Scope and limits
 
-Current version: `sandbox-2026-11-13-v1`; scope: `sandbox-review-drafts`. This acknowledges the clearly marked review documents, not final launch terms. Before final policy publication, bump the server and client versions together, archive the actual documents approved, and require new acceptance. Do not silently change substantive terms under an already accepted version.
+Current version: `sandbox-2026-11-13-v2`; scope: `sandbox-review-drafts`. This acknowledges the clearly marked review documents, not final launch terms. Before final policy publication, bump the server and client versions together, archive the actual documents approved, and require new acceptance. Do not silently change substantive terms under an already accepted version.
 
 Date of birth is self-reported and checked against the server’s UTC calendar. It is not identity verification, state clearance, proof of residence or processor approval. The public Firebase phone-auth service can create an authentication identity outside this website form; that alone does not satisfy the guarded account/purchase APIs. Final eligibility/age/location verification and the permitted-state list still require review before live service. No state is declared permitted, no live-payment path is added, and the existing adapter still rejects live keys/events/non-test wallets.
 
@@ -46,3 +46,5 @@ No new Function name, secret, tax parameter, Storage rule or composite index is 
 - `CHROMIUM_PATH=/usr/bin/chromium npm run test:eligibility:browser`: real guarded account service with fixture phone verification, signup and existing-account flows at 320/390/1440px.
 - Customer-journey and Stripe-return browser regressions cover existing modes/returns and payment status compatibility. No real SMS, payments or production records are used.
 - Rules regressions explicitly deny reading/writing the DOB/audit records as anonymous, account or admin clients. Official emulator execution remains subject to the previously documented emulator-download restriction; domain tests are not Security Rules execution.
+
+The closure-workflow privacy/terms update increments the sandbox policy version to v2, requiring existing active accounts to acknowledge the updated drafts before new funding/opening.

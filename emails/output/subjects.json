@@ -34,5 +34,13 @@
   "support-reply": {
     "subject": "An update on your support request — RIP-10482",
     "preheader": "Hey Alex, there’s a new reply to your support request."
+  },
+  "closure-requested": {
+    "subject": "Your rippr closure request",
+    "preheader": "Hey Alex, we received your sandbox account closure request. Your public collection is hidden and new account activity is paused."
+  },
+  "closure-completed": {
+    "subject": "Your rippr account is closed",
+    "preheader": "Your sandbox account closure has completed. The sign-in identity and original uploaded profile images were removed, and profile, address, email and birth-date data were redacted from the active account records covered by this workflow."
   }
 }

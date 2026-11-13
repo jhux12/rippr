@@ -1,7 +1,7 @@
 import {renderEmail} from './email-templates.js';
 import {emailAllowed,verifiedRecipient} from './email-events.js';
 import {createHash} from 'node:crypto';
-const supported=new Set(['welcome','shipping-request','order-shipped','order-delivered','reward-earned','referral-earned','support-received','support-reply','verify-email']);
+const supported=new Set(['welcome','shipping-request','order-shipped','order-delivered','reward-earned','referral-earned','support-received','support-reply','verify-email','closure-requested','closure-completed']);
 export function validateEmailConfig(config){
  if(!config.enabled)return false;
  const site=new URL(config.siteUrl);
@@ -25,6 +25,10 @@ export async function deliverEmail(db,id,config,{send=sendResend,now=Date.now,ap
   if(['sent','skipped','failed','expired'].includes(job.status)||job.leaseUntilMs>time||job.nextAttemptAtMs>time)return null;
   const owner=await tx.get(db.doc('testAccounts/'+job.uid)),wallet=owner.data();
   let valid=supported.has(job.type)&&job.to===verifiedRecipient(wallet)&&emailAllowed(wallet,job.type);
+  if(['closure-requested','closure-completed'].includes(job.type)){
+   const closure=await tx.get(db.doc('accountClosureState/'+job.uid)),record=closure.data();
+   valid=typeof job.to==='string'&&record?.noticeHash===createHash('sha256').update(job.to).digest('hex')&&(job.type==='closure-completed'?record.status==='completed':['requested','reviewing','blocked','processing','completed'].includes(record?.status));
+  }
   if(job.type==='verify-email'){
    const challenge=await tx.get(db.doc(`testAccounts/${job.uid}/meta/emailVerification`));
    const record=challenge.data();let token;try{token=new URL(job.data.verificationUrl).searchParams.get('verifyEmail')}catch{}

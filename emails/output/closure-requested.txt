@@ -1,0 +1,16 @@
+rippr — Collect the unexpected.
+
+Your request is saved.
+
+Hey Alex, we received your sandbox account closure request. Your public collection is hidden and new account activity is paused.
+
+
+
+Review my request: https://rippr.example/account-settings.html#closure
+
+An admin must review orders, refunds and disputes before cleanup. You can withdraw the request before processing starts. This is not confirmation that deletion is complete.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

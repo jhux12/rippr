@@ -288,3 +288,11 @@ test('payment review, owner notes and live-wallet paths remain server-only',asyn
 test('DOB and policy acceptance records cannot be read or forged by browser clients',async()=>{
  for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')])for(const path of ['accountEligibility/member','accountEligibility/member/acceptances/private']){await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{birthDate:'1990-01-01',adultSelfAttested:true,termsVersion:'forged'}))}
 });
+
+test('closure requests and lifecycle state are server-only',async()=>{for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')])for(const path of ['accountClosureRequests/member','accountClosureRequests/member/audit/private','accountClosureState/member']){await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{status:'completed'}))}});
+
+test('closed-account tokens cannot read retained account data or upload new photos',async()=>{
+ await env.withSecurityRulesDisabled(async admin=>{await setDoc(doc(admin.firestore(),'accountClosureState/member'),{status:'completed'});await setDoc(doc(admin.firestore(),'testAccounts/member'),{currency:'TEST_USD',balanceCents:0})});
+ await assertFails(getDoc(doc(context('+12025550123').firestore(),'testAccounts/member')));
+ await assertFails(uploadBytes(ref(context('+12025550123').storage(),'profile-images/member/closed-avatar.png'),new Uint8Array([1,2,3]),{contentType:'image/png'}));
+});

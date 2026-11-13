@@ -1,0 +1,16 @@
+rippr — Collect the unexpected.
+
+Your account is closed.
+
+Your sandbox account closure has completed. The sign-in identity and original uploaded profile images were removed, and profile, address, email and birth-date data were redacted from the active account records covered by this workflow.
+
+Account reference: RIP-10482
+
+Contact support: https://rippr.example/contact-support.html
+
+Necessary financial, item, order, support and audit records are retained under the policy. Backups, provider records, caches and copies saved by others have separate retention; this is not a claim that every copy was erased.
+
+Get help: https://rippr.example/contact-support.html
+Account settings: https://rippr.example/account-settings.html
+
+This email relates to your rippr account or activity.

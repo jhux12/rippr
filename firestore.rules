@@ -135,11 +135,18 @@ service cloud.firestore {
     // Members may inspect only their own records; no browser can mint credit/items.
     // DOB and consent audit records are served only through authenticated Functions.
     match /accountEligibility/{document=**} { allow read, write: if false; }
+    match /accountClosureRequests/{document=**} { allow read, write: if false; }
+    match /accountClosureState/{document=**} { allow read, write: if false; }
+    function readableAccount(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && (!exists(/databases/$(database)/documents/accountClosureState/$(uid))
+          || get(/databases/$(database)/documents/accountClosureState/$(uid)).data.status != 'completed');
+    }
     match /testAccounts/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if readableAccount(uid);
       allow write: if false;
       match /{document=**} {
-        allow read: if request.auth != null && request.auth.uid == uid;
+        allow read: if readableAccount(uid);
         allow write: if false;
       }
     }

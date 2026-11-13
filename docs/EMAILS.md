@@ -1,6 +1,6 @@
 # Transactional email setup
 
-The eight account emails are wired to saved server events. **Pack receipts are never queued or delivered.** The HTML receipt remains a preview asset only.
+The original eight account emails plus the two closure notices are wired to saved server events. **Pack receipts are never queued or delivered.** The HTML receipt remains a preview asset only.
 
 The implementation includes a Resend HTTPS adapter, four new Firebase Functions, a private `emailOutbox`, confirmation links, retry/idempotency handling and account preference checks. Sending defaults to **off**. No email provider, sender domain, secret or production delivery has been configured by the code change. You can select another provider by replacing the isolated `sendResend` transport in `functions/email-delivery.js`.
 
@@ -84,3 +84,7 @@ npm run test:rules
 ```
 
 The rules suite includes explicit email-outbox client denials. It requires the official Firestore/Storage emulators; the managed environment may block their download from `storage.googleapis.com`. No tests contact Resend or send live mail.
+
+## Account closure notices
+
+The reviewed sandbox closure workflow also queues request-received and closure-completed transactional notices for confirmed addresses while email sending is enabled. Completion is bound to the previously verified recipient using a private hash after profile redaction. See ACCOUNT-CLOSURE.md for retention and deployment. No pack receipt is sent.

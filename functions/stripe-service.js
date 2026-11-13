@@ -38,7 +38,7 @@ export function stripeService(db,{getStripe,options=()=>({enabled:false}),now=Da
   const job=await db.runTransaction(async tx=>{
    const [saved,owner,limited]=await Promise.all([tx.get(target),tx.get(account),tx.get(rate)]);
    if(saved.exists){if(saved.data().amountCents!==amount)fail('already-exists','This top-up ID was already used for another amount.');return saved.data()}
-   const wallet=owner.data();if(!wallet)fail('failed-precondition','Load your account before starting a top-up.');
+   const wallet=owner.data();if(wallet?.closureStatus)fail('failed-precondition','Account closure is in progress or completed.');if(!wallet)fail('failed-precondition','Load your account before starting a top-up.');
    if(wallet.currency!=='TEST_USD')fail('failed-precondition','This integration only funds test-credit accounts.');
    if(wallet.paymentHold)fail('failed-precondition','Your balance needs payment review. Contact support.');
    if(!Number.isSafeInteger(wallet.balanceCents)||wallet.balanceCents+amount>1000000)fail('failed-precondition','Your test balance can hold up to $10,000.');

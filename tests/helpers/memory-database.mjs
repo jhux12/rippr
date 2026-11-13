@@ -33,7 +33,7 @@ export function memoryDatabase(){
   });return query();
  };
 
- return {doc:ref,runTransaction:callback=>{
+ return {doc:ref,collection,runTransaction:callback=>{
   const task=queue.then(async()=>{
    const writes=[];let writing=false;
    const tx={get:async target=>{if(writing)throw new Error('Reads must precede writes');return snapshot(target)},

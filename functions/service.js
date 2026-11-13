@@ -71,7 +71,8 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       if(carrier.length>80||trackingNumber.length>160||(['shipped','delivered'].includes(data.status)&&(!carrier||!trackingNumber)))fail('invalid-argument','Add carrier and tracking details before marking shipped or delivered.');
       const op=account.collection('operations').doc(operationId),fingerprint=JSON.stringify({action,data});
       return db.runTransaction(async tx=>{
-        const [prior,found]=await Promise.all([tx.get(op),tx.get(target)]);
+        const [prior,found,closure]=await Promise.all([tx.get(op),tx.get(target),tx.get(db.doc('accountClosureState/'+data.customerUid))]);
+        if(['processing','completed'].includes(closure.data()?.status))fail('failed-precondition','This account is being closed. Shipping edits are paused.');
         if(prior.exists){if(prior.data().fingerprint!==fingerprint)fail('already-exists','Operation ID already used.');return prior.data().result}
         if(!found.exists)fail('not-found','Shipping request not found.');const request=found.data();
         if((request.version||0)!==data.expectedVersion)fail('failed-precondition','This request changed. Reload before saving.');
@@ -124,6 +125,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         return prior.data().result;
       }
       const wallet = current.exists ? current.data() : initial(uid);
+      if(wallet.closureStatus)fail('failed-precondition','Account closure is in progress or completed. Contact support.');
       if(wallet.paymentHold&&['purchase','openInventoryPack','ship','sell'].includes(action))fail('failed-precondition','Your balance needs payment review. Contact support.');
       let patch = {}, result, activity,creditMoves=[];
       if(action==='saveRewards'){
@@ -220,7 +222,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         });
         creditMoves.push({spend:total});
         patch = { balanceCents:wallet.balanceCents-total, packsOpened:wallet.packsOpened+cards.length, cardsCollected:wallet.cardsCollected+cards.length, grailsFound:wallet.grailsFound+cards.filter(c=>c.grail).length };
-        if(referrer?.exists&&(referrer.data().referralCount||0)<referrals.limit&&referrer.data().balanceCents+referrals.creditCents<=100000000&&patch.balanceCents+referrals.creditCents<=100000000){
+        if(referrer?.exists&&!referrer.data().closureStatus&&(referrer.data().referralCount||0)<referrals.limit&&referrer.data().balanceCents+referrals.creditCents<=100000000&&patch.balanceCents+referrals.creditCents<=100000000){
           patch.balanceCents+=referrals.creditCents;patch.referralAwarded=true;creditMoves.push({bucket:'promotionalCents',cents:referrals.creditCents});
           tx.update(referralAccount,{...postCredits(tx,referralAccount,referrer.data(),{id:'referral-'+operationId,kind:'referral',moves:[{bucket:'promotionalCents',cents:referrals.creditCents}],atMs:now()}),referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});
           tx.create(referralAccount.collection('activity').doc(operationId),{type:'referral',label:'Referral bonus · test credit',amountCents:referrals.creditCents,createdAt:stamp(),testOnly:true});

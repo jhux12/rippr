@@ -24,7 +24,7 @@ export async function referralService(db,uid,input,claims,initial){
   let patch={},result;
   if(action==='referralState'){
    let referralStatus=wallet.referralAwarded?'awarded':wallet.referrerUid?'pending':'none';
-   if(wallet.referrerUid&&!wallet.referralAwarded){const sponsor=await tx.get(db.doc(`testAccounts/${wallet.referrerUid}`));if(!config.enabled)referralStatus='paused';else if(!sponsor.exists||(sponsor.data().referralCount||0)>=config.limit)referralStatus='limit'}
+   if(wallet.referrerUid&&!wallet.referralAwarded){const sponsor=await tx.get(db.doc(`testAccounts/${wallet.referrerUid}`));if(!config.enabled)referralStatus='paused';else if(!sponsor.exists||sponsor.data().closureStatus||(sponsor.data().referralCount||0)>=config.limit)referralStatus='limit'}
    result={config,code,count:wallet.referralCount||0,applied:Boolean(wallet.referrerUid),status:referralStatus,canApply:!wallet.referrerUid&&!(wallet.packsOpened>0)};
   }else if(action==='saveReferrals'){
    let value;try{value=cleanReferrals(data.config)}catch(e){fail('invalid-argument',e.message)}
@@ -35,7 +35,7 @@ export async function referralService(db,uid,input,claims,initial){
    if(!config.enabled||wallet.referrerUid||wallet.packsOpened>0)fail('failed-precondition','Apply one referral code before your first opening.');
    const requested=typeof data.code==='string'?data.code.trim().toUpperCase():'';if(!/^RIPPR-[A-F0-9]{16}$/.test(requested))fail('invalid-argument','Enter a valid referral code.');
    const found=await tx.get(db.doc(`referralCodes/${requested}`));if(!found.exists||found.data().uid===uid)fail('failed-precondition','This code cannot be applied to your account.');
-   const sponsor=await tx.get(db.doc(`testAccounts/${found.data().uid}`));if(!sponsor.exists||(sponsor.data().referralCount||0)>=config.limit)fail('failed-precondition','This referral code has reached its limit.');
+   const sponsor=await tx.get(db.doc(`testAccounts/${found.data().uid}`));if(!sponsor.exists||sponsor.data().closureStatus||(sponsor.data().referralCount||0)>=config.limit)fail('failed-precondition','This referral code has reached its limit.');
    patch.referrerUid=found.data().uid;result={applied:true};
   }
   tx.set(account,{...(!current.exists?wallet:{}),...patch,updatedAt:stamp()},{merge:true});if(!registered.exists)tx.create(codeRef,{uid,createdAt:stamp()});
@@ -53,7 +53,7 @@ export async function validateSignupReferral(db,input){
   const uid=found.data().uid;
   if(typeof uid!=='string'||!uid||uid.includes('/'))fail('failed-precondition','This referral code is unavailable.');
   const sponsor=await tx.get(db.doc('testAccounts/'+uid));
-  if(!sponsor.exists||(sponsor.data().referralCount||0)>=config.limit)fail('failed-precondition','This referral code is unavailable.');
+  if(!sponsor.exists||sponsor.data().closureStatus||(sponsor.data().referralCount||0)>=config.limit)fail('failed-precondition','This referral code is unavailable.');
   return {valid:true};
  });
 }

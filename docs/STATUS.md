@@ -1,3 +1,7 @@
+# Latest: reviewed sandbox account closure
+
+Account settings now supports phone-reverified closure requests, explicit test-entitlement relinquishment, status and pre-processing withdrawal. Admin → Account closures adds a paginated review queue, blockers, audit notes and bounded retryable cleanup. Request freezes new activity and hides public collections; processing redacts personal data, removes profile uploads/Auth identity and retains required records. Transactional request/completion notices use the existing outbox with a hashed verified-recipient binding after redaction. Scope/retention limits and deployment are in [ACCOUNT-CLOSURE.md](ACCOUNT-CLOSURE.md). No real accounts, files, payments, messages or deployed settings were mutated here. Tax/live payments remain off.
+
 # Latest: sandbox eligibility and policy acceptance
 
 Added pre-SMS adult DOB and separate draft Terms/Privacy choices to signup, a dedicated existing-account check, private server-only DOB/acceptance records, immutable audit/version timestamps and callable guards on new funding/purchases/owned-pack openings. Records explicitly remain self-attested, not age-verified; final launch terms and permitted-state/location checks remain pending. Existing reads/support/payment-status and paid webhook settlement remain available. Both `ripprAccount` and `ripprStripe` plus Firestore rules need deployment after the frontend. See [ELIGIBILITY.md](ELIGIBILITY.md). No live charging, tax or marketing changes.

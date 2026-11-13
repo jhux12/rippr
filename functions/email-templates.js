@@ -1,5 +1,5 @@
 // Provider-neutral transactional emails. Rendering never sends an email.
-export const EMAIL_TYPES = ['welcome','pack-receipt','shipping-request','order-shipped','order-delivered','reward-earned','referral-earned','support-received','support-reply'];
+export const EMAIL_TYPES = ['welcome','pack-receipt','shipping-request','order-shipped','order-delivered','reward-earned','referral-earned','support-received','support-reply','closure-requested','closure-completed'];
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plain = value => String(value ?? '').replace(/[\r\n]+/g,' ').trim();
 function money(value){if(!Number.isSafeInteger(value)||value<0)throw new Error('Amounts must be non-negative integer cents.');return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100)}
@@ -17,6 +17,10 @@ export function renderEmail(type,data={},config={}){
  let subject,title,intro,cta,path,rows=[],note='',extra='',extraText='',pose='welcome';
  const id=plain(data.reference)||'—';
  switch(type){
+  case 'closure-requested':
+   subject='Your rippr closure request';title='Your request is saved.';intro=`Hey ${name}, we received your sandbox account closure request. Your public collection is hidden and new account activity is paused.`;cta='Review my request';path='account-settings.html#closure';note='An admin must review orders, refunds and disputes before cleanup. You can withdraw the request before processing starts. This is not confirmation that deletion is complete.';break;
+  case 'closure-completed':
+   subject='Your rippr account is closed';title='Your account is closed.';intro='Your sandbox account closure has completed. The sign-in identity and original uploaded profile images were removed, and profile, address, email and birth-date data were redacted from the active account records covered by this workflow.';cta='Contact support';path='contact-support.html';rows=[['Account reference',id]];note='Necessary financial, item, order, support and audit records are retained under the policy. Backups, provider records, caches and copies saved by others have separate retention; this is not a claim that every copy was erased.';break;
   case 'verify-email':
    subject='Confirm your rippr email';title='Keep your collection in the loop.';intro=`Hey ${name}, confirm this address to receive your rippr account updates.`;cta='Confirm my email';path='account-settings.html';note='This link expires in 30 minutes and only works while signed in to the account that requested it. If you did not request this, you can ignore this message.';break;
   case 'welcome':

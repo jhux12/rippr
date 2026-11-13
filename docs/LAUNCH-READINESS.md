@@ -24,3 +24,5 @@ Next operational order: deploy this sandbox ledger/review batch → finish sandb
 Owner sequencing: complete the operational checks (step 6) next; defer policy work (step 7) until afterward. Shipping integration remains deferred. See [OPERATIONS-CHECK.md](OPERATIONS-CHECK.md) for the focused results and remaining deployed checks.
 
 Latest owner updates: Checkout success/cancellation and refunds reported tested; welcome/reward/support/opt-out emails reported working. Tax collection explicitly remains off pending registration/classification. Policy drafting is now authorized; final approval remains with the owner and counsel.
+
+Reviewed sandbox account closure now exists with recent-phone authentication, owner review, blockers, phased personal-data cleanup and retained financial/support records; see ACCOUNT-CLOSURE.md. It is not an automatic retention purge or a production deletion/compliance sign-off. Storage/Firestore rules and Auth/bucket permissions need deployed acceptance testing on a throwaway account.

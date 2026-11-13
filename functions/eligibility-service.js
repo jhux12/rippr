@@ -1,6 +1,6 @@
 import {HttpsError} from 'firebase-functions/v2/https';
 import {FieldValue} from 'firebase-admin/firestore';
-export const POLICY_VERSION='sandbox-2026-11-13-v1';
+export const POLICY_VERSION='sandbox-2026-11-13-v2';
 export const POLICY_SCOPE='sandbox-review-drafts';
 const fail=(code,message,details)=>{throw new HttpsError(code,message,details)};
 export function adultBirthDate(value,atMs=Date.now()){
@@ -10,7 +10,7 @@ export function adultBirthDate(value,atMs=Date.now()){
  let age=today.getUTCFullYear()-date.getUTCFullYear();if(today.getUTCMonth()<date.getUTCMonth()||(today.getUTCMonth()===date.getUTCMonth()&&today.getUTCDate()<date.getUTCDate()))age--;
  if(age<18)fail('failed-precondition','You must be at least 18 to use rippr.');return value;
 }
-export function hasCurrentEligibility(value){return value?.adultSelfAttested===true&&value.termsVersion===POLICY_VERSION&&value.privacyVersion===POLICY_VERSION&&value.scope===POLICY_SCOPE}
+export function hasCurrentEligibility(value){return value?.closed!==true&&value?.adultSelfAttested===true&&value.termsVersion===POLICY_VERSION&&value.privacyVersion===POLICY_VERSION&&value.scope===POLICY_SCOPE}
 export function eligibilityService(db,{now=Date.now}={}){return async(uid,input={},claims={})=>{
  if(!uid||typeof uid!=='string'||uid.includes('/')||input.accountUid&&input.accountUid!==uid)fail('unauthenticated','Sign in to continue.');
  const ref=db.doc('accountEligibility/'+uid);

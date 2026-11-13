@@ -11,13 +11,13 @@ Owner approved these defaults November 13, 2026. They are proposed live-service 
 | Sellback | Nonwithdrawable site credit; clear confirmation; support corrects verified errors | Current sandbox sellback/ledger exists; production adapter remains unimplemented |
 | Expiration | No expiration for purchased, sellback or promotional credit | Do not add expiry jobs; confirm mandatory unclaimed-property treatment with counsel |
 | Transfers | No transfers or routine cash withdrawals | Preserve eligible original-payment refunds as a separate workflow |
-| Closure | Support-assisted; resolve pending orders and eligible refunds; no inactivity confiscation | Need reviewed closure/refund/deletion tools; do not delete financial history or active cases |
+| Closure | Support-assisted; resolve pending orders and eligible refunds; no inactivity confiscation | Reviewed sandbox request/cleanup tools now exist (ACCOUNT-CLOSURE.md); live refunds/closure still require review. Financial history/active cases are protected |
 | Shipping | Initially contiguous US, tracked, actual quoted cost approved first | Keep disabled until stock/quotes/carrier and handling work; purchase eligibility remains separate |
 | Dispatch | Target 3–5 business days after fulfillment activation | Staff coverage, delay notices and separate carrier transit estimates required; not a current guarantee |
 | Wrong/damaged items | Request report within 14 days of delivery, photos where possible, appropriate replacement/refund; rippr pays reasonable return postage for its errors | Not an absolute legal cutoff; needs return authorization and stock/provider workflow |
 | Lost shipments | rippr handles carrier investigation | Need carrier/insurance procedure; do not place all post-dispatch risk on customer |
 | Condition | Raw Near Mint guide; slab image/company/grade match; support disputes | Badges and the intended Near Mint standard are described in Pack disclosures. Physical inventory checks and consistent condition assessment remain required |
-| Deletion | Support intake; acknowledge within five business days; target 30 calendar days subject to law and verification | Manual intake available. Actual closure/redaction, backups/provider coverage and safe audit exceptions require implementation |
+| Deletion | Support intake; acknowledge within five business days; target 30 calendar days subject to law and verification | Sandbox phone-reverified request/admin redaction now exists. Provider/backups coverage and production/retention review remain pending |
 | Retention | Necessary financial records seven years (accountant/legal confirmation); resolved support two years; security logs target 90 days | No automatic purge is created. Need record inventory, timestamp/legal hold logic, dry runs and provider retention review before deletion |
 | Public profile | Remove promptly after verified deletion request | Need account closure/unpublish implementation; disclose backup/third-party copies |
 | Marketing | Separate optional opt-ins; SMS off until provider/compliance setup | Existing separate preference storage, no marketing SMS sending |
