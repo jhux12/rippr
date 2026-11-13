@@ -3,8 +3,8 @@ import {readFile,writeFile,rename,unlink} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
-export function configureStripeEnv(source,{enabled=false}={}){
- const values={STRIPE_TEST_TOPUPS_ENABLED:String(enabled),STRIPE_SITE_URL:'https://www.rippr.gg',...(enabled?{FREE_TEST_TOPUPS:'false'}:{})};
+export function configureStripeEnv(source,{enabled=false,disableTax=false}={}){
+ const values={STRIPE_TEST_TOPUPS_ENABLED:String(enabled),STRIPE_SITE_URL:'https://www.rippr.gg',...(enabled?{FREE_TEST_TOPUPS:'false'}:{}),...(disableTax?{STRIPE_TOPUP_AUTOMATIC_TAX:'false',STRIPE_TOPUP_TAX_CODE:''}:{})};
  const lines=[],seen=new Set(),newline=source.includes('\r\n')?'\r\n':'\n';
  for(const line of source.split(/\r?\n/)){
   const key=/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line)?.[1];
@@ -14,9 +14,10 @@ export function configureStripeEnv(source,{enabled=false}={}){
  return lines.join(newline)+newline;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- const args=process.argv.slice(2);if(args.length>1||args.some(a=>!['--enable','--disable'].includes(a)))throw new Error('Use --enable or --disable. Default: disabled.');
+ const args=process.argv.slice(2);if(args.length>2||args.some(a=>!['--enable','--disable','--no-tax'].includes(a))||(args.includes('--enable')&&args.includes('--disable'))||(args.includes('--no-tax')&&!args.includes('--enable')&&!args.includes('--disable')))throw new Error('Use --enable or --disable, optionally with --no-tax. Default: disabled.');
  const enabled=args.includes('--enable'),target=new URL('../functions/.env.rippr-2b01c',import.meta.url),temp=new URL(target.href+'.'+randomUUID()+'.tmp');let source='';try{source=await readFile(target,'utf8')}catch(error){if(error.code!=='ENOENT')throw error}
- try{await writeFile(temp,configureStripeEnv(source,{enabled}),{flag:'wx',mode:0o600});await rename(temp,target)}finally{await unlink(temp).catch(error=>{if(error.code!=='ENOENT')throw error})}
+ try{await writeFile(temp,configureStripeEnv(source,{enabled,disableTax:args.includes('--no-tax')}),{flag:'wx',mode:0o600});await rename(temp,target)}finally{await unlink(temp).catch(error=>{if(error.code!=='ENOENT')throw error})}
  console.log('Configured Stripe sandbox top-ups: '+(enabled?'enabled; free test top-ups disabled':'disabled; existing free-credit setting preserved')+'.');
- console.log('Secrets and tax settings unchanged. Deploy the account and Stripe Functions to apply.');
+ console.log(args.includes('--no-tax')?'Automatic tax disabled and tax code cleared. Secrets unchanged.':'Secrets and tax settings unchanged.');
+ console.log('Deploy the account and Stripe Functions to apply.');
 }

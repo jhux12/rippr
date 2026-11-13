@@ -75,10 +75,10 @@ The key pasted into chat is a sandbox key. Rotate that secret before deployment 
 4. Enable sandbox funding:
 
    ```bash
-   npm run configure:stripe -- --enable
+   npm run configure:stripe -- --enable --no-tax
    ```
 
-   This writes `STRIPE_TEST_TOPUPS_ENABLED=true`, `STRIPE_SITE_URL=https://www.rippr.gg` and `FREE_TEST_TOPUPS=false` into the ignored project environment file while preserving other settings. Secrets and Tax settings are untouched. Default Tax remains off. `npm run configure:stripe -- --disable` pauses new Stripe Checkouts and preserves the current free-credit setting; to restore free-credit testing, explicitly set `FREE_TEST_TOPUPS=true` and redeploy the account Function.
+   This writes `STRIPE_TEST_TOPUPS_ENABLED=true`, `STRIPE_SITE_URL=https://www.rippr.gg` and `FREE_TEST_TOPUPS=false` into the ignored project environment file while preserving other settings. Secrets are untouched. `--no-tax` explicitly writes `STRIPE_TOPUP_AUTOMATIC_TAX=false` and clears the tax code, replacing any earlier prompted value. Omit `--no-tax` only when intentionally preserving a configured tax setup. `npm run configure:stripe -- --disable` pauses new Stripe Checkouts and preserves the current free-credit setting; to restore free-credit testing, explicitly set `FREE_TEST_TOPUPS=true` and redeploy the account Function.
 5. Deploy:
 
    ```bash
@@ -123,3 +123,6 @@ These tests do not establish actual Stripe sandbox account access, webhook reach
 `ripprStripe` logs only allowlisted error type/code/parameter/status and the Stripe `req_…` reference, not raw provider messages, requests, headers, keys, card data or customer payloads. The top-up popup shows a safe error category (key, tax, origin, permission, rejected setup, temporary failure) instead of the generic account-service error. Unknown outcomes retain the same operation ID for safe retries.
 
 After a failed Checkout attempt, run `npx firebase functions:log --only ripprStripe --project rippr-2b01c` in Cloud Shell and inspect the entry named **Stripe sandbox Checkout failed**. Share only that sanitized entry. For `StripeInvalidRequestError`, the logged `req_…` reference also identifies the request in the Stripe sandbox’s API logs. A missing entry can indicate that the new handler is not deployed or the request did not reach it; inspect the callable network response rather than resetting keys blindly.
+
+
+If Checkout reports automatic tax without a code, run `npm run configure:stripe -- --enable --no-tax`, then redeploy `ripprStripe`. Verify the active value with `gcloud functions describe ripprStripe --gen2 --region=us-central1 --project=rippr-2b01c --format="value(serviceConfig.environmentVariables.STRIPE_TOPUP_AUTOMATIC_TAX)"`; it must print `false`. Do not choose a random product tax code merely to get past the error.
