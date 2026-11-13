@@ -202,7 +202,7 @@
   trigger.addEventListener('click', () => {
     if(!window.RIPPR_ACCOUNT?.user)return;
     if (menuToggle.getAttribute('aria-expanded') === 'true') menuToggle.click();
-    notice.textContent = 'FREE TEST TOP-UP · NO CHARGE';
+    notice.textContent = window.RIPPR_ACCOUNT?.stripeTestTopups?'STRIPE SANDBOX · NO REAL CHARGE':window.RIPPR_ACCOUNT?.freeTopups===false?'TOP-UPS PAUSED':'FREE TEST TOP-UP · NO CHARGE';
     update();
     dialog.showModal();
     announceState();
@@ -217,6 +217,7 @@
     const bounds = dialog.getBoundingClientRect();
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
   });
+  let lastStripeMode=null;
   function updateBalance(){
     const account=window.RIPPR_ACCOUNT;
     trigger.hidden=!account?.user;
@@ -225,6 +226,18 @@
     trigger.querySelector('.nav-balance-amount').textContent=value;
     trigger.setAttribute('aria-label',`Test balance ${value}. Open top up`);
     dialog.querySelector('#topup-current-balance').textContent=value;
+    const stripeMode=account?.stripeTestTopups===true,paused=!stripeMode&&account?.freeTopups===false;
+    const fundingMode=stripeMode?'stripe':paused?'paused':'free';
+    if(fundingMode!==lastStripeMode){
+      lastStripeMode=fundingMode;
+      dialog.querySelector('.topup-muted').textContent=stripeMode?'Secure Checkout in Stripe test mode.':'Free test credit. No payment required.';
+      dialog.querySelector('.topup-continue').innerHTML=stripeMode?'Continue to Stripe':'Add free test credit <span aria-hidden="true">+</span>';
+      dialog.querySelector('.topup-review').textContent=stripeMode?'Test payment only · balance updates after payment confirmation.':'Temporary test balance · no cash value.';
+      notice.textContent=stripeMode?'STRIPE SANDBOX · NO REAL CHARGE':'FREE TEST TOP-UP · NO CHARGE';
+      if(paused){dialog.querySelector('.topup-muted').textContent='Balance funding is temporarily unavailable.';dialog.querySelector('.topup-continue').textContent='Top-ups unavailable';notice.textContent='TOP-UPS PAUSED';}
+      dialog.querySelector('.topup-continue').disabled=paused;
+    }
+
   }
   document.addEventListener('rippr:walletchange',updateBalance);
   document.addEventListener('rippr:authchange',updateBalance);
@@ -241,8 +254,19 @@
     if(!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);return;}
     const submit=dialog.querySelector('.topup-continue');
     submit.disabled=true;input.disabled=true;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=true);
-    notice.textContent='Adding test credit…';
-    try{await window.RipprAccount.act('topup',{amountCents:amount()});notice.textContent='Test credit added. You’re ready to open packs.';}
+    const stripeMode=window.RIPPR_ACCOUNT.stripeTestTopups===true;
+    notice.textContent=stripeMode?'Opening secure Stripe Checkout…':'Adding test credit…';
+    try{
+      if(stripeMode){
+        const uid=window.RIPPR_ACCOUNT.user.uid,cents=amount(),key='rippr:stripe-topup:'+uid+':'+cents;
+        let operationId;try{operationId=sessionStorage.getItem(key)}catch{}operationId||=crypto.randomUUID();try{sessionStorage.setItem(key,operationId)}catch{}
+        let result;try{result=await window.RipprFirebase.stripeAction('checkout',{amountCents:cents},operationId)}catch(error){if(['functions/failed-precondition','functions/invalid-argument','functions/already-exists'].includes(error.code))try{sessionStorage.removeItem(key)}catch{}throw error}
+        const url=new URL(result.url);
+        if(result.topupId!==operationId||url.protocol!=='https:'||url.hostname!=='checkout.stripe.com'||url.username||url.password)throw new Error('Invalid Checkout redirect');
+        if(window.RIPPR_ACCOUNT.user?.uid!==uid)throw new Error('Account changed');
+        location.assign(url.href);
+      }else{await window.RipprAccount.act('topup',{amountCents:amount()});notice.textContent='Test credit added. You’re ready to open packs.';}
+    }
     catch(error){notice.textContent=window.RipprAccount?.errorMessage(error)||'Account services are unavailable in this preview.';}
     finally{submit.disabled=false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
   });

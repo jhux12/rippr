@@ -1,6 +1,6 @@
 (() => {
   const client = window.RipprFirebase;
-  const state = window.RIPPR_ACCOUNT = { user:null, ready:false, error:null, wallet:null, items:[], packs:[], shipments:[], activity:[], accountReady:false, accountError:null, freeTopups:false, pageInfo:{}, inventoryLoading:{}, inventoryErrors:{} };
+  const state = window.RIPPR_ACCOUNT = { user:null, ready:false, error:null, wallet:null, items:[], packs:[], shipments:[], activity:[], accountReady:false, accountError:null, freeTopups:false, stripeTestTopups:false, pageInfo:{}, inventoryLoading:{}, inventoryErrors:{} };
   let generation=0, request=0;
   const pendingOperations=new Map();
   const migratedNames=new Set();
@@ -47,7 +47,7 @@
         if (version!==generation || ticket!==request) return;
         for(const name of collections)state[name]=records[name];
         state.pageInfo=pages;state.wallet=snapshot.account;state.activity=snapshot.activity||[];
-        state.freeTopups=snapshot.freeTopups;state.hasMore=Boolean(pages.items.hasMore);
+        state.freeTopups=snapshot.freeTopups;state.stripeTestTopups=snapshot.stripeTestTopups===true;state.hasMore=Boolean(pages.items.hasMore);
         state.accountReady=true;state.accountError=null;
       } catch(error) {
         if(version!==generation || ticket!==request)return;
@@ -118,7 +118,7 @@
   if(!client){state.ready=true;state.error='Authentication could not load. Please reload.';return}
   client.observe(user=>{
     const changed=user?.uid!==state.user?.uid;
-    if(changed){generation++;request++;state.wallet=null;state.packs=[];state.shipments=[];state.items=[];state.activity=[];state.accountReady=false;state.accountError=null;state.freeTopups=false;state.hasMore=false;state.pageInfo={};resetPaging();refreshTask=null}
+    if(changed){generation++;request++;state.wallet=null;state.packs=[];state.shipments=[];state.items=[];state.activity=[];state.accountReady=false;state.accountError=null;state.freeTopups=false;state.stripeTestTopups=false;state.hasMore=false;state.pageInfo={};resetPaging();refreshTask=null}
     state.user=user;state.ready=true;state.error=null;emit('rippr:authchange');
     if(user&&changed)window.RipprAccount.refresh();
   },()=>{state.ready=true;state.error='Authentication could not load. Please reload.';emit('rippr:authchange')});

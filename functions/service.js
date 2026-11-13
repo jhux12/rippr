@@ -40,7 +40,7 @@ async function requireRewardPackCatalogs(tx, db, prizes) {
 
 // This namespace is exclusively for free, nonredeemable test credit and test items.
 // Never migrate it into a real-money wallet or physical fulfillment automatically.
-export function accountService(db, { freeTopups = () => true, now = () => Date.now(), emailOptions = () => ({}) } = {}) {
+export function accountService(db, { freeTopups = () => true, now = () => Date.now(), emailOptions = () => ({}), stripeTopups = () => false } = {}) {
   return async function operate(uid, input, claims = {}) {
     if(input?.action==='validateReferral')return validateSignupReferral(db,input);
     if (!uid) fail('unauthenticated', 'Log in to use your account.');
@@ -102,7 +102,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         inventoryPage(db,uid,{collection:'shipments'})
       ]);
       const metadata=page=>({cursor:page.cursor,hasMore:page.hasMore});
-      return {shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},freeTopups:freeTopups()};
+      return {shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},freeTopups:freeTopups(),stripeTestTopups:stripeTopups()};
     }
     if (action === 'rewardState') {
       return db.runTransaction(async tx=>{
@@ -123,6 +123,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         return prior.data().result;
       }
       const wallet = current.exists ? current.data() : initial(uid);
+      if(wallet.paymentHold&&['purchase','openInventoryPack','ship','sell'].includes(action))fail('failed-precondition','Your balance needs payment review. Contact support.');
       let patch = {}, result, activity;
       if(action==='saveRewards'){
         const config=data.config,issues=validateRewards(config);

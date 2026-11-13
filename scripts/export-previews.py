@@ -138,7 +138,7 @@ profile=profile.replace('</body>','<script>'+(ROOT/'shipping-request.js').read_t
 profile=profile.replace('src="assets/shipping/pip-parcel.png"','src="'+uri(ROOT/'assets/shipping/pip-parcel.png','image/png')+'"')
 profile = profile.replace('<link rel="stylesheet" href="profile.css">', '<style>' + (ROOT / 'profile.css').read_text() + '</style>')
 profile = profile.replace('<script src="catalog.js" defer></script>', '<script>' + (ROOT / 'catalog.js').read_text() + '</script>')
-profile = profile.replace('<script src="profile.js" defer></script>', '')
+profile = profile.replace('<script src="profile.js" defer></script>', '').replace('<script src="stripe-return.js" defer></script>', '')
 profile = profile.replace('</body>', '<script>' + bootstrap + '</script><script>' + (ROOT / 'profile.js').read_text() + '</script></body>')
 (OUT / 'rippr-profile.html').write_text(common(profile))
 
@@ -192,7 +192,7 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
     archive.write(ROOT / 'THIRD_PARTY_NOTICES.md', 'rippr/THIRD_PARTY_NOTICES.md')
     archive.write(ROOT / 'docs/CARD-LIBRARY.md', 'rippr/docs/CARD-LIBRARY.md')
     source_files = ['museum.html','museum.css','museum.js','community.html','community.css','community.js','landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
-                    'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
+                    'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'stripe-return.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'condition-badges.css','identity-polish.css','brand-states.css','reveal-polish.css','referral-model.js','referrals.js','referrals.css','catalog.js', 'artwork-loader.js', 'artwork.css', 'opening-audio.js', 'opening-foil.js', 'opening-foil.css', 'opening-theater.css', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:

@@ -1,3 +1,7 @@
+# Latest: Stripe sandbox funding (not deployed here)
+
+The user selected funding the existing balance. New `ripprStripe` and `ripprStripeWebhook` Functions support authenticated hosted Checkout and signed, idempotent USD test-credit settlement. The updated `ripprAccount` reports the sandbox funding flag and blocks purchases/redemption/sales/shipping during payment-review holds. Frontend supports a Stripe sandbox popup and verified status on return; free credit remains the default until explicitly changed. Stripe Tax is opt-in and requires a tax code after taxable-event classification; no real-money wallet migration is implemented. The requested plugin/MCP/skill plan path was unavailable, so the locally prepared plan and exact setup boundaries are documented in [STRIPE.md](STRIPE.md). Test keys and webhook secret are entered only through Firebase Secret Manager. No live API/account/Checkout validation or deployment was performed in this workspace.
+
 # rippr status — daily spin, streaks and welcome case
 
 Working board: [PROJECTS.md](PROJECTS.md). Asset measurements: [PERFORMANCE.md](PERFORMANCE.md).

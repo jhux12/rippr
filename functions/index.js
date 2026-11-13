@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { defineBoolean, defineString, defineSecret } from 'firebase-functions/params';
 import { accountService } from './service.js';
 import { museumService } from './museum-service.js';
@@ -12,7 +12,13 @@ const emailFrom=defineString('EMAIL_FROM',{default:'',description:'Verified send
 const emailReplyTo=defineString('EMAIL_REPLY_TO',{default:'',description:'Monitored support reply-to address.'});
 const emailKey=defineSecret('RESEND_API_KEY');
 const emailConfig=()=>({enabled:emailEnabled.value(),siteUrl:emailSite.value(),from:emailFrom.value(),replyTo:emailReplyTo.value()});
-const operate = accountService(getFirestore(), { freeTopups:()=>freeTestTopups.value(),emailOptions:emailConfig });
+const stripeTestEnabled=defineBoolean('STRIPE_TEST_TOPUPS_ENABLED',{default:false,description:'Enable sandbox-only Stripe balance funding.'});
+const stripeSite=defineString('STRIPE_SITE_URL',{default:'https://www.rippr.gg'});
+const stripeTax=defineBoolean('STRIPE_TOPUP_AUTOMATIC_TAX',{default:false,description:'Only enable after choosing the correct tax treatment for stored credit.'});
+const stripeTaxCode=defineString('STRIPE_TOPUP_TAX_CODE',{default:''});
+const stripeSecret=defineSecret('STRIPE_TEST_SECRET_KEY'),stripeWebhookSecret=defineSecret('STRIPE_TEST_WEBHOOK_SECRET');
+const stripeOptions=()=>({enabled:stripeTestEnabled.value(),siteUrl:stripeSite.value(),automaticTax:stripeTax.value(),taxCode:stripeTaxCode.value()});
+const operate = accountService(getFirestore(), { freeTopups:()=>freeTestTopups.value(),emailOptions:emailConfig,stripeTopups:()=>stripeTestEnabled.value() });
 export const ripprAccount = onCall({ region:'us-central1', maxInstances:10, timeoutSeconds:30 }, request => operate(request.auth?.uid, request.data, request.auth?.token));
 
 const museumOperate = museumService(getFirestore());
@@ -39,4 +45,18 @@ export const ripprEmailRetry=onSchedule({schedule:'every 10 minutes',region:'us-
  if(!emailEnabled.value())return;
  const db=getFirestore(),pending=await db.collection('emailOutbox').where('status','in',['pending','retry','processing']).limit(10).get();
  for(const doc of pending.docs)await deliverEmail(db,doc.id,emailConfig(),{apiKey:emailKey.value()});
+});
+
+
+import Stripe from 'stripe';
+import {stripeService,applyStripeEvent,requireTestKey} from './stripe-service.js';
+const stripeClient=()=>new Stripe(requireTestKey(stripeSecret.value()),{maxNetworkRetries:2,timeout:15000});
+export const ripprStripe=onCall({region:'us-central1',secrets:[stripeSecret],maxInstances:5,timeoutSeconds:60},async request=>{
+ try{return await stripeService(getFirestore(),{getStripe:stripeClient,options:stripeOptions})(request.auth?.uid,request.data)}catch(error){if(error instanceof HttpsError)throw error;throw new HttpsError('unavailable','Stripe sandbox Checkout is unavailable. Retry the same top-up.');}
+});
+export const ripprStripeWebhook=onRequest({region:'us-central1',secrets:[stripeSecret,stripeWebhookSecret],maxInstances:5,timeoutSeconds:120},async(req,res)=>{
+ if(req.method!=='POST'){res.set('Allow','POST').status(405).send('POST required');return}
+ let stripe,event;
+ try{stripe=stripeClient();event=stripe.webhooks.constructEvent(req.rawBody,req.get('stripe-signature'),stripeWebhookSecret.value())}catch{res.status(400).send('Invalid webhook signature');return}
+ try{await applyStripeEvent(getFirestore(),stripe,event);res.status(200).json({received:true})}catch{res.status(500).send('Payment processing will retry')}
 });

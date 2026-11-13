@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
 const root=path.resolve(__dirname,'../..'),origin='http://localhost:3000';
 const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.woff2':'font/woff2','.wav':'audio/wav'};
 (async()=>{
- const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+ const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
  try{for(const width of [320,390,1440]){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'no-preference'}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));

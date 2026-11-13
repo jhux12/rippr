@@ -466,3 +466,8 @@ Nine provider-neutral transactional templates live in `emails/templates.mjs`: we
 ### Optional text-alert consent
 
 Account settings includes a separate, unchecked prelaunch text-alert preference with a versioned disclosure and explicit save. The account service binds consent to the verified phone and records an immutable audit trail; opt-out and phone-change checks prevent accidental reuse. No SMS campaigns send, and a hardcoded readiness gate stays off until final program terms/provider integration and fresh consent. See [docs/TEXT-ALERTS.md](docs/TEXT-ALERTS.md). Deploy the updated `ripprAccount`; existing account rules already protect the records.
+
+
+### Stripe sandbox balance funding
+
+Stripe-hosted Checkout can fund **test** balances after signed webhook confirmation. New Functions: `ripprStripe` and `ripprStripeWebhook`; `ripprAccount` also needs redeployment for the funding flag/payment holds. Live keys/events and non-test wallets are rejected. Optional Stripe Tax requires an explicit taxable-event decision and tax code, defaults off, and never adds collected tax to spendable credit. See [docs/STRIPE.md](docs/STRIPE.md) for the locally prepared plan, failed planner/tool setup, secrets, endpoint events, activation and deployment. `npm run configure:stripe -- --enable` enables sandbox funding and disables free credits only after the owner chooses to run it. Nothing was deployed or charged here.

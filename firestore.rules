@@ -90,6 +90,7 @@ service cloud.firestore {
     }
     // Server-only delivery records may contain private account details and links.
     match /emailOutbox/{id} { allow read, write: if false; }
+    match /stripeTestWebhookEvents/{id} { allow read, write: if false; }
     // Private reusable catalog. Each record is independent of pack prices/odds.
     function validLibraryCard(cardId) {
       let d = request.resource.data;

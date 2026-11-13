@@ -81,3 +81,8 @@ Legal review and eligibility, Stripe/payment setup, real deposits, real-money le
 ## Condition metadata follow-through
 
 Condition badges and admin grading fields are implemented. Raw entries default to Near Mint; slabs need explicit company/grade. New winnings retain their grading snapshot. Existing slab catalog entries need owner annotation; historical wins without recorded grades are not automatically reclassified. Queue the updated ripprAccount/ripprMuseum Functions and Firestore homepage rules with the deferred release. Local rules emulator validation could not run because the emulator download was unavailable.
+
+
+## Stripe sandbox balance funding
+
+The owner’s latest request authorizes a **test-mode** Stripe Payments/Tax integration for balance funding. The plugin, MCP configuration and documentation-skill setup were attempted but unavailable; see [STRIPE.md](STRIPE.md). The official Node SDK is installed. Server-owned hosted Checkout, signed webhook crediting, canonical-session validation, idempotent ledgers, sandbox-only keys/wallet checks, refund/dispute holds, pending/confirmed/cancelled return UI, and optional explicitly classified Tax are implemented. Live-money migration, processor approval, taxable-event classification, registrations and account activation remain owner tasks. No production Stripe objects/charges or Firebase deployments were performed here. Keys stay out of source and must be supplied through Secret Manager. Domain and viewport tests use isolated fixtures.

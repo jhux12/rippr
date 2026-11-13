@@ -270,3 +270,11 @@ test('browsers cannot manufacture SMS consent or consent history',async()=>{
  await assertFails(setDoc(doc(member.firestore(),'testAccounts/member/smsConsentEvents/forged'),{enabled:true,source:'account-settings'}));
  await assertFails(getDoc(doc(context(OWNER_PHONE).firestore(),'testAccounts/member/smsConsentEvents/forged')));
 });
+
+
+test('Stripe webhook ledger and funding records cannot be forged from the browser',async()=>{
+ const member=context('+12025550123');
+ await assertFails(setDoc(doc(member.firestore(),'stripeTestWebhookEvents/evt_forged'),{status:'credited'}));
+ await assertFails(getDoc(doc(member.firestore(),'stripeTestWebhookEvents/evt_forged')));
+ await assertFails(setDoc(doc(member.firestore(),'testAccounts/member/stripeTestTopups/forged'),{status:'credited',amountCents:100000}));
+});

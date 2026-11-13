@@ -404,3 +404,11 @@ export async function validateSignupReferral(code){
  if(!functions){functions=getFunctions(app,'us-central1');if(window.RIPPR_FUNCTIONS_EMULATOR_URL){const url=localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);connectFunctionsEmulator(functions,url.hostname,Number(url.port))}}
  return (await httpsCallable(functions,'ripprAccount',{timeout:30000})({action:'validateReferral',code})).data;
 }
+
+
+export async function stripeAction(action,data={},operationId){
+ await ready;const uid=auth.currentUser?.uid;if(!uid)throw Object.assign(new Error('Log in to top up.'),{code:'functions/unauthenticated'});
+ if(!functions){functions=getFunctions(app,'us-central1');if(window.RIPPR_FUNCTIONS_EMULATOR_URL){const url=localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);connectFunctionsEmulator(functions,url.hostname,Number(url.port))}}
+ const result=await httpsCallable(functions,'ripprStripe',{timeout:60000})({action,...data,accountUid:uid,...(operationId?{operationId}:{})});
+ if(auth.currentUser?.uid!==uid)throw Object.assign(new Error('Your account changed.'),{code:'functions/unauthenticated'});return result.data;
+}
