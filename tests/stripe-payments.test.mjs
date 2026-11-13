@@ -65,3 +65,12 @@ test('official Stripe SDK verifies the raw webhook body and rejects tampering/st
  const stripe=new Stripe('sk_test_fixture'),secret='whsec_fixture',payload=JSON.stringify({id:'evt_signed',livemode:false,type:'checkout.session.completed',data:{object:{id:'cs_test_fixture'}}});
  const header=stripe.webhooks.generateTestHeaderString({payload,secret});assert.equal(stripe.webhooks.constructEvent(Buffer.from(payload),header,secret).id,'evt_signed');assert.throws(()=>stripe.webhooks.constructEvent(Buffer.from(payload+' '),header,secret));assert.throws(()=>stripe.webhooks.constructEvent(payload,stripe.webhooks.generateTestHeaderString({payload,secret,timestamp:1}),secret));
 });
+
+test('Stripe diagnostics distinguish setup failures without exposing provider payloads or secrets',async()=>{
+ const {stripeFailure}=await import('../functions/stripe-errors.js');
+ const fixture='secret-fixture-do-not-log';
+ const failure=stripeFailure({type:'StripeInvalidRequestError',code:'parameter_unknown',param:'line_items[0][price_data]',requestId:'req_ABC123',statusCode:400,message:fixture,raw:{secret:fixture},headers:{Authorization:fixture}});
+ assert.equal(failure.reason,'checkout');assert.equal(failure.reference,'req_ABC123');assert.equal(failure.param,'line_items[0][price_data]');assert(!JSON.stringify(failure).includes(fixture));
+ assert.equal(stripeFailure({type:'StripeAuthenticationError'}).reason,'key');assert.equal(stripeFailure({code:'stripe-config-tax'}).reason,'tax');assert.equal(stripeFailure({code:'stripe-config-site'}).reason,'site');
+ const injected=stripeFailure({type:fixture,code:fixture,param:'sk_test_bad',requestId:fixture,message:fixture});assert(!JSON.stringify(injected).includes(fixture));assert(!('param'in injected));
+});

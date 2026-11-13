@@ -116,3 +116,10 @@ The value above is a placeholder; the backend rejects it until replaced with a v
 `npm run test:stripe` uses the official SDK for raw-body signature validation plus transactional/Stripe API fixtures for server pricing, lost responses, ownership, duplicates, unpaid/live/mismatched sessions, separate Tax credit, expiry, cap review, early refunds and disputes. `npm run test:stripe:browser` covers the hosted redirect and pending/credited/cancelled return at 320/390/1440px, with no real network requests or charges. The ordinary customer journey/domain suites check compatibility. Rules tests include forged funding/audit-denial cases but require downloadable emulators.
 
 These tests do not establish actual Stripe sandbox account access, webhook reachability, inbox delivery, Stripe approval or tax correctness. Those deployment checks remain to be run using the owner’s configured Stripe sandbox and domain.
+
+
+### Checkout error diagnostics
+
+`ripprStripe` logs only allowlisted error type/code/parameter/status and the Stripe `req_…` reference, not raw provider messages, requests, headers, keys, card data or customer payloads. The top-up popup shows a safe error category (key, tax, origin, permission, rejected setup, temporary failure) instead of the generic account-service error. Unknown outcomes retain the same operation ID for safe retries.
+
+After a failed Checkout attempt, run `npx firebase functions:log --only ripprStripe --project rippr-2b01c` in Cloud Shell and inspect the entry named **Stripe sandbox Checkout failed**. Share only that sanitized entry. For `StripeInvalidRequestError`, the logged `req_…` reference also identifies the request in the Stripe sandbox’s API logs. A missing entry can indicate that the new handler is not deployed or the request did not reach it; inspect the callable network response rather than resetting keys blindly.

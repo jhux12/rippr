@@ -7,12 +7,12 @@ const validId=value=>typeof value==='string'&&/^[a-zA-Z0-9-]{16,80}$/.test(value
 const collection='stripeTestTopups';
 const namespace='rippr-sandbox-balance-v1';
 export function stripeConfig(options){
- const site=new URL(options.siteUrl||'');
- if(site.protocol!=='https:'||site.username||site.password||site.pathname!=='/'||site.search||site.hash)throw new Error('Stripe site origin must be HTTPS without a path.');
- if(options.automaticTax&&!/^txcd_\d{8}$/.test(options.taxCode||''))throw new Error('An explicitly selected Stripe Tax code is required.');
+ let site;try{site=new URL(options.siteUrl||'')}catch{throw Object.assign(new Error('Invalid Stripe site origin.'),{code:'stripe-config-site'})}
+ if(site.protocol!=='https:'||site.username||site.password||site.pathname!=='/'||site.search||site.hash)throw Object.assign(new Error('Stripe site origin must be HTTPS without a path.'),{code:'stripe-config-site'});
+ if(options.automaticTax&&!/^txcd_\d{8}$/.test(options.taxCode||''))throw Object.assign(new Error('An explicitly selected Stripe Tax code is required.'),{code:'stripe-config-tax'});
  return{...options,siteUrl:site.origin+'/',automaticTax:options.automaticTax===true};
 }
-export function requireTestKey(key){if(typeof key!=='string'||!key.startsWith('sk_test_'))throw new Error('Only Stripe sandbox secret keys are supported.');return key}
+export function requireTestKey(key){if(typeof key!=='string'||!key.startsWith('sk_test_'))throw Object.assign(new Error('Only Stripe sandbox secret keys are supported.'),{code:'stripe-config-key'});return key}
 export function checkoutUrl(url){try{const value=new URL(url);if(value.protocol==='https:'&&value.hostname==='checkout.stripe.com'&&!value.username&&!value.password)return value.href}catch{}throw new Error('Stripe returned an invalid hosted Checkout URL.')}
 export function stripeService(db,{getStripe,options=()=>({enabled:false}),now=Date.now}={}){
  return async(uid,input)=>{

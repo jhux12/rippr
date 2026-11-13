@@ -267,7 +267,11 @@
         location.assign(url.href);
       }else{await window.RipprAccount.act('topup',{amountCents:amount()});notice.textContent='Test credit added. You’re ready to open packs.';}
     }
-    catch(error){notice.textContent=window.RipprAccount?.errorMessage(error)||'Account services are unavailable in this preview.';}
+    catch(error){
+      const messages={key:'Stripe rejected the sandbox key. Check STRIPE_TEST_SECRET_KEY in Firebase.',tax:'Automatic tax needs a valid tax code. Disable automatic tax for now.',site:'The payment service needs the correct site URL.',permission:'The payment service needs a permission update. Check server logs.',checkout:'Stripe rejected the Checkout setup. Check server logs for details.',retry:'Stripe is processing this attempt. Wait a moment and retry.',temporary:'Stripe Checkout is temporarily unavailable. Retry the same top-up.'};
+      const detail=error?.details;
+      notice.textContent=detail?.provider==='stripe'&&messages[detail.reason]?messages[detail.reason]+(typeof detail.reference==='string'&&/^req_[A-Za-z0-9]{1,80}$/.test(detail.reference)?' Reference: '+detail.reference:''):window.RipprAccount?.errorMessage(error)||'Account services are unavailable in this preview.';
+    }
     finally{submit.disabled=false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
   });
 })();
