@@ -18,6 +18,12 @@ The implementation includes a Resend HTTPS adapter, four new Firebase Functions,
 
 Phone-only accounts are supported. In **Profile → Account settings**, save an email address, click **Confirm email**, and open the confirmation link while signed into the same rippr account. A welcome email follows the first successful confirmation, rather than phone signup with no email. Existing addresses do not count as confirmed. No historical reward/shipping/support events are replayed when email is first enabled. Support notifications use the account’s confirmed address; the free-text address on a ticket is not a verified recipient. Email updates defaults off; shipping updates defaults on. Neither preference affects phone sign-in.
 
+## Quick setup for the verified rippr.gg domain
+
+The chosen sender and reply-to are `hello@rippr.gg`; the site origin is `https://www.rippr.gg`. After saving `RESEND_API_KEY` in Secret Manager, run `npm run configure:email` in the latest checkout. It updates only the four email parameters in `functions/.env.rippr-2b01c`, preserves all other settings, removes duplicate definitions of those email keys, and writes the file atomically with restrictive permissions. It never reads, writes or prints an API key and does not deploy anything. The file stays Git-ignored. To pause sending: `npm run configure:email -- --disable`, followed by redeploying all five Functions below.
+
+The reply-to address must have an actual inbox or forwarding destination to receive customer replies; Resend domain verification alone does not create a mailbox.
+
 ## Enable with Resend
 
 1. Create a Resend account and verify a sending domain you control using its DNS instructions. Choose a sender email and a monitored reply-to email. The sender display name is automatically “rippr”. SPF/DKIM and DMARC should be configured for the domain. Never use the Resend test domain for production recipients.
