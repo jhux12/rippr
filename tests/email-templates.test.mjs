@@ -27,3 +27,5 @@ test('shipping request is not dispatch and credit rewards are not cash',()=>{
  const priced=renderEmail('shipping-request',{...sample,shippingCents:699},config);assert(priced.text.includes('Shipping estimate: $6.99'));assert(priced.text.includes('not final charges'));
  for(const type of ['welcome','reward-earned','referral-earned'])assert.match(renderEmail(type,sample,config).text,/cannot be withdrawn|not cash/);
 });
+
+test('pack referral emails describe unopened inventory while historical credit awards stay accurate',()=>{const result=renderEmail('referral-earned',{...sample,rewardKind:'pack'},config);assert.match(result.text,/One Basic pack/);assert.match(result.text,/unopened/);assert.doesNotMatch(result.text,/Added to your balance/);});

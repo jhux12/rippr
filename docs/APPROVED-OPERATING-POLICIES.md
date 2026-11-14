@@ -56,3 +56,7 @@ Before offering physical delivery, document supplier coverage/backup sourcing an
 ## Spark Points update
 
 The owner approved replacing free daily/streak payouts with Spark Points: one point per purchased dollar actually spent, 25 points per spin, no expiry, no cash/transfer. Spend legacy/promotional/sellback credit before purchased credit. Fractional points persist. Welcome and referral settings are unchanged. See [SPARK-POINTS.md](SPARK-POINTS.md) for authoritative implementation and refund-review behavior; earlier daily/streak economics are historical.
+
+## Referral pack update
+
+Owner selected a free Basic pack instead of referral credit. Each account receives one unopened Basic pack after the invited collector's qualifying purchased-credit spending reaches $10 (or a higher configured minimum) with a verified deposit. See REFERRAL-PACKS.md. This supersedes earlier cash referral amounts for new awards; prior awards remain unchanged.

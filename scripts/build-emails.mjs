@@ -3,7 +3,7 @@ import {fileURLToPath} from 'node:url';
 import {renderEmail,EMAIL_TYPES} from '../emails/templates.mjs';
 const out=new URL('../emails/output/',import.meta.url);await mkdir(out,{recursive:true});
 const config={siteUrl:process.env.RIPPR_EMAIL_SITE_URL||'https://rippr.example'};
-const data={displayName:'Alex',reference:'RIP-10482',packName:'Plus',totalCents:499,itemCount:2,shippingCents:699,carrier:'USPS',trackingNumber:'Sample tracking number',rewardName:'Basic pack',rewardSource:'Daily spin',amountCents:100,topic:'My collection',message:'Hi Alex,\nThanks for reaching out. We’ve updated your request. You can view the details and reply in your support conversation.',items:[{name:'Charizard ex',rarity:'Ultra rare'}]};
+const data={displayName:'Alex',reference:'RIP-10482',packName:'Plus',totalCents:499,itemCount:2,shippingCents:699,carrier:'USPS',trackingNumber:'Sample tracking number',rewardName:'Basic pack',rewardSource:'Spark Spin',rewardKind:'pack',amountCents:100,topic:'My collection',message:'Hi Alex,\nThanks for reaching out. We’ve updated your request. You can view the details and reply in your support conversation.',items:[{name:'Charizard ex',rarity:'Ultra rare'}]};
 const templates=Object.fromEntries(EMAIL_TYPES.map(type=>[type,renderEmail(type,data,config)]));
 for(const [type,result] of Object.entries(templates)){
  await writeFile(new URL(type+'.html',out),result.html);

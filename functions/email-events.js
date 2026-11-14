@@ -14,7 +14,7 @@ export function emailAllowed(account,type){
 export function emailEvent(collection,id,before,after){
  if(!after)return null;
  if(collection==='activity'&&!before){
-  if(after.type==='referral')return{type:'referral-earned',key:'referral:'+id,data:{amountCents:after.amountCents}};
+  if(after.type==='referral')return{type:'referral-earned',key:'referral:'+id,data:{amountCents:after.amountCents,...(after.rewardKind==='pack'?{rewardKind:'pack',rewardName:'Basic pack'}:{})}};
   if(after.type==='reward'){
    const [rewardSource,...label]=String(after.label||'').split(' · ');
    if(!label.length)return null;

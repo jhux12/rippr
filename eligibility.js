@@ -1,5 +1,5 @@
 (()=>{'use strict';
- const VERSION='sandbox-2026-11-13-v3';
+ const VERSION='sandbox-2026-11-13-v4';
  function read(){const dob=document.querySelector('#eligibility-dob'),terms=document.querySelector('#eligibility-terms'),privacy=document.querySelector('#eligibility-privacy');
   if(!dob||!terms||!privacy)throw Error('Eligibility form unavailable. Reload to continue.');
   const error=document.querySelector('#eligibility-error');if(error){error.hidden=true;error.textContent=''}

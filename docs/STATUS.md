@@ -256,3 +256,7 @@ Implemented the points earning/ledger, 25-point redemption, Rewards artwork/layo
 ## Top-up popup refresh
 
 Matched the approved navy/cyan desktop/mobile concept with four amount presets, custom amount, clear site-credit total, Spark earning explanation, actual Basic pack art and Stripe sandbox disclosure. First-deposit offer changes to a ready-to-claim Rewards link after verification and hides after claim. Free-test-credit mode hides deposit-only promotions and the Stripe provider line. Funding still uses the existing server-verified Stripe flow; no backend or secret changes.
+
+## Basic pack referrals
+
+Replaced future referral credit awards with one Basic pack per account. Qualification uses cumulative purchased-credit spending (minimum $10) and a verified deposit; existing awards are not reissued. Old settings normalize without a manual migration. Updated Rewards, admin, economics audit and referral emails. Welcome case remains separate. See REFERRAL-PACKS.md for deployment and refund-review limits.

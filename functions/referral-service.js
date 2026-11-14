@@ -1,16 +1,16 @@
 import {createHash} from 'node:crypto';
 import {FieldValue} from 'firebase-admin/firestore';
 import {HttpsError} from 'firebase-functions/v2/https';
-import {defaultReferrals,cleanReferrals} from './referral-model.js';
+import {defaultReferrals,cleanReferrals,normalizeReferrals} from './referral-model.js';
 import {isAdminToken} from './catalog-model.js';
 const fail=(code,message)=>{throw new HttpsError(code,message)},stamp=()=>FieldValue.serverTimestamp();
 const codeFor=uid=>'RIPPR-'+createHash('sha256').update('referral:'+uid).digest('hex').slice(0,16).toUpperCase();
 export const REFERRAL_ACTIONS=['referralState','bindReferral','saveReferrals'];
 export async function readReferralConfig(tx,db){
- const saved=await tx.get(db.doc('rewardSettings/referrals'));if(saved.exists){try{return cleanReferrals(saved.data())}catch{fail('failed-precondition','Referral settings need correction.')}}
+ const saved=await tx.get(db.doc('rewardSettings/referrals'));if(saved.exists){try{return normalizeReferrals(saved.data())}catch{fail('failed-precondition','Referral settings need correction.')}}
  // Preserve referral configuration saved before the wider rewards rollback.
  const legacy=await tx.get(db.doc('rewardSettings/journey'));if(!legacy.exists)return defaultReferrals();const old=legacy.data();
- try{return cleanReferrals({version:0,enabled:old.referralEnabled,creditCents:old.referralCreditCents,minimumCents:old.referralMinimumCents,limit:old.referralLimit})}catch{return defaultReferrals()}
+ try{return normalizeReferrals({version:0,enabled:old.referralEnabled,creditCents:old.referralCreditCents,minimumCents:old.referralMinimumCents,limit:old.referralLimit})}catch{return defaultReferrals()}
 }
 export async function referralService(db,uid,input,claims,initial){
  const {action,operationId,accountUid,...data}=input;
@@ -25,7 +25,7 @@ export async function referralService(db,uid,input,claims,initial){
   if(action==='referralState'){
    let referralStatus=wallet.referralAwarded?'awarded':wallet.referrerUid?'pending':'none';
    if(wallet.referrerUid&&!wallet.referralAwarded){const sponsor=await tx.get(db.doc(`testAccounts/${wallet.referrerUid}`));if(!config.enabled)referralStatus='paused';else if(!sponsor.exists||sponsor.data().closureStatus||(sponsor.data().referralCount||0)>=config.limit)referralStatus='limit'}
-   result={config,code,count:wallet.referralCount||0,applied:Boolean(wallet.referrerUid),status:referralStatus,canApply:!wallet.referrerUid&&!(wallet.packsOpened>0)};
+   result={config,code,count:wallet.referralCount||0,applied:Boolean(wallet.referrerUid),status:referralStatus,rewardKind:wallet.referralRewardKind||(wallet.referralAwarded?'credit':null),canApply:!wallet.referrerUid&&!(wallet.packsOpened>0)};
   }else if(action==='saveReferrals'){
    let value;try{value=cleanReferrals(data.config)}catch(e){fail('invalid-argument',e.message)}
    if(data.expectedVersion!==config.version)fail('failed-precondition','Referral settings changed. Reload before saving.');

@@ -55,7 +55,7 @@ export function renderEmail(type,data={},config={}){
    rows=[['Reward',plain(data.rewardName)],['From',plain(data.rewardSource)||'rippr rewards'],['Status','Added to your account']];note='Reward packs appear unopened in My items. Credit rewards are site credit and cannot be withdrawn as cash.';break;
   case 'referral-earned':
    subject='Your invite earned a reward ✦';title='Good things are better shared.';intro=`Hey ${name}, a referral met the reward requirements. Your referral reward has been added to your account.`;cta='View referrals';path='rewards.html';pose='celebrate';
-   rows=[['Reward',money(data.amountCents)+' site credit'],['Status','Added to your balance']];note='Referral rewards are site credit, not cash. View the referral section for current eligibility requirements.';break;
+   rows=data.rewardKind==='pack'?[['Reward','One Basic pack'],['Status','Saved unopened in My items']]:[['Reward',money(data.amountCents)+' site credit'],['Status','Added to your balance']];note=data.rewardKind==='pack'?'Your Basic pack is ready in My items → Unopened packs. Pack rewards are not cash. View Rewards for current eligibility requirements.':'This historical referral award is site credit, not cash.';break;
   case 'support-received':
    subject=`We received your message — ${id}`;title='You’re in the right place.';intro=`Hey ${name}, your support request is saved. You can view the conversation and add details from your account.`;cta='View support request';path='contact-support.html';
    rows=[['Request',id],['Topic',plain(data.topic)||'General'],['Status','Received']];note='Please keep follow-up details in the same support conversation. Never share sign-in codes, passwords, or payment card details.';break;

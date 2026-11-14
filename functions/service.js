@@ -176,22 +176,30 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         if ((action==='purchase'&&price !== data.expectedPriceCents) || pack.version !== data.expectedVersion) fail('failed-precondition','The pack price or contents changed. Reload the page before opening.');
         const total = ownedRef ? 0 : price * data.quantity;
         if (wallet.balanceCents < total) fail('resource-exhausted','Not enough balance. Add free test credit to continue.');
+        const eligibleUnits=ownedRef?0:readCredits(wallet).purchasedCents-calculateCredits(wallet,[{spend:total}]).buckets.purchasedCents;
         const referrals=action==='purchase'&&wallet.referrerUid&&!wallet.referralAwarded?await readReferralConfig(tx,db):null;
+        const referralSpend=(wallet.referralPurchasedSpendCents||0)+eligibleUnits;
         let referralAccount,referrer;
-        if(action==='purchase'&&referrals&&total>=referrals.minimumCents&&referrals.enabled&&wallet.referrerUid&&!wallet.referralAwarded){referralAccount=db.doc(`testAccounts/${wallet.referrerUid}`);referrer=await tx.get(referralAccount)}
+        if(referrals&&referrals.enabled&&wallet.referrerUid!==uid&&referralSpend>=referrals.minimumCents&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=now()){
+          referralAccount=db.doc(`testAccounts/${wallet.referrerUid}`);referrer=await tx.get(referralAccount);
+          if(referrer.exists&&!referrer.data().closureStatus&&(referrer.data().referralCount||0)<referrals.limit)await requireRewardPackCatalogs(tx,db,[{kind:'pack',packId:'basic',chanceBps:10000}]);
+        }
         const cards = Array.from({ length:data.quantity }, (_, i) => {
           const pulled = drawItem(pack.items, randomInt(10000) / 10000);
           const { chanceBps, symbol, ...card } = pulled;
           return { ...card, catalogItemId:card.id, id:`${operationId}-${i}`, packId:data.packId, status:'available', testItem:true, pack:i+1 };
         });
         creditMoves.push({spend:total});
-        const eligibleUnits=ownedRef?0:readCredits(wallet).purchasedCents-calculateCredits(wallet,[{spend:total}]).buckets.purchasedCents;
         patch = { ...(eligibleUnits?postSpark(tx,account,wallet,{id:operationId,kind:'purchase-earned',earnUnits:eligibleUnits,atMs:now()}):{}), balanceCents:wallet.balanceCents-total, packsOpened:wallet.packsOpened+cards.length, cardsCollected:wallet.cardsCollected+cards.length, grailsFound:wallet.grailsFound+cards.filter(c=>c.grail).length };
-        if(referrer?.exists&&!referrer.data().closureStatus&&(referrer.data().referralCount||0)<referrals.limit&&referrer.data().balanceCents+referrals.creditCents<=100000000&&patch.balanceCents+referrals.creditCents<=100000000){
-          patch.balanceCents+=referrals.creditCents;patch.referralAwarded=true;creditMoves.push({bucket:'promotionalCents',cents:referrals.creditCents});
-          tx.update(referralAccount,{...postCredits(tx,referralAccount,referrer.data(),{id:'referral-'+operationId,kind:'referral',moves:[{bucket:'promotionalCents',cents:referrals.creditCents}],atMs:now()}),referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});
-          tx.create(referralAccount.collection('activity').doc(operationId),{type:'referral',label:'Referral bonus · test credit',amountCents:referrals.creditCents,createdAt:stamp(),testOnly:true});
-          tx.create(account.collection('activity').doc('referral-'+operationId),{type:'referral',label:'Welcome referral bonus · test credit',amountCents:referrals.creditCents,createdAt:stamp(),testOnly:true});
+        if(referrals&&eligibleUnits)patch.referralPurchasedSpendCents=referralSpend;
+        if(referrer?.exists&&!referrer.data().closureStatus&&(referrer.data().referralCount||0)<referrals.limit){
+          patch.referralAwarded=true;patch.referralRewardKind='pack';
+          const award={packId:'basic',name:'Basic pack',image:packImage('basic'),status:'available',source:'referral-bonus',testItem:true,wonAt:stamp()};
+          tx.create(account.collection('packs').doc('referral-'+operationId),{...award,id:'referral-'+operationId});
+          tx.create(referralAccount.collection('packs').doc('referral-'+operationId),{...award,id:'referral-'+operationId});
+          tx.update(referralAccount,{referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});
+          tx.create(referralAccount.collection('activity').doc(operationId),{type:'referral',label:'Referral bonus · Basic pack',rewardKind:'pack',rewardName:'Basic pack',amountCents:0,createdAt:stamp(),testOnly:true});
+          tx.create(account.collection('activity').doc('referral-'+operationId),{type:'referral',label:'Referral bonus · Basic pack',rewardKind:'pack',rewardName:'Basic pack',amountCents:0,createdAt:stamp(),testOnly:true});
         }
         if(ownedRef)tx.update(ownedRef,{status:'opened',openedAt:stamp(),cardIds:cards.map(c=>c.id)});
         for (const card of cards) tx.create(account.collection('items').doc(card.id), { ...card, wonAt:stamp() });

@@ -38,7 +38,7 @@ Only pass final server records. Never send from client-reported purchase, prize 
 | `order-shipped` | Confirmed shipped status: `reference`, `carrier`, `trackingNumber`, optional trusted `trackingUrl`, optional `estimatedDelivery` |
 | `order-delivered` | Confirmed delivered status: `reference` |
 | `reward-earned` | Committed award: `rewardName`, `rewardSource` |
-| `referral-earned` | Committed referral credit: `amountCents` |
+| `referral-earned` | Committed referral reward: `rewardKind: pack` for a Basic pack; historical credit awards retain `amountCents` |
 | `support-received` | Saved ticket: `reference`, `topic` |
 | `support-reply` | Saved staff reply: `reference`, `message` |
 
