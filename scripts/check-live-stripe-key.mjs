@@ -4,13 +4,27 @@ import {execFileSync} from 'node:child_process';
 const project=process.argv[2]||'rippr-2b01c';
 if(!/^[a-z][a-z0-9-]{4,62}$/.test(project))throw Error('Invalid project ID.');
 const run=args=>execFileSync('gcloud',args,{encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:30000,maxBuffer:1024*1024});
+const safeFailure=error=>{
+ const text=String(error?.stderr||'');
+ if(/PERMISSION_DENIED|PermissionDenied|permission.*denied/i.test(text))return 'permission denied';
+ if(/NOT_FOUND|not found/i.test(text))return 'secret or version not found';
+ if(/UNAUTHENTICATED|no active account|reauthentication|login required/i.test(text))return 'Google sign-in needs renewal';
+ if(error?.code==='ETIMEDOUT')return 'Google Cloud command timed out';
+ return 'Google Cloud command failed';
+};
 let version,key;
 try{
  const name=run(['secrets','versions','describe','latest','--secret=STRIPE_LIVE_SECRET_KEY','--project='+project,'--format=value(name)']).trim();
  version=name.split('/').at(-1);
  if(!/^\d+$/.test(version))throw Error();
- key=run(['secrets','versions','access',version,'--secret=STRIPE_LIVE_SECRET_KEY','--project='+project,'--out-file=/dev/stdout']);
-}catch{console.log('Could not read the live secret. Check your Cloud Shell account and Secret Manager access.');process.exit(1)}
+}catch(error){console.log('Live secret lookup: '+safeFailure(error)+'.');process.exit(1)}
+try{
+ // gcloud exposes the API payload as base64 under an explicit format. Capturing
+ // it avoids reopening /dev/stdout, which can fail for Node subprocess sockets.
+ const payload=run(['secrets','versions','access',version,'--secret=STRIPE_LIVE_SECRET_KEY','--project='+project,'--format=get(payload.data)']).trim();
+ if(!payload || !/^[A-Za-z0-9_+/=-]+$/.test(payload))throw Error();
+ key=Buffer.from(payload,'base64').toString('utf8');
+}catch(error){console.log('Live secret value access: '+safeFailure(error)+'.');process.exit(1)}
 console.log('Latest live secret version: '+version);
 for(const name of ['ripprLiveStripe','ripprLiveStripeWebhook']){
  try{
