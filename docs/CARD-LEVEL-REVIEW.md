@@ -65,3 +65,5 @@ Average credit return remains 80% / 82% / 84% for $1 / $5 / $10. It is not cash 
 4. Keep disabled demo tiers disabled. The separate missing-catalog fail-closed change has been implemented in Git and still requires its documented deployment.
 
 Configuration-level variety and probability checks pass for this snapshot. Physical/visual/value-cost checks, legal/processor decisions and production fulfillment readiness remain open.
+
+Owner follow-up: sourcing is available and acquisition cost is assumed equal to the listed card value. The owner approved honoring the award and resolving sourcing exceptions through support, without silent substitution or reroll. This replaces the missing cost-model input with an owner assumption; supplier pricing, availability, lead times and physical/visual checks remain unverified. See APPROVED-OPERATING-POLICIES.md.

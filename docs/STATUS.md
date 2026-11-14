@@ -1,3 +1,7 @@
+# Latest: sourcing policy and acquisition assumption
+
+Owner reports available sourcing and acquisition costs equal to listed card values. Recorded the planning assumption and approval to honor awarded cards, handle sourcing/price exceptions through support, and avoid silent substitutions/rerolls or extra customer debits. Supplier coverage/prices are not independently verified. No site prices, odds, EV tooling, public policy versions or deployment settings changed.
+
 # Latest: full card-level audit reviewed
 
 Reviewed the owner-uploaded detailed public audit: 510 active entries, exact 100% odds and matching EVs for all three packs. No exact image duplicates within packs, normalized name/grade duplicates or conflicting values for identical cross-pack images; checked TCGdex name numbers agree with URL card numbers. Basic/Plus/Premium medians are $0.30/$3.45/$6.37. Top Plus/Premium outcomes are individually 0.01%, distinct from tier odds. One PSA 9 entry exists (Plus Bulbasaur); Premium is all raw Near Mint. [CARD-LEVEL-REVIEW.md](CARD-LEVEL-REVIEW.md) records findings, individual odds and remaining visual/stock/cost checks. No cards, prices, odds or other site data changed.

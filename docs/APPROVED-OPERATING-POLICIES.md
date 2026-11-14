@@ -44,3 +44,11 @@ Use the existing Contact support ticket or hello@rippr.gg; a new automatic refun
 6. Review and activate final policies with an effective date only when the corresponding controls work.
 
 No automatic customer-data deletion, live charging, tax collection or real shipment is enabled by approval of these defaults.
+
+## Owner-approved sourcing and cost assumptions
+
+The owner states sourcing is available and acquisition cost equals each card’s listed site value. Use this as the planning assumption, not independently verified supplier pricing, reserved stock or a service-level guarantee. At the audited prices/EVs, price minus expected acquisition value is $0.20 for Basic, $0.90 for Plus and $1.60 for Premium, before payment costs, rewards/referrals, packing, returns and shipping subsidies. Actual procurement timing and keep/sellback behavior affect cash flow; these spreads are not verified profit.
+
+Approved fulfillment approach: honor the awarded card, including the promised identity, printing/finish, condition and any listed slab grade. Do not silently reroll, substitute a different card or reduce the saved entitlement because sourcing becomes difficult or expensive. Escalate availability or supplier-price changes through support; explain the issue and obtain the customer’s agreement to any alternative remedy, preserving mandatory rights. Do not automatically debit the customer for a later supplier-price increase. Final production remedy procedures and fulfillment timing still require review; current shipping remains a test flow.
+
+Before offering physical delivery, document supplier coverage/backup sourcing and an exception process, including rare/graded listings. No live payment, automatic sourcing purchase, stock reservation or physical shipment is activated by this decision. Public policy wording/acceptance versions are unchanged in this internal decision update.
