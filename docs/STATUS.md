@@ -1,3 +1,7 @@
+# Latest: full card-level audit reviewed
+
+Reviewed the owner-uploaded detailed public audit: 510 active entries, exact 100% odds and matching EVs for all three packs. No exact image duplicates within packs, normalized name/grade duplicates or conflicting values for identical cross-pack images; checked TCGdex name numbers agree with URL card numbers. Basic/Plus/Premium medians are $0.30/$3.45/$6.37. Top Plus/Premium outcomes are individually 0.01%, distinct from tier odds. One PSA 9 entry exists (Plus Bulbasaur); Premium is all raw Near Mint. [CARD-LEVEL-REVIEW.md](CARD-LEVEL-REVIEW.md) records findings, individual odds and remaining visual/stock/cost checks. No cards, prices, odds or other site data changed.
+
 # Latest: fail-closed catalog availability
 
 Removed server default-pool substitution for missing catalogs on every purchase/owned-pack tier and reachable reward-pack validation. Customer reads reject missing catalogs and show an unavailable opening; admin can still create a disabled draft. Existing owned packs remain intact and can redeem valid disabled/restored saved catalogs. No saved prices, odds, items or enablement changed. Explicit persisted fixtures replace legacy fallback-dependent tests. See [CATALOG-AVAILABILITY.md](CATALOG-AVAILABILITY.md); deployment requires the frontend and `ripprAccount`, with no rules/secrets/indexes. Saved demo pools and physical stock reservation remain separate review items.
