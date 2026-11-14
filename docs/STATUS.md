@@ -1,3 +1,7 @@
+# Latest: fees and promotion budget review
+
+Owner selected 2.9% + $0.30 as a planning assumption (not a verified Stripe agreement). [ECONOMICS-REVIEW.md](ECONOMICS-REVIEW.md) separates per-top-up fee scenarios, pack contribution estimates, credit face liability and pack EV. Code evidence flags recurring streak/welcome costs and the default spin cooldown bypass; actual saved spin/referral settings remain unverified. Added a read-only Cloud Shell economics audit using the local Google login without printing/storing its token or accessing customer collections. No fees, funding minimum, reward/referral setting, pack price/odds or payment mode changed.
+
 # Latest: sourcing policy and acquisition assumption
 
 Owner reports available sourcing and acquisition costs equal to listed card values. Recorded the planning assumption and approval to honor awarded cards, handle sourcing/price exceptions through support, and avoid silent substitutions/rerolls or extra customer debits. Supplier coverage/prices are not independently verified. No site prices, odds, EV tooling, public policy versions or deployment settings changed.
