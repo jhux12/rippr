@@ -476,3 +476,7 @@ Stripe-hosted Checkout can fund **test** balances after signed webhook confirmat
 ### Credit sources and payment reviews
 
 The sandbox wallet now tracks Stripe-funded, promotional, sellback and legacy test credit, with per-operation journal entries and unchanged aggregate totals. Profile Settings shows the sources. **Admin → Payments** provides paginated owner-only review/ledger access, Stripe-verified resolution, notes, optimistic version checks and sandbox debt handling. No Stripe refund is issued from this screen and no old test value becomes live money. Deploy the account, Stripe callable, webhook and updated rules together. See [payment operations](docs/PAYMENT-OPERATIONS.md) and [launch readiness](docs/LAUNCH-READINESS.md).
+
+### Separate live storefront
+
+An off-by-default live mode now uses clean `liveAccounts` balances/inventory, separate Stripe keys/webhook receipts, financial/admin queues, rewards and email jobs. Test balances, points and winnings never become live value. Profile/contact fields can be preserved. The server selects the mode and rejects stale clients; live funding/openings are gated, with owner-only preview before public access. Live closure requires support review rather than automatic sandbox deletion. See [the live rollout guide](docs/LIVE-MODE.md) for private secret setup, Rules checks, deployment, a controlled real payment/refund, public activation and a pause that preserves the live ledger. Existing sandbox endpoint documentation above still applies to the test path.

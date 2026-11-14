@@ -25,7 +25,7 @@ const cleanProfile = data => {
   if (!displayName || displayName.length > 40 || !/^[a-z0-9_]{3,24}$/.test(handle)) fail('invalid-argument', 'Use a name up to 40 characters and a handle of 3–24 letters, numbers or underscores.');
   return { displayName, handle, avatar:'pip' };
 };
-const initial = uid => ({ balanceCents:0, packsOpened:0, cardsCollected:0, grailsFound:0, displayName:'Collector', handle:'collector_' + uid.replace(/[^a-z0-9]/gi,'').slice(0,12).toLowerCase(), avatar:'pip', currency:'TEST_USD', createdAt:stamp() });
+const initialTest = uid => ({ balanceCents:0, packsOpened:0, cardsCollected:0, grailsFound:0, displayName:'Collector', handle:'collector_' + uid.replace(/[^a-z0-9]/gi,'').slice(0,12).toLowerCase(), avatar:'pip', currency:'TEST_USD', createdAt:stamp() });
 
 // Check every reachable pack prize before any award, rather than silently
 // rerolling an unavailable prize and changing the published probabilities.
@@ -50,7 +50,8 @@ async function requireRewardPackCatalogs(tx, db, prizes) {
 
 // This namespace is exclusively for free, nonredeemable test credit and test items.
 // Never migrate it into a real-money wallet or physical fulfillment automatically.
-export function accountService(db, { freeTopups = () => true, now = () => Date.now(), emailOptions = () => ({}), stripeTopups = () => false } = {}) {
+export function accountService(db, { freeTopups = () => true, now = () => Date.now(), emailOptions = () => ({}), stripeTopups = () => false, liveStripeTopups=()=>false, livePurchasesEnabled=()=>false, mode=db.mode||'test' } = {}) {
+  const initial=uid=>({...initialTest(uid),...(mode==='live'?{currency:'USD',creditBuckets:{purchasedCents:0,promotionalCents:0,sellbackCents:0,legacyTestCents:0},creditLedgerVersion:1,creditRevision:0}:{})});
   return async function operate(uid, input, claims = {}) {
     if(input?.action==='validateReferral')return validateSignupReferral(db,input);
     if (!uid) fail('unauthenticated', 'Log in to use your account.');
@@ -88,7 +89,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const patch={status:data.status,carrier,trackingNumber,version:(request.version||0)+1,updatedAt:stamp(),updatedBy:uid};
         tx.update(target,patch);
         tx.set(queue.doc(data.customerUid+'_'+data.shipmentId),{...request,...patch,id:data.shipmentId,customerUid:data.customerUid});
-        tx.create(db.doc(`testAccounts/${data.customerUid}/activity/${operationId}`),{type:'shipping-update',label:'Shipping update · '+data.status,amountCents:0,createdAt:stamp(),testOnly:true});
+        tx.create(db.doc(`testAccounts/${data.customerUid}/activity/${operationId}`),{type:'shipping-update',label:'Shipping update · '+data.status,amountCents:0,createdAt:stamp(),testOnly:mode!=='live'});
         const result={version:patch.version};tx.create(op,{fingerprint,result,createdAt:stamp()});return result;
       });
     }
@@ -113,7 +114,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         inventoryPage(db,uid,{collection:'shipments'})
       ]);
       const metadata=page=>({cursor:page.cursor,hasMore:page.hasMore});
-      return {shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},freeTopups:freeTopups(),stripeTestTopups:stripeTopups()};
+      return {livePurchasesEnabled:mode==='live'&&livePurchasesEnabled(),shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},mode,freeTopups:mode==='test'&&freeTopups(),stripeLiveTopups:mode==='live'&&liveStripeTopups(),stripeTestTopups:mode==='test'&&stripeTopups()};
     }
     if(action==='adminOverview')return adminOverview(db,uid,claims,now());
     if(action==='adminPromotionSummary')return promotionSummary(db,uid,input,claims,now());
@@ -145,14 +146,14 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       }else if(action==='adminSparkReview'){
         if(typeof data.customerUid!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(data.customerUid)||!Number.isSafeInteger(data.removeUnits)||data.removeUnits<0||data.removeUnits>1e12||typeof data.note!=='string'||data.note.trim().length<15||data.note.length>1000)fail('invalid-argument','Enter a customer, points adjustment and a review note.');const target=db.doc('testAccounts/'+data.customerUid),saved=await tx.get(target),owner=saved.data();if(!saved.exists||!owner.sparkReviewRequired||sparkBalance(owner).sparkRevision!==data.expectedRevision)fail('failed-precondition','Reload the current Spark review.');tx.update(target,postSpark(tx,target,owner,{id:operationId,kind:'refund-review',removeUnits:data.removeUnits,review:false,note:data.note.trim(),atMs:now()}));result={reviewed:true};
       }else if(action==='redeemSpark'){
-        if(wallet.currency!=='TEST_USD')fail('failed-precondition','Spark redemptions are sandbox-only.');if(wallet.paymentHold||wallet.sparkReviewRequired||sparkBalance(wallet).sparkDebtUnits)fail('failed-precondition','Resolve the account payment or Spark review before redeeming.');
+        if(wallet.currency!==(mode==='live'?'USD':'TEST_USD'))fail('failed-precondition','Wallet mode mismatch.');if(wallet.paymentHold||wallet.sparkReviewRequired||sparkBalance(wallet).sparkDebtUnits)fail('failed-precondition','Resolve the account payment or Spark review before redeeming.');
         const saved=await tx.get(db.doc('rewardSettings/spark'));let config;try{config=saved.exists?readSpark(saved.data()):defaultSpark()}catch{fail('failed-precondition','Spark rewards need their configuration corrected.')}if(!config.enabled)fail('failed-precondition','Spark Spin is paused.');if(data.expectedVersion!==config.version)fail('failed-precondition','Spark prizes changed. Reload before redeeming.');if(sparkBalance(wallet).sparkUnits<SPARK_SPIN_UNITS)fail('failed-precondition','You need 25 Spark Points to redeem a spin.');const catalogs=await requireRewardPackCatalogs(tx,db,config.prizes);const prize=drawReward(config,randomInt(10000));const recordPromotion=await preparePromotion(tx,db,{category:'spark',packs:prize.kind==='pack'?1:0,creditCents:prize.kind==='credit'?prize.amountCents:0,packEvUnits:prize.kind==='pack'?packEvUnits(catalogs[prize.packId]):0,atMs:now()});recordPromotion();
-        if(prize.kind==='credit'){if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Balance limit reached.');patch.balanceCents=wallet.balanceCents+prize.amountCents;creditMoves.push({bucket:'promotionalCents',cents:prize.amountCents})}else{tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:'spark-spin',testItem:true,wonAt:stamp()})}
+        if(prize.kind==='credit'){if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Balance limit reached.');patch.balanceCents=wallet.balanceCents+prize.amountCents;creditMoves.push({bucket:'promotionalCents',cents:prize.amountCents})}else{tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:'spark-spin',testItem:mode!=='live',wonAt:stamp()})}
         patch={...patch,...postSpark(tx,account,wallet,{id:operationId,kind:'redeem',spendUnits:SPARK_SPIN_UNITS,atMs:now()})};result={prize,points:sparkBalance({...wallet,...patch}),...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};activity={type:'reward',label:`Spark Spin · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
       }else if(action==='claimWelcomeCase'){
-        const extras=rewardExtras(wallet,now());if(!extras.welcome.eligible)fail('failed-precondition','A verified first deposit is required for this bonus.');if(extras.welcome.claimed)fail('failed-precondition','Your welcome case has already been claimed.');const prize=extras.welcome.prize;const catalogs=await requireRewardPackCatalogs(tx,db,[{...prize,chanceBps:10000}]);const recordPromotion=await preparePromotion(tx,db,{category:'welcome',packs:1,packEvUnits:packEvUnits(catalogs[prize.packId]),atMs:now()});recordPromotion();patch.welcomeCaseClaimedAtMs=now();tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:'welcome-case',testItem:true,wonAt:stamp()});result={prize,extras:{welcome:rewardExtras({...wallet,...patch},now()).welcome}};activity={type:'reward',label:`Welcome case · ${rewardLabel(prize)}`,amountCents:0};
+        const extras=rewardExtras(wallet,now());if(!extras.welcome.eligible)fail('failed-precondition','A verified first deposit is required for this bonus.');if(extras.welcome.claimed)fail('failed-precondition','Your welcome case has already been claimed.');const prize=extras.welcome.prize;const catalogs=await requireRewardPackCatalogs(tx,db,[{...prize,chanceBps:10000}]);const recordPromotion=await preparePromotion(tx,db,{category:'welcome',packs:1,packEvUnits:packEvUnits(catalogs[prize.packId]),atMs:now()});recordPromotion();patch.welcomeCaseClaimedAtMs=now();tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:'welcome-case',testItem:mode!=='live',wonAt:stamp()});result={prize,extras:{welcome:rewardExtras({...wallet,...patch},now()).welcome}};activity={type:'reward',label:`Welcome case · ${rewardLabel(prize)}`,amountCents:0};
       } else if (action === 'topup') {
-        if (!freeTopups()) fail('failed-precondition','Free test top-ups are currently paused.');
+        if (mode==='live'||!freeTopups()) fail('failed-precondition','Free test top-ups are currently paused.');
         const cents = data.amountCents;
         if (!Number.isInteger(cents) || cents < 100 || cents > 100000) fail('invalid-argument','Choose between $1 and $1,000 in test credit.');
         if (wallet.balanceCents + cents > 1000000) fail('failed-precondition','Your test balance can hold up to $10,000.');
@@ -182,7 +183,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         // User sees and authorizes this exact price; a changed admin price requires a new click.
         if ((action==='purchase'&&price !== data.expectedPriceCents) || pack.version !== data.expectedVersion) fail('failed-precondition','The pack price or contents changed. Reload the page before opening.');
         const total = ownedRef ? 0 : price * data.quantity;
-        if (wallet.balanceCents < total) fail('resource-exhausted','Not enough balance. Add free test credit to continue.');
+        if (wallet.balanceCents < total) fail('resource-exhausted','Not enough balance. Top up to continue.');
         const eligibleUnits=ownedRef?0:readCredits(wallet).purchasedCents-calculateCredits(wallet,[{spend:total}]).buckets.purchasedCents;
         const referrals=action==='purchase'&&wallet.referrerUid&&!wallet.referralAwarded?await readReferralConfig(tx,db):null;
         const referralSpend=(wallet.referralPurchasedSpendCents||0)+eligibleUnits;
@@ -194,19 +195,19 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const cards = Array.from({ length:data.quantity }, (_, i) => {
           const pulled = drawItem(pack.items, randomInt(10000) / 10000);
           const { chanceBps, symbol, ...card } = pulled;
-          return { ...card, catalogItemId:card.id, id:`${operationId}-${i}`, packId:data.packId, status:'available', testItem:true, pack:i+1 };
+          return { ...card, catalogItemId:card.id, id:`${operationId}-${i}`, packId:data.packId, status:'available', testItem:mode!=='live', pack:i+1 };
         });
         creditMoves.push({spend:total});
         patch = { ...(eligibleUnits?postSpark(tx,account,wallet,{id:operationId,kind:'purchase-earned',earnUnits:eligibleUnits,atMs:now()}):{}), balanceCents:wallet.balanceCents-total, packsOpened:wallet.packsOpened+cards.length, cardsCollected:wallet.cardsCollected+cards.length, grailsFound:wallet.grailsFound+cards.filter(c=>c.grail).length };
         if(referrals&&eligibleUnits)patch.referralPurchasedSpendCents=referralSpend;
         if(referrer?.exists&&!referrer.data().closureStatus&&(referrer.data().referralCount||0)<referrals.limit){
           recordReferral();patch.referralAwarded=true;patch.referralRewardKind='pack';
-          const award={packId:'basic',name:'Basic pack',image:packImage('basic'),status:'available',source:'referral-bonus',testItem:true,wonAt:stamp()};
+          const award={packId:'basic',name:'Basic pack',image:packImage('basic'),status:'available',source:'referral-bonus',testItem:mode!=='live',wonAt:stamp()};
           tx.create(account.collection('packs').doc('referral-'+operationId),{...award,id:'referral-'+operationId});
           tx.create(referralAccount.collection('packs').doc('referral-'+operationId),{...award,id:'referral-'+operationId});
           tx.update(referralAccount,{referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});
-          tx.create(referralAccount.collection('activity').doc(operationId),{type:'referral',label:'Referral bonus · Basic pack',rewardKind:'pack',rewardName:'Basic pack',amountCents:0,createdAt:stamp(),testOnly:true});
-          tx.create(account.collection('activity').doc('referral-'+operationId),{type:'referral',label:'Referral bonus · Basic pack',rewardKind:'pack',rewardName:'Basic pack',amountCents:0,createdAt:stamp(),testOnly:true});
+          tx.create(referralAccount.collection('activity').doc(operationId),{type:'referral',label:'Referral bonus · Basic pack',rewardKind:'pack',rewardName:'Basic pack',amountCents:0,createdAt:stamp(),testOnly:mode!=='live'});
+          tx.create(account.collection('activity').doc('referral-'+operationId),{type:'referral',label:'Referral bonus · Basic pack',rewardKind:'pack',rewardName:'Basic pack',amountCents:0,createdAt:stamp(),testOnly:mode!=='live'});
         }
         if(ownedRef)tx.update(ownedRef,{status:'opened',openedAt:stamp(),cardIds:cards.map(c=>c.id)});
         for (const card of cards) tx.create(account.collection('items').doc(card.id), { ...card, wonAt:stamp() });
@@ -220,7 +221,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         if (items.some(s=>!s.exists || s.data().status !== 'available')) fail('failed-precondition','An item is no longer available. Refresh your collection.');
         const value = items.reduce((sum, s)=>sum+s.data().valueCents,0);
         if (action === 'sell') {
-          if (wallet.balanceCents+value > 100000000) fail('failed-precondition','Your test balance limit has been reached.');
+          if (wallet.balanceCents+value > 100000000) fail('failed-precondition','Your balance limit has been reached.');
           patch.balanceCents = wallet.balanceCents+value;creditMoves.push({bucket:'sellbackCents',cents:value});
           refs.forEach(ref=>tx.update(ref,{ status:'sold', soldAt:stamp() }));
           result = { balanceCents:patch.balanceCents, soldCents:value, count:ids.length };
@@ -231,7 +232,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           let address=wallet.address||null;
           if(data.address!==undefined){try{address=cleanAddress(data.address)}catch(error){fail('invalid-argument',error.message)}}
           if(data.requireAddress===true&&!address)fail('invalid-argument','Add a delivery address before submitting.');
-          const shipment={itemIds:ids,items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents,...gradingFields(c)}}),address,status:'test-request',version:0,shippingMethod:'standard-tracked',estimateCents:null,quoteStatus:'unavailable',createdAt:stamp(),testOnly:true};
+          const shipment={itemIds:ids,items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents,...gradingFields(c)}}),address,status:mode==='live'?'review':'test-request',version:0,shippingMethod:'standard-tracked',estimateCents:null,quoteStatus:'unavailable',createdAt:stamp(),testOnly:mode!=='live'};
           tx.create(account.collection('shipments').doc(operationId),shipment);
           tx.create(db.doc(`shippingQueue/root/requests/${uid}_${operationId}`),{...shipment,id:operationId,customerUid:uid});
           result = { count:ids.length, shipmentId:operationId };
@@ -251,7 +252,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       } else fail('invalid-argument','Unknown account action.');
       if(creditMoves.length){const ledger=postCredits(tx,account,wallet,{id:operationId,kind:action,moves:creditMoves,atMs:now()});if(ledger.balanceCents!==patch.balanceCents)fail('internal','Wallet reconciliation failed.');patch={...patch,...ledger}}
       tx.set(account,{ ...(!current.exists ? wallet : {}), ...patch, updatedAt:stamp() },{ merge:true });
-      if (activity) tx.create(account.collection('activity').doc(operationId),{ ...activity, createdAt:stamp(), testOnly:true });
+      if (activity) tx.create(account.collection('activity').doc(operationId),{ ...activity, createdAt:stamp(), testOnly:mode!=='live' });
       tx.create(operation,{ fingerprint, result, createdAt:stamp() });
       return result;
     });

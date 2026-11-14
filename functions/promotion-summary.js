@@ -18,5 +18,5 @@ export async function promotionSummary(db,uid,input,claims,atMs){
  const endDay=promotionDay(atMs),startDay=new Date(Date.parse(endDay+'T12:00:00Z')-(days-1)*86400000).toISOString().slice(0,10),totals=Object.fromEntries(categories.map(c=>[c,emptyPromotion()]));
  const found=await db.collection('promotionDays').orderBy('day','desc').limit(90).get();let recordedDays=0;
  for(const doc of found.docs){const row=doc.data();if(row.day<startDay||row.day>endDay)continue;recordedDays++;for(const category of categories)for(const key of Object.keys(emptyPromotion())){const n=row[category]?.[key]??0;if(!Number.isSafeInteger(n)||n<0)throw new HttpsError('failed-precondition','Promotion totals need reconciliation.');totals[category][key]+=n;if(!Number.isSafeInteger(totals[category][key]))throw new HttpsError('failed-precondition','Promotion totals exceed the reporting limit.');}}
- return{days,startDay,endDay,timeZone:'America/Indiana/Indianapolis',totals,recordedDays,estimatedCents:Object.values(totals).reduce((n,t)=>n+t.creditCents+t.packEvUnits/10000,0),historicalBackfill:false,sandbox:true,asOfMs:atMs};
+ return{days,startDay,endDay,timeZone:'America/Indiana/Indianapolis',totals,recordedDays,estimatedCents:Object.values(totals).reduce((n,t)=>n+t.creditCents+t.packEvUnits/10000,0),historicalBackfill:false,sandbox:db.mode!=='live',asOfMs:atMs};
 }

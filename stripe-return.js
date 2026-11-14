@@ -1,5 +1,6 @@
 /* A Checkout redirect never grants credit. Poll the authenticated server record. */
 (()=>{
+ const live=()=>window.RIPPR_ACCOUNT?.mode==='live'||window.RIPPR_RUNTIME?.mode==='live';
  const params=new URLSearchParams(location.search),id=params.get('stripe_topup'),cancelled=params.has('stripe_topup_cancelled')||document.body.dataset.paymentResult==='canceled';
  const dedicated=document.body.dataset.paymentResult;
  const title=document.querySelector('#payment-result-title');
@@ -15,19 +16,19 @@
  function cleanUrl(){if(dedicated)return;params.delete('stripe_topup');params.delete('stripe_topup_cancelled');history.replaceState(null,'',location.pathname+(params.size?'?'+params:'')+location.hash)}
  async function check(){
   clear();if(done||busy||document.hidden)return;
-  const uid=window.RIPPR_ACCOUNT?.user?.uid;if(!uid){text.textContent='Sign in to check your Stripe sandbox top-up.';return}
+  const uid=window.RIPPR_ACCOUNT?.user?.uid;if(!uid){text.textContent=(live()?'Sign in to check your Stripe top-up.':'Sign in to check your Stripe sandbox top-up.');return}
   if(actor!==uid){actor=uid;attempts=0;generation++}const ticket=generation;
-  busy=true;attempts++;retry.hidden=true;text.textContent='Confirming your Stripe sandbox top-up…';
+  busy=true;attempts++;retry.hidden=true;text.textContent=(live()?'Confirming your Stripe top-up…':'Confirming your Stripe sandbox top-up…');
   try{
    const result=await window.RipprFirebase.stripeAction('status',{topupId:id});
    if(ticket!==generation||uid!==window.RIPPR_ACCOUNT?.user?.uid)return;
    if(result.status==='credited'){
-    done=true;headline('You’re topped up.');text.textContent=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(result.amountCents/100)+' in test credit has been added to your balance.';
-    try{sessionStorage.removeItem('rippr:stripe-topup:'+uid+':'+result.amountCents)}catch{}
+    done=true;headline('You’re topped up.');text.textContent=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(result.amountCents/100)+(live()?' in site credit has been added to your balance.':' in test credit has been added to your balance.');
+    try{sessionStorage.removeItem('rippr:stripe-topup:'+(live()?'live:':'')+uid+':'+result.amountCents)}catch{}
     cleanUrl();try{await window.RipprAccount.refresh()}catch{if(ticket===generation&&uid===window.RIPPR_ACCOUNT?.user?.uid)text.textContent+=' Refresh your account to update the displayed balance.'}
    }else if(['review','failed','expired','refunded'].includes(result.status)){
     done=true;headline(result.status==='review'?'We’re reviewing your top-up':result.status==='refunded'?'Top-up refunded':'Top-up not completed');text.textContent=result.status==='review'?'This top-up needs payment review. Contact support.':result.status==='refunded'?'This top-up has been refunded. Check your account for its current balance.':'This Checkout did not complete. You can start a new top-up.';cleanUrl();
-    try{sessionStorage.removeItem('rippr:stripe-topup:'+uid+':'+result.amountCents)}catch{}
+    try{sessionStorage.removeItem('rippr:stripe-topup:'+(live()?'live:':'')+uid+':'+result.amountCents)}catch{}
    }else{text.textContent='Waiting for Stripe payment confirmation. Your balance will update after the webhook arrives.';if(attempts<12)timer=setTimeout(check,5000);else retry.hidden=false}
   }catch{
    if(ticket===generation&&uid===window.RIPPR_ACCOUNT?.user?.uid){text.textContent='Could not check this top-up. Retry or return to this page later.';retry.hidden=false}
@@ -35,7 +36,7 @@
  }
  function sync(){
   const uid=window.RIPPR_ACCOUNT?.user?.uid;
-  if(uid!==actor){generation++;actor=uid;attempts=0;done=false;headline('Checking your top-up');clear();text.textContent=uid?'Checking your sandbox top-up…':'Sign in to check your Stripe sandbox top-up.'}
+  if(uid!==actor){generation++;actor=uid;attempts=0;done=false;headline('Checking your top-up');clear();text.textContent=uid?(live()?'Checking your top-up…':'Checking your sandbox top-up…'):(live()?'Sign in to check your Stripe top-up.':'Sign in to check your Stripe sandbox top-up.')}
   if(!busy&&!timer&&!done)check();
  }
  retry.addEventListener('click',()=>{attempts=0;check()});

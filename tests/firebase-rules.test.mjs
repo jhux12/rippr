@@ -307,3 +307,10 @@ test('Spark configuration is readable but all point settings and ledgers remain 
 test('promotion aggregates are served only by owner-authorized Functions',async()=>{
  for(const c of [context(OWNER_PHONE),context('+12025550123'),env.unauthenticatedContext()]){await assertFails(getDoc(doc(c.firestore(),'promotionDays/2026-11-13')));await assertFails(setDoc(doc(c.firestore(),'promotionDays/2026-11-13'),{day:'2026-11-13',spark:{awards:100}}));}
 });
+
+test('live balances and inventory remain server-written and account-scoped',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'liveAccounts/member'),{currency:'USD',balanceCents:500});await setDoc(doc(c.firestore(),'liveAccounts/member/items/award'),{status:'available',testItem:false});});
+ const member=context('+12025550123'),other=env.authenticatedContext('other',{phone_number:'+12025550124'});
+ await assertSucceeds(getDoc(doc(member.firestore(),'liveAccounts/member')));await assertFails(getDoc(doc(other.firestore(),'liveAccounts/member')));
+ for(const c of [member,context(OWNER_PHONE)]){await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member'),{balanceCents:99999}));await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member/items/forged'),{valueCents:99999}));await assertFails(getDoc(doc(c.firestore(),'livePaymentReviewQueue/root/cases/private')));}
+});

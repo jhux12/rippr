@@ -2,11 +2,11 @@
  'use strict';const $=s=>document.querySelector(s),state=()=>window.RIPPR_ACCOUNT,allowed=()=>window.RipprCatalog.isAdminUser(state()?.user),money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format((n||0)/100);
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let cases=[],cursor=null,current=null,ledger=[],ledgerCursor=null,busy=false,generation=0,actor=null;
- const pending=new Map();
+ const pending=new Map(),live=()=>window.RIPPR_RUNTIME?.mode==='live'||state()?.mode==='live';
  const message=(text,error=false)=>{const el=$('#payment-message');el.textContent=text;el.setAttribute('role',error?'alert':'status');if(error){el.tabIndex=-1;el.focus()}};
  const errorText=e=>e?.code==='functions/permission-denied'?'Only the verified owner may manage payment reviews.':e?.details?.provider==='stripe'?'Could not verify this payment with Stripe. Check the server logs.':window.RipprAccount.errorMessage(e);
  function lock(value){busy=value;$('#payments-view').setAttribute('aria-busy',String(value));$('#payments-view').querySelectorAll('input,button,select,textarea').forEach(el=>el.disabled=value);if(!value)actionControls()}
- function actionControls(){if(!current)return;$('#payment-resolve').disabled=busy||current.detail?.review?.status!=='open';$('#payment-waive').hidden=!(current.wallet?.debtCents>0);$('#payment-waive').disabled=busy||current.wallet?.reviewCount>0||current.wallet?.legacyHold===true}
+ function actionControls(){if(!current)return;$('#payment-resolve').disabled=busy||current.detail?.review?.status!=='open';$('#payment-waive').hidden=live()||!(current.wallet?.debtCents>0);$('#payment-waive').disabled=busy||current.wallet?.reviewCount>0||current.wallet?.legacyHold===true}
  async function call(action,data={},mutate=false){
   const uid=state()?.user?.uid;if(!allowed())throw{code:'functions/permission-denied',message:'Only the verified owner may manage payments.'};
   const key='rippr:payment-review:'+uid+':'+action+':'+JSON.stringify(data);let id;
@@ -21,7 +21,7 @@
  function renderDetail(){
   if(!current)return;$('#payment-detail').hidden=false;const {wallet,detail}=current,b=wallet.buckets;
   $('#payment-detail-title').textContent=detail?'Top-up '+current.topupId:'Wallet · '+current.uid;
-  $('#payment-breakdown').innerHTML=[['Total test balance',wallet.balanceCents],['Stripe-funded',b.purchasedCents],['Promotional',b.promotionalCents],['Sellback',b.sellbackCents],['Legacy test credit',b.legacyTestCents],['Payment debt',wallet.debtCents]].map(([label,value])=>`<div><dt>${label}</dt><dd>${money(value)}</dd></div>`).join('');
+  $('#payment-breakdown').innerHTML=[[live()?'Total balance':'Total test balance',wallet.balanceCents],['Stripe-funded',b.purchasedCents],['Promotional',b.promotionalCents],['Sellback',b.sellbackCents],['Legacy test credit',b.legacyTestCents],['Payment debt',wallet.debtCents]].filter(([label])=>!live()||label!=='Legacy test credit').map(([label,value])=>`<div><dt>${label}</dt><dd>${money(value)}</dd></div>`).join('');
   $('#payment-provider-status').textContent=detail?`Stripe: ${detail.provider.paid?'paid':'not paid'} · refunded ${money(detail.provider.refundedCents)}${detail.provider.disputeStatus?' · dispute '+detail.provider.disputeStatus:''}`:'No payment selected. Enter a top-up ID to verify it with Stripe.';
   $('#payment-review-state').textContent=(wallet.reviewCount||0)+' open reviews · '+(wallet.hold||wallet.legacyHold||wallet.debtCents?'balance on hold':'no payment hold')+(wallet.legacyHold?' · an earlier untracked hold needs owner reconciliation':'');
   $('#payment-resolution-form').hidden=!detail&&!(wallet.debtCents>0);
@@ -31,7 +31,7 @@
   $('#payment-audit').innerHTML=(current.audit||[]).map(entry=>`<article class="payment-note"><strong>${esc(entry.action)} · ${esc(entry.actor)}</strong><p>${esc(new Date(entry.atMs).toLocaleString())}</p><p>${esc(entry.note)}</p></article>`).join('')||'<p class="payment-caption">No review notes yet.</p>';actionControls();
  }
  async function inspect(uid,topupId){
-  if(!allowed()||busy)return;const ticket=generation;lock(true);message(topupId?'Verifying the sandbox payment with Stripe…':'Loading the wallet ledger…');
+  if(!allowed()||busy)return;const ticket=generation;lock(true);message(topupId?(live()?'Verifying the payment with Stripe…':'Verifying the sandbox payment with Stripe…'):'Loading the wallet ledger…');
   try{const [detail,history]=await Promise.all([topupId?call('adminPaymentInspect',{customerUid:uid,topupId}):Promise.resolve(null),call('adminPaymentWallet',{customerUid:uid})]);if(ticket!==generation||!allowed())return;if(detail&&detail.wallet.revision!==history.wallet.revision)throw{code:'functions/failed-precondition',message:'The wallet changed while loading. Inspect it again.'};current={uid,topupId,detail,wallet:{...history.wallet,...detail?.wallet},audit:history.audit||[]};ledger=history.ledger;ledgerCursor=history.beforeRevision;$('#payment-customer').value=uid;$('#payment-topup').value=topupId||'';$('#payment-note').value='';$('#payment-dispute').value=detail?.review?.disputeId||'';renderDetail();message('Loaded. Resolutions recheck the payment and wallet version before saving.')}catch(e){if(ticket===generation)message(errorText(e),true)}finally{if(ticket===generation)lock(false)}
  }
  $('#payment-lookup').addEventListener('submit',e=>{e.preventDefault();inspect($('#payment-customer').value.trim(),$('#payment-topup').value.trim())});
@@ -41,7 +41,7 @@
  async function resolve(waive=false){
   if(!current||busy||!allowed()||!$('#payment-resolution-form').reportValidity())return;
   const saved=current,ticket=generation,note=$('#payment-note').value.trim();
-  if(!confirm(waive?'Write off this sandbox debt? No Stripe funds are refunded or credited.':'Record this sandbox payment resolution? No Stripe refund is issued.'))return;
+  if(!confirm(waive?'Write off this sandbox debt? No Stripe funds are refunded or credited.':(live()?'Record this live payment resolution? This changes the live wallet ledger. No Stripe refund is issued.':'Record this sandbox payment resolution? No Stripe refund is issued.')))return;
   lock(true);let result;
   try{result=await call(waive?'adminSandboxDebtWaive':'adminPaymentResolve',{customerUid:saved.uid,expectedWalletRevision:saved.wallet.revision,note,...(waive?{}:{topupId:saved.topupId,expectedVersion:saved.detail.review.version,resolution:$('#payment-resolution').value,disputeId:$('#payment-dispute').value.trim()})},true);if(ticket!==generation||!allowed())return;message(result.hold?'Resolution recorded. The wallet remains held for another review, debt or earlier hold.':'Resolution recorded. No payment hold remains.')}catch(e){if(ticket===generation)message(errorText(e),true)}finally{if(ticket===generation)lock(false)}
   if(result&&ticket===generation&&allowed()){await inspect(saved.uid,saved.topupId);await loadQueue();message(result.hold?'Recorded. A remaining review, debt or earlier hold still blocks spending.':'Recorded. No payment hold remains.')}

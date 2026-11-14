@@ -11,22 +11,24 @@ const fingerprint=input=>JSON.stringify(input);
 function cursor(value){if(!value)return null;try{const parsed=JSON.parse(Buffer.from(value,'base64url').toString());if(!Number.isSafeInteger(parsed.at)||typeof parsed.id!=='string'||parsed.id.includes('/')||parsed.id.length>220)throw 0;return parsed}catch{fail('invalid-argument','Reload the payment review list.')}}
 function saveAudit(tx,db,ref,id,entry,caseRef){tx.create(ref,entry);tx.create(db.doc('paymentAuditByAccount/'+entry.customerUid).collection('entries').doc(id),entry);if(caseRef)tx.create(caseRef.collection('history').doc(id),entry)}
 const encode=doc=>Buffer.from(JSON.stringify({at:doc.data().updatedAtMs,id:doc.id})).toString('base64url');
-export async function canonicalPayment(stripe,job,uid,topupId,disputeId){
+export async function canonicalPayment(stripe,job,uid,topupId,disputeId,mode='test'){
+ const live=mode==='live',namespace=live?'rippr-live-balance-v1':'rippr-sandbox-balance-v1';
  if(!job.sessionId)fail('failed-precondition','This top-up has no saved Checkout binding.');
  const session=await stripe.checkout.sessions.retrieve(job.sessionId),metadata=session.metadata||{};
- if(session.livemode!==false||session.mode!=='payment'||session.currency!=='usd'||metadata.namespace!=='rippr-sandbox-balance-v1'||metadata.uid!==uid||metadata.topupId!==topupId||session.amount_subtotal!==job.amountCents||session.client_reference_id!==uid||!Number.isSafeInteger(session.amount_total)||!Number.isSafeInteger(session.total_details?.amount_tax||0)||session.amount_total!==job.amountCents+(session.total_details?.amount_tax||0)||(!job.automaticTax&&(session.total_details?.amount_tax||0)!==0))fail('failed-precondition','Stripe does not match this sandbox top-up.');
+ if(session.livemode!==live||session.mode!=='payment'||session.currency!=='usd'||metadata.namespace!==namespace||metadata.uid!==uid||metadata.topupId!==topupId||session.amount_subtotal!==job.amountCents||session.client_reference_id!==uid||!Number.isSafeInteger(session.amount_total)||!Number.isSafeInteger(session.total_details?.amount_tax||0)||session.amount_total!==job.amountCents+(session.total_details?.amount_tax||0)||(!job.automaticTax&&(session.total_details?.amount_tax||0)!==0))fail('failed-precondition','Stripe does not match this payment mode or top-up.');
  const piId=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id;
  if(!piId)fail('failed-precondition','This Checkout has no payment intent yet.');
  if(job.paymentIntentId&&job.paymentIntentId!==piId)fail('failed-precondition','The saved payment intent does not match Stripe.');
  const intent=await stripe.paymentIntents.retrieve(piId,{expand:['latest_charge']});
- if(intent.livemode!==false||intent.currency!=='usd'||intent.amount!==session.amount_total||intent.metadata?.uid!==uid||intent.metadata?.topupId!==topupId)fail('failed-precondition','Live payments cannot be managed here.');
+ if(intent.livemode!==live||intent.currency!=='usd'||intent.metadata?.namespace!==namespace||intent.amount!==session.amount_total||intent.metadata?.uid!==uid||intent.metadata?.topupId!==topupId)fail('failed-precondition','Payment intent does not match this payment mode.');
  let charge=intent.latest_charge;if(typeof charge==='string')charge=await stripe.charges.retrieve(charge);
- if(!charge||charge.livemode!==false||charge.currency!=='usd'||charge.amount!==session.amount_total||(typeof charge.payment_intent==='string'?charge.payment_intent:charge.payment_intent?.id)!==piId||!Number.isSafeInteger(charge.amount_refunded)||charge.amount_refunded<0||charge.amount_refunded>charge.amount)fail('failed-precondition','The Stripe charge is not ready or does not match.');
+ if(!charge||charge.livemode!==live||charge.currency!=='usd'||charge.amount!==session.amount_total||(typeof charge.payment_intent==='string'?charge.payment_intent:charge.payment_intent?.id)!==piId||!Number.isSafeInteger(charge.amount_refunded)||charge.amount_refunded<0||charge.amount_refunded>charge.amount)fail('failed-precondition','The Stripe charge is not ready or does not match.');
  let disputeStatus=charge.disputed?'unknown':null;
- if(disputeId){if(!/^dp_[a-zA-Z0-9_]+$/.test(disputeId))fail('invalid-argument','Enter a Stripe dispute ID starting with dp_.');const dispute=await stripe.disputes.retrieve(disputeId);if((typeof dispute.charge==='string'?dispute.charge:dispute.charge?.id)!==charge.id||dispute.livemode!==false)fail('failed-precondition','This dispute belongs to another payment.');disputeStatus=dispute.status;}
+ if(disputeId){if(!/^dp_[a-zA-Z0-9_]+$/.test(disputeId))fail('invalid-argument','Enter a Stripe dispute ID starting with dp_.');const dispute=await stripe.disputes.retrieve(disputeId);if((typeof dispute.charge==='string'?dispute.charge:dispute.charge?.id)!==charge.id||dispute.livemode!==live)fail('failed-precondition','This dispute belongs to another payment.');disputeStatus=dispute.status;}
  return{sessionId:session.id,paymentIntentId:piId,chargeId:charge.id,paid:session.payment_status==='paid'&&charge.status==='succeeded',grossCents:session.amount_total,taxCents:session.total_details?.amount_tax||0,refundedCents:charge.amount_refunded||0,disputeStatus,disputeOpen:Boolean(disputeStatus&&!['won','lost','warning_closed'].includes(disputeStatus))};
 }
-export async function paymentReviewService(db,stripe,actor,input,claims,{now=Date.now}={}){
+export async function paymentReviewService(db,stripe,actor,input,claims,{now=Date.now,mode=db.mode||'test'}={}){
+ const live=mode==='live';if(!['test','live'].includes(mode)||(db.mode||'test')!==mode)throw Error('Payment review database mode mismatch.');
  if(!isAdminToken(claims,actor))fail('permission-denied','Only the verified owner may manage payment reviews.');
  const {action,accountUid,operationId,...data}=input;
  if(action==='adminPaymentReviews'){
@@ -56,9 +58,9 @@ export async function paymentReviewService(db,stripe,actor,input,claims,{now=Dat
   tx.update(account,{...ledger,paymentDebtCents:0,paymentHold:false,updatedAt:stamp()});const result={resolved:true,remainingDebtCents:0,hold:false};saveAudit(tx,db,audit,operationId,{actor,customerUid:uid,action,note,debtBeforeCents:debt,fingerprint:hash,result,atMs:now(),createdAt:stamp()});return result;
  });
  if(!validId(data.topupId))fail('invalid-argument','Enter the full top-up ID.');
- const topup=account.collection('stripeTestTopups').doc(data.topupId),caseRef=reviewRef(db,uid,data.topupId);
+ const topup=account.collection(live?'stripeTopups':'stripeTestTopups').doc(data.topupId),caseRef=reviewRef(db,uid,data.topupId);
  const captured=await db.runTransaction(async tx=>{const [saved,review,owner]=await Promise.all([tx.get(topup),tx.get(caseRef),tx.get(account)]);if(!saved.exists||!owner.exists)fail('not-found','Payment or account not found.');return{job:saved.data(),review:review.data(),wallet:owner.data()}});
- const provider=await canonicalPayment(stripe,captured.job,uid,data.topupId,data.disputeId||captured.review?.disputeId);
+ const provider=await canonicalPayment(stripe,captured.job,uid,data.topupId,data.disputeId||captured.review?.disputeId,mode);
  const history=action==='adminPaymentInspect'?await caseRef.collection('history').orderBy('atMs','desc').limit(25).get():null;
  if(action==='adminPaymentInspect')return{history:history.docs.map(doc=>({actor:doc.data().actor,action:doc.data().action,note:doc.data().note,atMs:doc.data().atMs})),payment:{id:data.topupId,status:captured.job.status,amountCents:captured.job.amountCents,credited:!!captured.job.creditedAtMs,refundedPrincipalCents:captured.job.refundedPrincipalCents||0},review:captured.review||null,provider,wallet:{balanceCents:captured.wallet.balanceCents,buckets:readCredits(captured.wallet),revision:captured.wallet.creditRevision||0,debtCents:captured.wallet.paymentDebtCents||0,reviewCount:captured.wallet.paymentReviewCount||0,legacyHold:hasLegacyHold(captured.wallet)}};
  if(!['release-paid','credit-paid','record-refund'].includes(data.resolution))fail('invalid-argument','Choose a payment review resolution.');
@@ -66,7 +68,7 @@ export async function paymentReviewService(db,stripe,actor,input,claims,{now=Dat
   const [prior,saved,review,owner]=await Promise.all([tx.get(audit),tx.get(topup),tx.get(caseRef),tx.get(account)]);
   if(prior.exists){if(prior.data().fingerprint!==hash)fail('already-exists','Review operation changed.');return prior.data().result}
   const wallet=owner.data(),job=saved.data(),current=review.data();
-  if(!wallet||wallet.currency!=='TEST_USD'||!current||current.status!=='open')fail('failed-precondition','This sandbox review is no longer open.');
+  if(!wallet||wallet.currency!==(live?'USD':'TEST_USD')||!current||current.status!=='open')fail('failed-precondition','This sandbox review is no longer open.');
   if(current.version!==data.expectedVersion||(wallet.creditRevision||0)!==data.expectedWalletRevision)fail('failed-precondition','The payment or wallet changed. Reload before resolving.');
   if(job.sessionId!==captured.job.sessionId||job.paymentIntentId!==captured.job.paymentIntentId)fail('failed-precondition','Payment binding changed. Reload.');
   let patch={},jobPatch={},debt=wallet.paymentDebtCents||0,adjustment=0;
@@ -77,9 +79,9 @@ export async function paymentReviewService(db,stripe,actor,input,claims,{now=Dat
     if(job.creditedAtMs)fail('failed-precondition','This payment was already credited. Choose Release paid payment.');
     if(wallet.balanceCents+job.amountCents>1000000)fail('failed-precondition','The test balance cap is still exceeded.');
     patch=postCredits(tx,account,wallet,{id:'stripe-'+data.topupId,kind:'reviewed-stripe-funding',moves:[{bucket:'purchasedCents',cents:job.amountCents}],atMs:now(),reference:job.sessionId});adjustment=job.amountCents;
-    patch.lastVerifiedDepositAtMs=now();patch.firstVerifiedDepositAtMs=wallet.firstVerifiedDepositAtMs||now();patch.firstVerifiedDepositMode=wallet.firstVerifiedDepositMode||'stripe-test';
+    patch.lastVerifiedDepositAtMs=now();patch.firstVerifiedDepositAtMs=wallet.firstVerifiedDepositAtMs||now();patch.firstVerifiedDepositMode=wallet.firstVerifiedDepositMode||(live?'stripe-live':'stripe-test');
     jobPatch={creditedAtMs:now(),paymentIntentId:provider.paymentIntentId,taxCents:provider.taxCents,totalCents:provider.grossCents};
-    tx.create(account.collection('activity').doc('stripe-'+data.topupId),{type:'stripe-topup',label:'Reviewed Stripe sandbox top-up',amountCents:job.amountCents,createdAt:stamp(),testOnly:true});
+    tx.create(account.collection('activity').doc('stripe-'+data.topupId),{type:'stripe-topup',label:live?'Reviewed Stripe top-up':'Reviewed Stripe sandbox top-up',amountCents:job.amountCents,createdAt:stamp(),testOnly:!live});
    }
    jobPatch.status='credited';
   }else{

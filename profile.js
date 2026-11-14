@@ -84,7 +84,7 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
     $('#stat-grails').textContent=a.wallet.grailsFound;
     $('#settings-email').textContent=user.phoneNumber||user.email||'';
     const credit=a.wallet.creditBuckets||{purchasedCents:0,promotionalCents:0,sellbackCents:0,legacyTestCents:a.wallet.balanceCents||0};
-    $('#credit-breakdown').innerHTML=[['Stripe-funded',credit.purchasedCents],['Promotional',credit.promotionalCents],['Sellback',credit.sellbackCents],['Legacy test credit',credit.legacyTestCents]].map(([label,value])=>`<div><dt>${label}</dt><dd>${money(value)}</dd></div>`).join('');
+    $('#credit-breakdown').innerHTML=[['Stripe-funded',credit.purchasedCents],['Promotional',credit.promotionalCents],['Sellback',credit.sellbackCents],['Legacy test credit',credit.legacyTestCents]].filter(([label])=>!(a.wallet.currency==='USD'&&label==='Legacy test credit')).map(([label,value])=>`<div><dt>${label}</dt><dd>${money(value)}</dd></div>`).join('');
     $('#profile-payment-hold').hidden=!a.wallet.paymentHold;
     for(const id of selected){if(!a.items.some(item=>item.id===id&&item.status==='available'))selected.delete(id)}
     const packs=(a.packs||[]).filter(pack=>pack.status==='available');
@@ -111,7 +111,7 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
     pending={type,ids:items.map(item=>item.id)};
     const amount=money(items.reduce((a,b)=>a+b.valueCents,0));
     $('#item-dialog-title').textContent=type==='sell'?`Sell ${items.length===1?'item':items.length+' items'}?`:'Request test shipping?';
-    $('#item-dialog-description').textContent=type==='sell'?`${amount} will be added to your test balance. Sold items leave your available collection. This cannot be undone.`:'This saves a test shipping request for your selected items. No physical shipment or shipping charge will be created.';
+    $('#item-dialog-description').textContent=type==='sell'?`${amount} will be added to your ${window.RIPPR_ACCOUNT?.mode==='live'?'site credit balance':'test balance'}. Sold items leave your available collection. This cannot be undone.`:window.RIPPR_ACCOUNT?.mode==='live'?'This submits your selected items for shipping review. Shipping cost is confirmed separately before dispatch.':'This saves a test shipping request for your selected items. No physical shipment or shipping charge will be created.';
     $('#confirm-action').textContent=type==='sell'?`Sell for ${amount}`:'Request test shipping';
     $('#action-error').hidden=true;$('#item-dialog').showModal();
   }
@@ -120,7 +120,7 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
   $('#bulk-ship').addEventListener('click',()=>confirm('ship',available().map(i=>i.id)));
   $('#confirm-action').addEventListener('click',async()=>{
     if(busy||!pending)return;busy=true;const target=pending;$('#confirm-action').disabled=true;
-    try{const result=await window.RipprAccount.act(target.type,{itemIds:target.ids});selected.clear();renderItems();$('#item-dialog').close();status(target.type==='sell'?`${result.count} item${result.count===1?'':'s'} sold for ${money(result.soldCents)} in test credit.`:'Test shipping request saved.');$('#profile-status').focus({preventScroll:true})}
+    try{const result=await window.RipprAccount.act(target.type,{itemIds:target.ids});selected.clear();renderItems();$('#item-dialog').close();status(target.type==='sell'?`${result.count} item${result.count===1?'':'s'} sold for ${money(result.soldCents)} in ${window.RIPPR_ACCOUNT?.mode==='live'?'site':'test'} credit.`:window.RIPPR_ACCOUNT?.mode==='live'?'Shipping request saved for review.':'Test shipping request saved.');$('#profile-status').focus({preventScroll:true})}
     catch(error){$('#action-error').textContent=window.RipprAccount.errorMessage(error);$('#action-error').hidden=false}
     finally{busy=false;$('#confirm-action').disabled=false}
   });

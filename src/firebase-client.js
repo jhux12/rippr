@@ -35,7 +35,13 @@ if (window.RIPPR_FIREBASE_EMULATOR_URL) {
 function userInfo(user) {
   return user ? { uid: user.uid, email: user.email, phoneNumber:user.phoneNumber, displayName: user.displayName, photoURL:user.photoURL, emailVerified: user.emailVerified, isAdmin: isAdminUser(user) } : null;
 }
-export const ready = auth.authStateReady();
+let functions;
+function callableFunctions(){if(!functions){functions=getFunctions(app,'us-central1');if(window.RIPPR_FUNCTIONS_EMULATOR_URL){const url=localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);connectFunctionsEmulator(functions,url.hostname,Number(url.port))}}return functions}
+const modeReady=Promise.resolve().then(async()=>{let value;try{value=(await httpsCallable(callableFunctions(),'ripprRuntime',{timeout:15000})({})).data}catch(error){if(!['functions/not-found','functions/internal','functions/unavailable'].includes(error.code))throw error;value={legacyRuntime:true,mode:'test',policyVersion:'sandbox-2026-11-13-v4'}}if(!['test','live'].includes(value?.mode))throw Error('Site mode could not be verified.');window.RIPPR_RUNTIME=value;document.documentElement.dataset.siteMode=value.mode;document.dispatchEvent(new CustomEvent('rippr:runtimechange',{detail:value}));return value});
+export const ready = Promise.all([auth.authStateReady(),modeReady]);
+export const runtimeMode=()=>window.RIPPR_RUNTIME?.mode||'test';
+const runtimeEnvelope=()=>window.RIPPR_RUNTIME?.legacyRuntime?{}:{runtimeMode:runtimeMode()};
+export const accountCollection=()=>runtimeMode()==='live'?'liveAccounts':'testAccounts';
 // Pages observing auth state may not await readiness; keep load errors handled.
 ready.catch(() => {});
 export const currentUser = () => userInfo(auth.currentUser);
@@ -217,7 +223,6 @@ export async function saveLibraryCards(cards) {
   });
 }
 
-let functions;
 function eligibilityRedirect(error){
  if(error?.details?.reason==='eligibility-required'){
   const next=location.pathname+location.search+location.hash;
@@ -236,7 +241,7 @@ export async function accountAction(action, data = {}, operationId) {
     }
   }
   const call = httpsCallable(functions, 'ripprAccount', { timeout:30000 });
-  try{return (await call({ action, ...data, ...(operationId ? { operationId } : {}) })).data}catch(error){return eligibilityRedirect(error)}
+  try{const result=(await call({ action, ...data, ...runtimeEnvelope(), ...(operationId ? { operationId } : {}) })).data;if(runtimeMode()==='live'&&result?.mode!=='live')throw Object.assign(Error('The account service changed. Reload before continuing.'),{code:'functions/failed-precondition'});return result}catch(error){return eligibilityRedirect(error)}
 }
 export async function loadInventoryPack(inventoryPackId) {
   await ready;
@@ -334,13 +339,13 @@ export async function loadShipment(id) {
   await ready;const uid=auth.currentUser?.uid;
   if(!uid)throw phoneError('auth/user-signed-out','Sign in to view shipping requests.');
   if(typeof id!=='string'||!/^[a-zA-Z0-9-]{16,80}$/.test(id))throw phoneError('account/not-found','Shipping request not found.');
-  const found=await getDoc(doc(getDatabase(),'testAccounts',uid,'shipments',id));
+  const found=await getDoc(doc(getDatabase(),accountCollection(),uid,'shipments',id));
   if(!found.exists())throw phoneError('account/not-found','Shipping request not found.');
   const data=found.data();
   let items=data.items;
   if(!Array.isArray(items)){
     if(!Array.isArray(data.itemIds)||data.itemIds.length>50||data.itemIds.some(x=>typeof x!=='string'||!/^[a-zA-Z0-9-]{16,90}$/.test(x)))throw phoneError('account/invalid-data','Request details are unavailable.');
-    const records=await Promise.all(data.itemIds.map(itemId=>getDoc(doc(getDatabase(),'testAccounts',uid,'items',itemId))));
+    const records=await Promise.all(data.itemIds.map(itemId=>getDoc(doc(getDatabase(),accountCollection(),uid,'items',itemId))));
     items=records.filter(x=>x.exists()).map(x=>({...x.data(),id:x.id}));
   }
   if(auth.currentUser?.uid!==uid)throw phoneError('auth/user-signed-out','Your sign-in changed.');
@@ -406,19 +411,19 @@ export async function museumAction(action, data = {}) {
     }
   }
   const call = httpsCallable(functions, 'ripprMuseum', { timeout:30000 });
-  return (await call({action,...data,...(actorRequired ? {accountUid:actorUid} : {})})).data;
+  const result=(await call({action,...data,...runtimeEnvelope(),...(actorRequired ? {accountUid:actorUid} : {})})).data;if(runtimeMode()==='live'&&result?.mode!=='live')throw Object.assign(Error('Collection mode changed. Reload to continue.'),{code:'functions/failed-precondition'});return result;
 }
 
 export async function validateSignupReferral(code){
  await ready;
  if(!functions){functions=getFunctions(app,'us-central1');if(window.RIPPR_FUNCTIONS_EMULATOR_URL){const url=localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);connectFunctionsEmulator(functions,url.hostname,Number(url.port))}}
- return (await httpsCallable(functions,'ripprAccount',{timeout:30000})({action:'validateReferral',code})).data;
+ const result=(await httpsCallable(functions,'ripprAccount',{timeout:30000})({action:'validateReferral',code,...runtimeEnvelope()})).data;if(runtimeMode()==='live'&&result?.mode!=='live')throw Object.assign(Error('Referral mode changed. Reload to continue.'),{code:'functions/failed-precondition'});return result;
 }
 
 
 export async function stripeAction(action,data={},operationId){
  await ready;const uid=auth.currentUser?.uid;if(!uid)throw Object.assign(new Error('Log in to top up.'),{code:'functions/unauthenticated'});
  if(!functions){functions=getFunctions(app,'us-central1');if(window.RIPPR_FUNCTIONS_EMULATOR_URL){const url=localEmulator(window.RIPPR_FUNCTIONS_EMULATOR_URL);connectFunctionsEmulator(functions,url.hostname,Number(url.port))}}
- let result;try{result=await httpsCallable(functions,'ripprStripe',{timeout:60000})({action,...data,accountUid:uid,...(operationId?{operationId}:{})})}catch(error){return eligibilityRedirect(error)}
+ let result;try{result=await httpsCallable(functions,runtimeMode()==='live'?'ripprLiveStripe':'ripprStripe',{timeout:60000})({action,...data,...runtimeEnvelope(),accountUid:uid,...(operationId?{operationId}:{})})}catch(error){return eligibilityRedirect(error)}
  if(auth.currentUser?.uid!==uid)throw Object.assign(new Error('Your account changed.'),{code:'functions/unauthenticated'});return result.data;
 }

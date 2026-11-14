@@ -150,6 +150,18 @@ service cloud.firestore {
         allow write: if false;
       }
     }
+    match /liveAccounts/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid
+        && (!exists(/databases/$(database)/documents/liveAccountClosureState/$(uid))
+          || get(/databases/$(database)/documents/liveAccountClosureState/$(uid)).data.status != 'completed');
+      allow write: if false;
+      match /{document=**} {
+        allow read: if request.auth != null && request.auth.uid == uid
+          && (!exists(/databases/$(database)/documents/liveAccountClosureState/$(uid))
+            || get(/databases/$(database)/documents/liveAccountClosureState/$(uid)).data.status != 'completed');
+        allow write: if false;
+      }
+    }
     // Museum drafts, directory projections and per-account likes are served by
     // ripprMuseum, which verifies publication, ownership and authoritative counts.
     match /museumDirectory/{document=**} { allow read, write: if false; }

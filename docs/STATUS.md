@@ -276,3 +276,7 @@ Hardened welcome/referral deposit eligibility during payment review and after ne
 ## Operations overview
 
 Added Admin → Overview with full retained-record aggregation for payment holds/reviews, failed/expired/retrying email jobs, pending shipping requests and seven-day recorded promotion value. Read-only, owner-authorized, no recipients/addresses in the response. Partial failures show Unavailable, and account switching clears stale data. Deploy ripprAccount plus frontend. See ADMIN-OVERVIEW.md.
+
+## Separate live mode prepared
+
+Added off-by-default live Stripe endpoints and isolated live ledgers, rewards, queues, museums, eligibility and email jobs. Profile/contact fields can be preserved; financial test state is never promoted. Server mode guards reject stale clients, free top-ups remain blocked live, and owner-only preview precedes public transactions. Live closure requires support review and sandbox cleanup protects shared identities. Mode-specific UI removes test/draft labels only in server-selected live mode. No real keys/deployment/charges were performed here. Official Rules emulator download is blocked; run it in Cloud Shell before activation. See LIVE-MODE.md for full setup and checks.

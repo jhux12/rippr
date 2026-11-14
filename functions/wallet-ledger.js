@@ -4,7 +4,7 @@ const names=['purchasedCents','promotionalCents','sellbackCents','legacyTestCent
 const invalid=()=>{throw new HttpsError('failed-precondition','This wallet needs ledger reconciliation. Contact support.')};
 const integer=n=>Number.isSafeInteger(n)&&n>=0&&n<=100000000;
 export function initialLiveWallet(){return{currency:'USD',balanceCents:0,creditBuckets:Object.fromEntries(names.map(n=>[n,0])),creditLedgerVersion:1,creditRevision:0,paymentDebtCents:0}}
-export function readCredits(wallet,{mode='test'}={}){
+export function readCredits(wallet,{mode=wallet?.currency==='USD'?'live':'test'}={}){
  if(!['test','live'].includes(mode))invalid();
  const currency=mode==='live'?'USD':'TEST_USD';
  if(wallet.currency&&wallet.currency!==currency)invalid();
@@ -16,6 +16,7 @@ export function readCredits(wallet,{mode='test'}={}){
  return Object.fromEntries(names.map(n=>[n,buckets[n]]));
 }
 export function calculateCredits(wallet,moves,options={}){
+ options={...options,mode:options.mode??(wallet?.currency==='USD'?'live':'test')};
  const buckets=readCredits(wallet,options),before={...buckets};
  for(const move of moves){
   if(Object.hasOwn(move,'spend')){
@@ -31,7 +32,7 @@ export function calculateCredits(wallet,moves,options={}){
  const balanceCents=names.reduce((sum,key)=>sum+buckets[key],0);if(!integer(balanceCents))invalid();
  return{before,buckets,balanceCents,delta:Object.fromEntries(names.map(n=>[n,buckets[n]-before[n]]))};
 }
-export function postCredits(tx,account,wallet,{id,kind,moves,atMs,mode='test',reference=null}){
+export function postCredits(tx,account,wallet,{id,kind,moves,atMs,mode=account.path.split('/')[0]==='liveAccounts'?'live':'test',reference=null}){
  if(!/^[a-zA-Z0-9_-]{1,140}$/.test(id)||!['testAccounts','liveAccounts'].includes(account.path.split('/')[0])||(mode==='live')!==(account.path.split('/')[0]==='liveAccounts'))invalid();
  const change=calculateCredits(wallet,moves,{mode}),revision=(wallet.creditRevision||0)+1,currency=mode==='live'?'USD':'TEST_USD';
  if(!wallet.creditLedgerVersion&&wallet.balanceCents>0){

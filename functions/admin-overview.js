@@ -17,5 +17,5 @@ export async function adminOverview(db,uid,claims,atMs){
   promotions:async()=>{const r=await promotionSummary(db,uid,{days:7},claims,atMs);return{estimatedCents:r.estimatedCents,startDay:r.startDay,endDay:r.endDay,recordedDays:r.recordedDays}}
  };
  const keys=Object.keys(sections),found=await Promise.allSettled(keys.map(key=>sections[key]()));
- return{sandbox:true,asOfMs:atMs,sections:Object.fromEntries(found.map((r,i)=>[keys[i],r.status==='fulfilled'?{available:true,...r.value}:{available:false,message:'Could not load this section. Refresh to retry.'}]))};
+ return{sandbox:db.mode!=='live',asOfMs:atMs,sections:Object.fromEntries(found.map((r,i)=>[keys[i],r.status==='fulfilled'?{available:true,...r.value}:{available:false,message:'Could not load this section. Refresh to retry.'}]))};
 }

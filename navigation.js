@@ -202,7 +202,7 @@
   trigger.addEventListener('click', () => {
     if(!window.RIPPR_ACCOUNT?.user)return;
     if (menuToggle.getAttribute('aria-expanded') === 'true') menuToggle.click();
-    notice.textContent = !window.RIPPR_ACCOUNT?.stripeTestTopups&&window.RIPPR_ACCOUNT?.freeTopups===false?'TOP-UPS PAUSED':'';
+    notice.textContent = !(window.RIPPR_ACCOUNT?.stripeTestTopups||window.RIPPR_ACCOUNT?.stripeLiveTopups)&&window.RIPPR_ACCOUNT?.freeTopups===false?'TOP-UPS PAUSED':'';
     update();
     dialog.showModal();
     announceState();
@@ -226,8 +226,8 @@
     trigger.querySelector('.nav-balance-amount').textContent=value;
     trigger.setAttribute('aria-label',`Test balance ${value}. Open top up`);
     dialog.querySelector('#topup-current-balance').textContent=value;
-    const stripeMode=account?.stripeTestTopups===true,paused=!stripeMode&&account?.freeTopups===false;
-    const fundingMode=stripeMode?'stripe':paused?'paused':'free';
+    const live=account?.mode==='live'||window.RIPPR_RUNTIME?.mode==='live',stripeMode=account?.stripeTestTopups===true||account?.stripeLiveTopups===true,paused=!stripeMode&&(live||account?.freeTopups===false);
+    const fundingMode=stripeMode?(live?'stripe-live':'stripe'):paused?'paused':'free';dialog.querySelector('.topup-mode-badge').hidden=live;
     const wallet=account?.wallet,claimed=!!wallet?.welcomeCaseClaimedAtMs,depositAt=wallet?.lastVerifiedDepositAtMs??wallet?.firstVerifiedDepositAtMs,blocked=!!(wallet?.paymentHold||wallet?.paymentDebtCents>0||wallet?.paymentReviewCount>0||wallet?.legacyPaymentHold),reversed=!!wallet?.lastPromotionReversalAtMs&&!(depositAt>wallet.lastPromotionReversalAtMs),eligible=Number.isSafeInteger(depositAt)&&depositAt>0&&depositAt<=Date.now()&&!blocked&&!reversed;
     dialog.querySelector('.topup-welcome').hidden=!stripeMode||!wallet||claimed;
     dialog.querySelector('#topup-welcome-title').textContent=blocked?'Bonus pending payment review.':reversed?'Deposit bonus paused.':eligible?'Your bonus case is ready.':'Your first deposit. A little extra.';
@@ -238,7 +238,7 @@
     dialog.querySelector('.topup-mode-badge').textContent=stripeMode?'SANDBOX · NO REAL CHARGE':paused?'TOP-UPS PAUSED':'FREE TEST CREDIT · NO CHARGE';
     if(fundingMode!==lastStripeMode){
       lastStripeMode=fundingMode;
-      dialog.querySelector('.topup-muted').textContent=stripeMode?'Secure Checkout in Stripe test mode.':'Free test credit. No payment required.';
+      dialog.querySelector('.topup-muted').textContent=stripeMode?(live?'Secure Checkout with Stripe.':'Secure Checkout in Stripe test mode.'):'Free test credit. No payment required.';
       dialog.querySelector('.topup-continue').innerHTML=stripeMode?'Continue to checkout <span aria-hidden="true">→</span>':'Add free test credit <span aria-hidden="true">+</span>';
       dialog.querySelector('.topup-review').textContent=stripeMode?'Credit stays on rippr. No cash withdrawals.':'Temporary test balance · no cash value.';
       notice.textContent='';
@@ -252,7 +252,7 @@
   updateBalance();
   dialog.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
-    if(topupBusy||(!window.RIPPR_ACCOUNT?.stripeTestTopups&&window.RIPPR_ACCOUNT?.freeTopups===false))return;
+    if(topupBusy||(!(window.RIPPR_ACCOUNT?.stripeTestTopups||window.RIPPR_ACCOUNT?.stripeLiveTopups)&&(window.RIPPR_ACCOUNT?.mode==='live'||window.RIPPR_ACCOUNT?.freeTopups===false)))return;
     if (!update()) {
       error.textContent = 'Enter an amount from $1 to $1,000 with up to two decimal places.';
       error.hidden = false;
@@ -263,11 +263,11 @@
     if(!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);return;}
     const submit=dialog.querySelector('.topup-continue');
     topupBusy=true;submit.disabled=true;input.disabled=true;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=true);
-    const stripeMode=window.RIPPR_ACCOUNT.stripeTestTopups===true;
+    const stripeMode=window.RIPPR_ACCOUNT.stripeTestTopups===true||window.RIPPR_ACCOUNT.stripeLiveTopups===true;
     notice.textContent=stripeMode?'Opening secure Stripe Checkout…':'Adding test credit…';
     try{
       if(stripeMode){
-        const uid=window.RIPPR_ACCOUNT.user.uid,cents=amount(),key='rippr:stripe-topup:'+uid+':'+cents;
+        const uid=window.RIPPR_ACCOUNT.user.uid,cents=amount(),key='rippr:stripe-topup:'+(window.RIPPR_ACCOUNT?.mode==='live'?'live:':'')+uid+':'+cents;
         let operationId;try{operationId=sessionStorage.getItem(key)}catch{}operationId||=crypto.randomUUID();try{sessionStorage.setItem(key,operationId)}catch{}
         let result;try{result=await window.RipprFirebase.stripeAction('checkout',{amountCents:cents},operationId)}catch(error){if(['functions/failed-precondition','functions/invalid-argument','functions/already-exists'].includes(error.code))try{sessionStorage.removeItem(key)}catch{}throw error}
         const url=new URL(result.url);
@@ -277,10 +277,10 @@
       }else{await window.RipprAccount.act('topup',{amountCents:amount()});notice.textContent='Test credit added. You’re ready to open packs.';}
     }
     catch(error){
-      const messages={key:'Stripe rejected the sandbox key. Check STRIPE_TEST_SECRET_KEY in Firebase.',tax:'Automatic tax needs a valid tax code. Disable automatic tax for now.',site:'The payment service needs the correct site URL.',permission:'The payment service needs a permission update. Check server logs.',checkout:'Stripe rejected the Checkout setup. Check server logs for details.',retry:'Stripe is processing this attempt. Wait a moment and retry.',temporary:'Stripe Checkout is temporarily unavailable. Retry the same top-up.'};
+      const messages={key:window.RIPPR_ACCOUNT?.mode==='live'?'The live payment key needs configuration.':'Stripe rejected the sandbox key. Check STRIPE_TEST_SECRET_KEY in Firebase.',tax:'Automatic tax needs a valid tax code. Disable automatic tax for now.',site:'The payment service needs the correct site URL.',permission:'The payment service needs a permission update. Check server logs.',checkout:'Stripe rejected the Checkout setup. Check server logs for details.',retry:'Stripe is processing this attempt. Wait a moment and retry.',temporary:'Stripe Checkout is temporarily unavailable. Retry the same top-up.'};
       const detail=error?.details;
       notice.textContent=detail?.provider==='stripe'&&messages[detail.reason]?messages[detail.reason]+(typeof detail.reference==='string'&&/^req_[A-Za-z0-9]{1,80}$/.test(detail.reference)?' Reference: '+detail.reference:''):window.RipprAccount?.errorMessage(error)||'Account services are unavailable in this preview.';
     }
-    finally{topupBusy=false;submit.disabled=!window.RIPPR_ACCOUNT?.stripeTestTopups&&window.RIPPR_ACCOUNT?.freeTopups===false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
+    finally{topupBusy=false;submit.disabled=!(window.RIPPR_ACCOUNT?.stripeTestTopups||window.RIPPR_ACCOUNT?.stripeLiveTopups)&&window.RIPPR_ACCOUNT?.freeTopups===false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
   });
 })();

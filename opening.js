@@ -84,7 +84,7 @@ const cardImage=card=>window.RIPPR_ASSET_URLS?.[card.image]||card.image;
 const formatChance=value=>(value/100).toLocaleString('en-US',{maximumFractionDigits:2})+'%';
 const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 const rarityBadge=name=>`<span class="rarity-badge" style="--rarity-color:${catalog.RARITIES.find(rarity=>rarity.name===name).color}"><span class="rarity-dot" aria-hidden="true"></span>${escape(name)}</span>`;
-function canOpenCatalog(){return inventoryPackId?(!window.RIPPR_ACCOUNT?.user||inventoryStatus==='available'):contents.enabled&&Number.isSafeInteger(contents.priceCents)}
+function canOpenCatalog(){if(window.RIPPR_ACCOUNT?.mode==='live'&&window.RIPPR_ACCOUNT?.livePurchasesEnabled===false)return false;return inventoryPackId?(!window.RIPPR_ACCOUNT?.user||inventoryStatus==='available'):contents.enabled&&Number.isSafeInteger(contents.priceCents)}
 function updateOpen(){openButton.disabled=!artReady||!contentsReady||!canOpenCatalog()||state!=='idle';label()}
 async function verifyInventoryPack(){
  if(!inventoryPackId)return;
@@ -150,7 +150,7 @@ async function loadContents(){
  try{
   if(window.RIPPR_AUTH_OFFLINE){renderContents('Offline design preview · one card per pack');contentsReady=true;return}
   contents=await Promise.race([window.RipprFirebase.loadPackContents(selectedPack.id),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Catalog timeout')),6000))]);
-  renderContents(inventoryPackId?'Owned pack · current displayed contents':'One card per pack · free test balance');
+  renderContents(inventoryPackId?'Owned pack · current displayed contents':window.RIPPR_RUNTIME?.mode==='live'?'One card per pack':'One card per pack · free test balance');
   contentsReady=true;
  }catch(error){loadError=true;phase.textContent=['catalog/unconfigured','catalog/invalid-data'].includes(error?.code)?'This pack is temporarily unavailable. Your balance and any owned pack are unchanged.':'Pack contents could not load. Reload to try again.';const table=oddsPanel.querySelector('table');table.setAttribute('aria-busy','false');table.querySelector('caption').textContent='Contents unavailable';table.querySelector('tbody').innerHTML='<tr><td colspan="3" class="odds-loading">Odds unavailable. Reload to try again.</td></tr>';$('.grail-grid').innerHTML='<p class="empty-grails">Grails could not load.</p>';$('.grail-grid').setAttribute('aria-busy','false')}
  finally{updateOpen()}
@@ -158,6 +158,7 @@ async function loadContents(){
 document.addEventListener('DOMContentLoaded',()=>{loadContents();verifyInventoryPack()},{once:true});
 function label(){
  if(state!=='idle')return;
+ if(window.RIPPR_ACCOUNT?.mode==='live'&&window.RIPPR_ACCOUNT?.livePurchasesEnabled===false){openButton.textContent='Openings paused';return}
  $('#pack-price').textContent=inventoryPackId?'Owned pack':contentsReady&&Number.isSafeInteger(contents.priceCents)?money.format(contents.priceCents/100):'—';$('#price-suffix').hidden=Boolean(inventoryPackId);
  if(!contentsReady){openButton.textContent=loadError?'Pack unavailable':'Loading pack…';return}
  if(inventoryPackId){
@@ -319,7 +320,7 @@ function confirmRevealSale(){
  const c=deck[cursor];if(savedCardStatus(c)!=='available')return;
  pendingSale={card:c,uid:window.RIPPR_ACCOUNT.user.uid,session:openingSession};
  $('#reveal-sale-name').textContent=c.name;
- $('#reveal-sale-description').textContent=`${money.format(c.valueCents/100)} will be added to your test balance. This card will leave your available inventory.`;
+ $('#reveal-sale-description').textContent=`${money.format(c.valueCents/100)} will be added to your ${window.RIPPR_ACCOUNT?.mode==='live'?'site credit balance':'test balance'}. This card will leave your available inventory.`;
  $('#confirm-reveal-sale').textContent=`Sell for ${money.format(c.valueCents/100)}`;
  $('#skip-sale-confirmation').checked=skipSaleConfirmation(pendingSale.uid);
  $('#reveal-sale-error').hidden=true;
