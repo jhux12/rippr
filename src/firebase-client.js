@@ -1,3 +1,4 @@
+import {defaultSpark,readSpark} from './spark-model.js';
 import { gradingFields, MAX_PACK_ITEMS } from './catalog-model.js';
 import { initializeApp } from 'firebase/app';
 import {
@@ -150,6 +151,7 @@ async function requireAdmin(refresh = true) {
   }
   return user;
 }
+export async function loadSparkSettings(){const saved=await getDoc(doc(getDatabase(),'rewardSettings','spark'));return saved.exists()?readSpark(saved.data()):defaultSpark()}
 export async function loadPackContents(packId, { forEditor = false } = {}) {
   assertPackId(packId);
   const snapshot = await getDoc(doc(getDatabase(), 'packContents', packId));

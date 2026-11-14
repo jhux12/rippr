@@ -296,3 +296,10 @@ test('closed-account tokens cannot read retained account data or upload new phot
  await assertFails(getDoc(doc(context('+12025550123').firestore(),'testAccounts/member')));
  await assertFails(uploadBytes(ref(context('+12025550123').storage(),'profile-images/member/closed-avatar.png'),new Uint8Array([1,2,3]),{contentType:'image/png'}));
 });
+
+test('Spark configuration is readable but all point settings and ledgers remain server-written',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'rewardSettings/spark'),{enabled:true,version:1});await setDoc(doc(c.firestore(),'testAccounts/member'),{sparkUnits:2500});});
+ const member=context('+12025550123'),owner=context(OWNER_PHONE);
+ await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'rewardSettings/spark')));
+ for(const c of [member,owner]){await assertFails(setDoc(doc(c.firestore(),'rewardSettings/spark'),{enabled:true,version:2}));await assertFails(setDoc(doc(c.firestore(),'testAccounts/member'),{sparkUnits:999999}));await assertFails(setDoc(doc(c.firestore(),'testAccounts/member/sparkLedger/forged'),{earnedUnits:999999}));}
+});

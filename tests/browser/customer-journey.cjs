@@ -188,8 +188,9 @@ async function trackingJourney(browser, fixture, width) {
 async function seasonalJourney(browser, fixture, width) {
   const uid='journey-seasonal';await fixture.act(uid,'snapshot');
   let catalog=await fixture.catalog('icy-rush');catalog={...catalog,enabled:true,priceCents:1500,version:1};
-  await fixture.db.runTransaction(async tx=>{tx.set(fixture.db.doc('packContents/icy-rush'),catalog);tx.set(fixture.db.doc('rewardSettings/daily'),{enabled:true,testingNoCooldown:true,version:1,prizes:[{id:'winter',kind:'pack',packId:'icy-rush',chanceBps:10000}]})});
-  const won=await fixture.act(uid,'claimReward',{expectedVersion:1});
+  await fixture.db.runTransaction(async tx=>{tx.set(fixture.db.doc('packContents/icy-rush'),catalog);tx.set(fixture.db.doc('rewardSettings/spark'),{enabled:true,testingNoCooldown:true,version:1,prizes:[{id:'winter',kind:'pack',packId:'icy-rush',chanceBps:10000}]})});
+  await fixture.db.runTransaction(tx=>tx.update(fixture.db.doc('testAccounts/'+uid),{sparkUnits:2500,sparkEarnedUnits:2500}));
+  const won=await fixture.act(uid,'redeemSpark',{expectedVersion:1});
   await fixture.db.runTransaction(async tx=>tx.set(fixture.db.doc('packContents/icy-rush'),{...catalog,enabled:false,priceCents:null,version:2}));
   const {page,errors}=await accountFixture(browser,uid,fixture);await page.setViewportSize({width,height:900});
   await page.goto(origin+'/opening.html?pack=icy-rush');await waitFor(page,()=>document.querySelector('#open').textContent!=='Loading pack…');assert(await page.locator('#open').isDisabled());

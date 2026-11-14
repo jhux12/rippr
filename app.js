@@ -107,7 +107,7 @@
   const heroStatus = document.querySelector('#hero-status');
   const banners = [
     {title:'Your next great pull.',cta:'Explore packs',href:'#packs',scene:'signature'},
-    {title:'Your daily discovery.',cta:'View rewards',href:'rewards.html',scene:'daily-discovery'},
+    {title:'A little spark. More discovery.',cta:'View rewards',href:'rewards.html',scene:'daily-discovery'},
     {title:'Find your next favorite.',cta:'Discover grails',href:'#grails-title',scene:'grail-gallery'},
     {title:'A collection worth sharing.',cta:'Explore Community',href:'community.html',scene:'community'},
     {title:'Meet Icy Rush.',cta:'View limited packs',href:'#packs',scene:'icy-rush',collection:'limited'}

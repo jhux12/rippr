@@ -1,6 +1,6 @@
 import {HttpsError} from 'firebase-functions/v2/https';
 import {FieldValue} from 'firebase-admin/firestore';
-export const POLICY_VERSION='sandbox-2026-11-13-v2';
+export const POLICY_VERSION='sandbox-2026-11-13-v3';
 export const POLICY_SCOPE='sandbox-review-drafts';
 const fail=(code,message,details)=>{throw new HttpsError(code,message,details)};
 export function adultBirthDate(value,atMs=Date.now()){
@@ -39,7 +39,7 @@ export async function requireEligibility(db,uid,input={}){
 // refunds/reconciliation and already-paid webhook settlement remain accessible.
 export function guardedAccount(db,operate,options={}){const eligibility=eligibilityService(db,options);return async(uid,input={},claims={})=>{
  if(['eligibilityState','acceptEligibility'].includes(input?.action))return eligibility(uid,input,claims);
- if(['purchase','openInventoryPack','topup'].includes(input?.action))await requireEligibility(db,uid,input);
+ if(['purchase','openInventoryPack','topup','redeemSpark'].includes(input?.action))await requireEligibility(db,uid,input);
  return operate(uid,input,claims);
 }}
 export function guardedStripe(db,operate){return async(uid,input={},claims={})=>{if(input?.action==='checkout')await requireEligibility(db,uid,input);return operate(uid,input,claims)}}

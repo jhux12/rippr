@@ -52,3 +52,7 @@ The owner states sourcing is available and acquisition cost equals each card’s
 Approved fulfillment approach: honor the awarded card, including the promised identity, printing/finish, condition and any listed slab grade. Do not silently reroll, substitute a different card or reduce the saved entitlement because sourcing becomes difficult or expensive. Escalate availability or supplier-price changes through support; explain the issue and obtain the customer’s agreement to any alternative remedy, preserving mandatory rights. Do not automatically debit the customer for a later supplier-price increase. Final production remedy procedures and fulfillment timing still require review; current shipping remains a test flow.
 
 Before offering physical delivery, document supplier coverage/backup sourcing and an exception process, including rare/graded listings. No live payment, automatic sourcing purchase, stock reservation or physical shipment is activated by this decision. Public policy wording/acceptance versions are unchanged in this internal decision update.
+
+## Spark Points update
+
+The owner approved replacing free daily/streak payouts with Spark Points: one point per purchased dollar actually spent, 25 points per spin, no expiry, no cash/transfer. Spend legacy/promotional/sellback credit before purchased credit. Fractional points persist. Welcome and referral settings are unchanged. See [SPARK-POINTS.md](SPARK-POINTS.md) for authoritative implementation and refund-review behavior; earlier daily/streak economics are historical.

@@ -6,7 +6,7 @@ import {defaultRewards,validateRewards,drawReward,REWARD_COOLDOWN_MS} from '../s
 import {OWNER_PHONE,defaultPack} from '../src/catalog-model.js';
 import {catalogDatabase as memoryDatabase} from './helpers/catalog-database.mjs';
 const code=c=>e=>e.code===c;
-function fixture(){const db=memoryDatabase();let time=10000000;const run=accountService(db,{now:()=>time});const call=(uid,action,data={},operationId=randomUUID(),claims={})=>run(uid,{action,...data,operationId},claims);return {db,run,call,advance:n=>time+=n,config:async prizes=>{const current=await call('owner','rewardState');return call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:false,prizes},expectedVersion:current.config.version},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE})}}}
+function fixture(){const db=memoryDatabase();let time=10000000;const run=accountService(db,{now:()=>time});const call=async(uid,action,data={},operationId=randomUUID(),claims={})=>{if(uid&&action==='redeemSpark'&&!(await db.runTransaction(tx=>tx.get(db.doc('testAccounts/'+uid)))).exists){await run(uid,{action:'snapshot'});await db.runTransaction(tx=>tx.update(db.doc('testAccounts/'+uid),{sparkUnits:2500,sparkEarnedUnits:2500}));}return run(uid,{action,...data,operationId},claims)};return {db,run,call,advance:n=>time+=n,config:async prizes=>{const current=await call('owner','sparkState');return call('owner','saveSparkSettings',{config:{enabled:true,testingNoCooldown:false,prizes},expectedVersion:current.config.version},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE})}}}
 const credit={id:'credit',kind:'credit',amountCents:125,chanceBps:10000};
 const pack={id:'pack',kind:'pack',packId:'basic',chanceBps:10000};
 test('reward odds are exact basis points with valid prize types and safe values',()=>{
@@ -17,23 +17,21 @@ test('reward odds are exact basis points with valid prize types and safe values'
 });
 test('only verified owner claims may edit rewards, and stale versions cannot overwrite',async()=>{
  const f=fixture(),data={config:{enabled:true,prizes:[credit]},expectedVersion:0,phone_number:OWNER_PHONE,isAdmin:true};
- for(const claims of [{},{sub:'other',email:'jhuxf12@outlook.com',email_verified:true},{sub:'other',phone_number:'+12025550123'},{sub:'owner',phone_number:OWNER_PHONE}])await assert.rejects(()=>f.call('other','saveRewards',data,randomUUID(),claims),code('permission-denied'));
- await f.config([credit]);assert.equal((await f.call('user','rewardState')).config.prizes[0].amountCents,125);
- await assert.rejects(()=>f.call('owner','saveRewards',data,randomUUID(),{sub:'owner',phone_number:OWNER_PHONE}),code('failed-precondition'));
+ for(const claims of [{},{sub:'other',email:'jhuxf12@outlook.com',email_verified:true},{sub:'other',phone_number:'+12025550123'},{sub:'owner',phone_number:OWNER_PHONE}])await assert.rejects(()=>f.call('other','saveSparkSettings',data,randomUUID(),claims),code('permission-denied'));
+ await f.config([credit]);assert.equal((await f.call('user','sparkState')).config.prizes[0].amountCents,125);
+ await assert.rejects(()=>f.call('owner','saveSparkSettings',data,randomUUID(),{sub:'owner',phone_number:OWNER_PHONE}),code('failed-precondition'));
 });
-test('credit awards and cooldown are atomic, persist across requests, and ignore supplied prizes/times',async()=>{
- const f=fixture();await f.config([credit]);const op=randomUUID(),data={expectedVersion:1,amountCents:999999,now:0};
- const won=await f.call('member','claimReward',data,op);const retry=await f.call('member','claimReward',data,op);assert.deepEqual(won,retry);
- let saved=await f.call('member','snapshot');assert.equal(saved.account.balanceCents,125);assert.equal(saved.activity.filter(a=>a.type==='reward').length,1);
- await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:1,testingNoCooldown:true}),code('failed-precondition'));
- f.advance(REWARD_COOLDOWN_MS-1);await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:1}),code('failed-precondition'));
- f.advance(1);await f.call('member','claimReward',{expectedVersion:1});saved=await f.call('member','snapshot');assert.equal(saved.account.balanceCents,250);
+test('redemption deducts points once under retry and cannot reuse spent points',async()=>{
+ const f=fixture();await f.config([credit]);const op=randomUUID(),data={expectedVersion:1};
+ const won=await f.call('member','redeemSpark',data,op);assert.deepEqual(await f.call('member','redeemSpark',data,op),won);
+ const saved=await f.call('member','snapshot');assert.equal(saved.account.balanceCents,125);assert.equal(saved.account.sparkUnits,0);assert.equal(saved.activity.filter(a=>a.type==='reward').length,1);
+ await assert.rejects(()=>f.call('member','redeemSpark',data),code('failed-precondition'));
 });
-test('concurrent daily claims cannot award twice, even from different tabs',async()=>{
- const f=fixture();await f.config([pack]);const results=await Promise.allSettled([f.call('member','claimReward',{expectedVersion:1}),f.call('member','claimReward',{expectedVersion:1})]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal((await f.call('member','snapshot')).packs.length,1);
+test('concurrent redemptions cannot award twice, even from different tabs',async()=>{
+ const f=fixture();await f.config([pack]);await f.call('member','snapshot');await f.db.runTransaction(tx=>tx.update(f.db.doc('testAccounts/member'),{sparkUnits:2500,sparkEarnedUnits:2500}));const results=await Promise.allSettled([f.call('member','redeemSpark',{expectedVersion:1}),f.call('member','redeemSpark',{expectedVersion:1})]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal((await f.call('member','snapshot')).packs.length,1);
 });
 test('awarded packs are saved unopened, consumed once for a real card, and never debit balance',async()=>{
- const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});let saved=await f.call('member','snapshot');assert.equal(saved.items.length,0);assert.equal(saved.packs[0].status,'available');assert.equal(saved.account.packsOpened,0);
+ const f=fixture();await f.config([pack]);const reward=await f.call('member','redeemSpark',{expectedVersion:1});let saved=await f.call('member','snapshot');assert.equal(saved.items.length,0);assert.equal(saved.packs[0].status,'available');assert.equal(saved.account.packsOpened,0);
  const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1,expectedPriceCents:999999};const op=randomUUID();
  const opened=await f.call('member','openInventoryPack',data,op);assert.equal(opened.totalCents,0);assert.equal(opened.cards.length,1);
  assert.deepEqual(await f.call('member','openInventoryPack',data,op),opened);
@@ -43,7 +41,7 @@ test('awarded packs are saved unopened, consumed once for a real card, and never
  await assert.rejects(()=>f.call('member','sell',{itemIds:[reward.inventoryPackId]}),code('failed-precondition'));
 });
 test('inventory packs cannot be swapped, batched or consumed from invalid/stale catalogs',async()=>{
- const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1};
+ const f=fixture();await f.config([pack]);const reward=await f.call('member','redeemSpark',{expectedVersion:1});const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1};
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,packId:'ultimate'}),code('failed-precondition'));
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,quantity:2}),code('invalid-argument'));
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,expectedVersion:4}),code('failed-precondition'));
@@ -52,22 +50,16 @@ test('inventory packs cannot be swapped, batched or consumed from invalid/stale 
  const saved=await f.call('member','snapshot');assert.equal(saved.packs[0].status,'available');assert.equal(saved.items.length,0);
 });
 test('paused rewards, stale odds and unauthenticated claims fail without awarding',async()=>{
- const f=fixture();await assert.rejects(()=>f.call(null,'claimReward',{expectedVersion:0}),code('unauthenticated'));await f.config([credit]);
- await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:0}),code('failed-precondition'));
- await f.call('owner','saveRewards',{config:{enabled:false,prizes:[credit]},expectedVersion:1},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE});
- await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:2}),code('failed-precondition'));
+ const f=fixture();await assert.rejects(()=>f.call(null,'redeemSpark',{expectedVersion:0}),code('unauthenticated'));await f.config([credit]);
+ await assert.rejects(()=>f.call('member','redeemSpark',{expectedVersion:0}),code('failed-precondition'));
+ await f.call('owner','saveSparkSettings',{config:{enabled:false,prizes:[credit]},expectedVersion:1},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE});
+ await assert.rejects(()=>f.call('member','redeemSpark',{expectedVersion:2}),code('failed-precondition'));
  assert.equal((await f.call('member','snapshot')).account.balanceCents,0);
 });
 
-test('admin testing bypass allows repeat claims without waiting and can be turned off',async()=>{
- const f=fixture();await f.config([credit]);
- await f.call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:true,prizes:[credit]},expectedVersion:1},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE});
- await f.call('member','claimReward',{expectedVersion:2});await f.call('member','claimReward',{expectedVersion:2});
- assert.equal((await f.call('member','snapshot')).account.balanceCents,250);
- assert.equal((await f.call('member','rewardState')).nextClaimAtMs,0);
- await f.call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:false,prizes:[credit]},expectedVersion:2},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE});
- await f.call('member','claimReward',{expectedVersion:3});
- await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:3}),code('failed-precondition'));
+test('legacy free claims and streak routes cannot create new awards',async()=>{
+ const f=fixture();for(const action of ['claimReward','claimStreak','saveRewards'])await assert.rejects(()=>f.call('member',action,{testingNoCooldown:true}),code('failed-precondition'));
+ assert.equal((await f.call('member','snapshot')).account.balanceCents,0);
 });
 
 test('Icy Rush rewards retain seasonal art and open exactly once after catalog setup',async()=>{
@@ -76,7 +68,7 @@ test('Icy Rush rewards retain seasonal art and open exactly once after catalog s
  const catalog={...defaultPack('icy-rush'),enabled:true,priceCents:1500,version:1};
  await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),catalog));
  await f.config([seasonalPrize]);
- const reward=await f.call('member','claimReward',{expectedVersion:1});
+ const reward=await f.call('member','redeemSpark',{expectedVersion:1});
  let saved=await f.call('member','snapshot');
  assert.equal(saved.packs[0].image,'assets/seasonal/pack-icy-rush.png');
  assert.equal(saved.packs[0].name,'Icy Rush pack');
@@ -112,30 +104,30 @@ test('reward settings reject positive-odds unconfigured, disabled, invalid and u
   const f=fixture();await f.config([credit]);
   if(scenario.catalog)await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/'+scenario.packId),scenario.catalog));
   const op=randomUUID(),config={enabled:true,prizes:[{...pack,packId:scenario.packId}]};
-  await assert.rejects(()=>f.call('owner','saveRewards',{config,expectedVersion:1},op,{sub:'owner',phone_number:OWNER_PHONE}),code('failed-precondition'));
-  const saved=await f.call('owner','rewardState');assert.equal(saved.config.version,1);assert.deepEqual(saved.config.prizes,[credit]);
+  await assert.rejects(()=>f.call('owner','saveSparkSettings',{config,expectedVersion:1},op,{sub:'owner',phone_number:OWNER_PHONE}),code('failed-precondition'));
+  const saved=await f.call('owner','sparkState');assert.equal(saved.config.version,1);assert.deepEqual(saved.config.prizes,[credit]);
   const operation=await f.db.runTransaction(tx=>tx.get(f.db.doc('testAccounts/owner/operations/'+op)));assert.equal(operation.exists,false);
  }
 });
 
 test('catalog changes pause the entire claim without rerolling, consuming cooldown or recording an operation',async()=>{
  const f=fixture(),prizes=[{...credit,chanceBps:9999},{...pack,chanceBps:1}];await f.config(prizes);
- await f.call('member','topup',{amountCents:1000});const before=await f.call('member','snapshot');
+ await f.call('member','topup',{amountCents:1000});await f.db.runTransaction(tx=>tx.update(f.db.doc('testAccounts/member'),{sparkUnits:2500,sparkEarnedUnits:2500}));const before=await f.call('member','snapshot');
  const catalog={...defaultPack('basic'),enabled:false,version:1};
  await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),catalog));
- const op=randomUUID();await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:1},op),code('failed-precondition'));
+ const op=randomUUID();await assert.rejects(()=>f.call('member','redeemSpark',{expectedVersion:1},op),code('failed-precondition'));
  const after=await f.call('member','snapshot');assert.deepEqual(after,before);
- assert.equal((await f.call('member','rewardState')).nextClaimAtMs,0);
+ assert.equal((await f.call('member','sparkState')).points.sparkUnits,2500);
  const operation=await f.db.runTransaction(tx=>tx.get(f.db.doc('testAccounts/member/operations/'+op)));assert.equal(operation.exists,false);
  await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),{...catalog,enabled:true}));
- const won=await f.call('member','claimReward',{expectedVersion:1},op);assert.ok(won.prize);assert.ok(won.nextClaimAtMs>0);
+ const won=await f.call('member','redeemSpark',{expectedVersion:1},op);assert.ok(won.prize);assert.equal(won.points.sparkUnits,0);
 });
 
 test('unavailable zero-chance pack prizes do not prevent publishing or claiming reachable rewards',async()=>{
  const f=fixture(),prizes=[credit,{...pack,packId:'icy-rush',chanceBps:0}];
- await f.config(prizes);const won=await f.call('member','claimReward',{expectedVersion:1});
- assert.equal(won.prize.id,'credit');assert.equal(won.balanceCents,125);
- assert.deepEqual((await f.call('member','rewardState')).config.prizes,prizes);
+ await f.config(prizes);const won=await f.call('member','redeemSpark',{expectedVersion:1});
+ assert.equal(won.prize.id,'credit');assert.equal((await f.call('member','snapshot')).account.balanceCents,125);
+ assert.deepEqual((await f.call('member','sparkState')).config.prizes,prizes);
 });
 
 
@@ -144,15 +136,15 @@ test('owners can pause rewards with unavailable prizes but must repair the catal
  const catalog={...defaultPack('basic'),enabled:false,version:1};
  await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),catalog));
  const claims={sub:'owner',phone_number:OWNER_PHONE},config={enabled:false,prizes:[pack]};
- await f.call('owner','saveRewards',{config,expectedVersion:1},randomUUID(),claims);
- assert.equal((await f.call('owner','rewardState')).config.enabled,false);
- await assert.rejects(()=>f.call('member','claimReward',{expectedVersion:2}),code('failed-precondition'));
- await assert.rejects(()=>f.call('owner','saveRewards',{config:{...config,enabled:true},expectedVersion:2},randomUUID(),claims),code('failed-precondition'));
- assert.equal((await f.call('owner','rewardState')).config.version,2);
+ await f.call('owner','saveSparkSettings',{config,expectedVersion:1},randomUUID(),claims);
+ assert.equal((await f.call('owner','sparkState')).config.enabled,false);
+ await assert.rejects(()=>f.call('member','redeemSpark',{expectedVersion:2}),code('failed-precondition'));
+ await assert.rejects(()=>f.call('owner','saveSparkSettings',{config:{...config,enabled:true},expectedVersion:2},randomUUID(),claims),code('failed-precondition'));
+ assert.equal((await f.call('owner','sparkState')).config.version,2);
  await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/basic'),{...catalog,enabled:true}));
- await f.call('owner','saveRewards',{config:{...config,enabled:true},expectedVersion:2},randomUUID(),claims);
- const saved=await f.call('owner','rewardState');assert.equal(saved.config.enabled,true);assert.equal(saved.config.version,3);
- assert.equal((await f.call('member','claimReward',{expectedVersion:3})).prize.packId,'basic');
+ await f.call('owner','saveSparkSettings',{config:{...config,enabled:true},expectedVersion:2},randomUUID(),claims);
+ const saved=await f.call('owner','sparkState');assert.equal(saved.config.enabled,true);assert.equal(saved.config.version,3);
+ assert.equal((await f.call('member','redeemSpark',{expectedVersion:3})).prize.packId,'basic');
 });
 
 
@@ -161,14 +153,14 @@ test('owned seasonal packs remain redeemable after sales end without a configure
  const enabled={...defaultPack('icy-rush'),enabled:true,priceCents:1500,version:1};
  await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),enabled));
  await f.config([seasonalPrize]);
- const reward=await f.call('member','claimReward',{expectedVersion:1});
+ const reward=await f.call('member','redeemSpark',{expectedVersion:1});
  const ended={...enabled,enabled:false,priceCents:null,version:2};
  await f.db.runTransaction(async tx=>tx.set(f.db.doc('packContents/icy-rush'),ended));
  await assert.rejects(()=>f.call('member','purchase',{packId:'icy-rush',quantity:1,expectedPriceCents:null,expectedVersion:2}),code('failed-precondition'));
  await assert.rejects(()=>f.call('member','openInventoryPack',{packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1}),code('failed-precondition'));
  let saved=await f.call('member','snapshot');assert.equal(saved.packs[0].status,'available');assert.equal(saved.items.length,0);
  f.advance(REWARD_COOLDOWN_MS);
- await assert.rejects(()=>f.call('new-member','claimReward',{expectedVersion:1}),code('failed-precondition'));
+ await assert.rejects(()=>f.call('new-member','redeemSpark',{expectedVersion:1}),code('failed-precondition'));
  const data={packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:2,expectedPriceCents:999999};
  const op=randomUUID(),opened=await f.call('member','openInventoryPack',data,op);
  assert.equal(opened.totalCents,0);assert.equal(opened.balanceCents,0);assert.equal(opened.cards.length,1);
@@ -179,7 +171,7 @@ test('owned seasonal packs remain redeemable after sales end without a configure
 });
 
 test('exact inventory-pack lookup is authenticated, account scoped and includes opened records',async()=>{
- const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});
+ const f=fixture();await f.config([pack]);const reward=await f.call('member','redeemSpark',{expectedVersion:1});
  const data={inventoryPackId:reward.inventoryPackId};
  // Exact lookup must work even after 200 newer opened packs hide this award
  // from the first snapshot page.

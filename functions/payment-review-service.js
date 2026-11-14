@@ -1,3 +1,4 @@
+import {postSpark} from './spark-ledger.js';
 import {HttpsError} from 'firebase-functions/v2/https';
 import {FieldValue} from 'firebase-admin/firestore';
 import {isAdminToken} from './catalog-model.js';
@@ -88,6 +89,7 @@ export async function paymentReviewService(db,stripe,actor,input,claims,{now=Dat
    const refunded=provider.disputeStatus==='lost'||provider.refundedCents>=provider.grossCents?job.amountCents:Math.min(job.amountCents,provider.refundedCents);
    const delta=job.creditedAtMs?Math.max(0,refunded-(job.refundedPrincipalCents||0)):0,available=readCredits(wallet).purchasedCents,take=Math.min(delta,available);debt+=delta-take;adjustment=-take;
    patch=postCredits(tx,account,wallet,{id:'review-'+operationId,kind:'stripe-refund-reconciliation',moves:[{bucket:'purchasedCents',cents:-take}],atMs:now(),reference:job.sessionId});
+   if(delta>take&&(wallet.sparkEarnedUnits||0)>0)patch={...patch,...postSpark(tx,account,wallet,{id:'payment-review-'+operationId,kind:'payment-review-hold',review:true,note:'Spent purchased credit was refunded. Review Spark earnings before further redemption.',atMs:now()})};
    jobPatch={status:'refunded',reconciledGrossRefundCents:Math.max(job.reconciledGrossRefundCents||0,provider.refundedCents),refundedPrincipalCents:Math.max(job.refundedPrincipalCents||0,refunded)};
   }
   const remaining=(wallet.paymentReviewCount||0)-1;if(remaining<0)fail('failed-precondition','The review count needs reconciliation.');

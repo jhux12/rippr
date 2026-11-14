@@ -1,3 +1,6 @@
+import {defaultSpark,readSpark,sparkBalance,SPARK_SPIN_UNITS} from './spark-model.js';
+import {postSpark} from './spark-ledger.js';
+import {calculateCredits,readCredits} from './wallet-ledger.js';
 import {postCredits} from './wallet-ledger.js';
 import {recordSmsChoice} from './sms-consent-model.js';
 import {EMAIL_ACTIONS,emailVerification} from './email-verification.js';
@@ -107,14 +110,14 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       const metadata=page=>({cursor:page.cursor,hasMore:page.hasMore});
       return {shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},freeTopups:freeTopups(),stripeTestTopups:stripeTopups()};
     }
-    if (action === 'rewardState') {
-      return db.runTransaction(async tx=>{
-        const [saved,wallet]=await Promise.all([tx.get(db.doc('rewardSettings/daily')),tx.get(account)]);
-        let config;try{config=saved.exists?readRewards(saved.data()):defaultRewards()}catch{fail('failed-precondition','Daily rewards need their configuration corrected.')}
-        return {config,nextClaimAtMs:wallet.data()?.nextRewardAtMs||0,serverTimeMs:now(),extras:rewardExtras(wallet.data()||{},now())};
-      });
+    if(action==='sparkState')return db.runTransaction(async tx=>{const [saved,wallet]=await Promise.all([tx.get(db.doc('rewardSettings/spark')),tx.get(account)]);let config;try{config=saved.exists?readSpark(saved.data()):defaultSpark()}catch{fail('failed-precondition','Spark rewards need their configuration corrected.')}return{config,points:sparkBalance(wallet.data()),reviewRequired:wallet.data()?.sparkReviewRequired===true,spinCostUnits:SPARK_SPIN_UNITS,extras:{welcome:rewardExtras(wallet.data()||{},now()).welcome},serverTimeMs:now()}});
+    if(action==='rewardState')return{config:{...defaultRewards(),enabled:false},retired:true,nextClaimAtMs:0,extras:{welcome:{eligible:false,claimed:false}}};
+    if(['saveSparkSettings','adminSparkReview'].includes(action)&&!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage Spark rewards.');
+    if(action==='adminSparkAccount'){
+      if(!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may review Spark Points.');
+      if(typeof data.customerUid!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(data.customerUid))fail('invalid-argument','Enter a valid customer UID.');
+      const target=db.doc('testAccounts/'+data.customerUid),wallet=await db.runTransaction(tx=>tx.get(target));if(!wallet.exists)fail('not-found','Account not found.');let query=target.collection('sparkLedger').orderBy('revision','desc');if(data.beforeRevision!==undefined){if(!Number.isSafeInteger(data.beforeRevision)||data.beforeRevision<0)fail('invalid-argument','Reload the ledger.');query=query.startAfter(data.beforeRevision)}const found=await query.limit(26).get(),docs=found.docs.slice(0,25);return{points:sparkBalance(wallet.data()),reviewRequired:wallet.data().sparkReviewRequired===true,ledger:docs.map(d=>d.data()),beforeRevision:found.docs.length>25?docs.at(-1).data().revision:null};
     }
-    if(action==='saveRewards' && !isAdminToken(claims,uid))fail('permission-denied','Only the verified owner phone account can save reward settings.');
     if (!/^[a-zA-Z0-9-]{16,80}$/.test(operationId || '')) fail('invalid-argument','A valid operation ID is required.');
     const operation = account.collection('operations').doc(operationId);
     return db.runTransaction(async tx => {
@@ -125,62 +128,22 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         if (prior.data().fingerprint !== fingerprint) fail('already-exists','This operation ID was already used.');
         return prior.data().result;
       }
+      if(['claimReward','claimStreak','saveRewards'].includes(action))fail('failed-precondition','Daily claims and streak payouts have ended. Use Spark Points on Rewards.');
       const wallet = current.exists ? current.data() : initial(uid);
       if(wallet.closureStatus)fail('failed-precondition','Account closure is in progress or completed. Contact support.');
       if(wallet.paymentHold&&['purchase','openInventoryPack','ship','sell'].includes(action))fail('failed-precondition','Your balance needs payment review. Contact support.');
       let patch = {}, result, activity,creditMoves=[];
-      if(action==='saveRewards'){
-        const config=data.config,issues=validateRewards(config);
-        if(issues.length)fail('invalid-argument',issues[0]);
-        const target=db.doc('rewardSettings/daily'),saved=await tx.get(target);
-        const version=saved.exists?saved.data().version:0;
-        if(data.expectedVersion!==version)fail('failed-precondition','Reward settings changed in another session. Reload before saving.');
-        if(config.enabled)await requireRewardPackCatalogs(tx, db, config.prizes);
-        const configNext={enabled:config.enabled,testingNoCooldown:config.testingNoCooldown===true,prizes:cleanPrizes(config.prizes),version:version+1};
-        tx.set(target,{...configNext,updatedAt:stamp(),updatedBy:uid});
-        result={config:configNext};
-      } else if(action==='claimReward'){
-        const saved=await tx.get(db.doc('rewardSettings/daily'));
-        let config;try{config=saved.exists?readRewards(saved.data()):defaultRewards()}catch{fail('failed-precondition','Daily rewards need their configuration corrected.')}
-        if(!config.enabled)fail('failed-precondition','Daily rewards are paused.');
-        if(data.expectedVersion!==config.version)fail('failed-precondition','Reward odds changed. Reload the rewards page before opening.');
-        const time=now();
-        if(!config.testingNoCooldown&&(wallet.nextRewardAtMs||0)>time)fail('failed-precondition','Your daily reward has already been claimed. Return when the countdown ends.');
-        await requireRewardPackCatalogs(tx, db, config.prizes);
-        const prize=drawReward(config,randomInt(10000));
-        patch.nextRewardAtMs=config.testingNoCooldown?0:time+REWARD_COOLDOWN_MS;
-        if(prize.kind==='credit'){
-          if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Your test balance limit has been reached.');
-          patch.balanceCents=wallet.balanceCents+prize.amountCents;creditMoves.push({bucket:'promotionalCents',cents:prize.amountCents});
-        }else{
-          const packId=prize.packId;
-          tx.create(account.collection('packs').doc(operationId),{id:operationId,packId,name:rewardLabel(prize),image:packImage(packId),status:'available',source:'daily-reward',testItem:true,wonAt:stamp()});
-        }
-        result={prize,nextClaimAtMs:patch.nextRewardAtMs,balanceCents:patch.balanceCents??wallet.balanceCents,...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};
-        activity={type:'reward',label:`Daily reward · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
-      } else if(action==='claimStreak'||action==='claimWelcomeCase'){
-        const time=now(),extras=rewardExtras(wallet,time);let prize;
-        if(action==='claimStreak'){
-          if(!extras.streak.ready)fail('failed-precondition','Your next streak reward is not ready yet.');
-          if(data.expectedDay!==extras.streak.day)fail('failed-precondition','Your streak changed. Reload rewards before claiming.');
-          prize=extras.streak.prizes[extras.streak.day-1];
-          patch.streakCount=extras.streak.count+1;patch.lastStreakAtMs=time;
-        }else{
-          // Only a trusted future payment adapter may record this timestamp.
-          // Free test top-ups and client-supplied flags do not qualify.
-          if(!extras.welcome.eligible)fail('failed-precondition','A verified first deposit is required for this bonus.');
-          if(extras.welcome.claimed)fail('failed-precondition','Your welcome case has already been claimed.');
-          prize=extras.welcome.prize;patch.welcomeCaseClaimedAtMs=time;
-        }
-        if(prize.kind==='pack'){
-          await requireRewardPackCatalogs(tx,db,[{...prize,chanceBps:10000}]);
-          tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:action==='claimStreak'?'streak-reward':'welcome-case',testItem:true,wonAt:stamp()});
-        }else{
-          if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Your test balance limit has been reached.');
-          patch.balanceCents=wallet.balanceCents+prize.amountCents;creditMoves.push({bucket:'promotionalCents',cents:prize.amountCents});
-        }
-        result={prize,extras:rewardExtras({...wallet,...patch},time),balanceCents:patch.balanceCents??wallet.balanceCents,...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};
-        activity={type:'reward',label:`${action==='claimStreak'?'Daily streak':'Welcome case'} · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
+      if(action==='saveSparkSettings'){
+        const config=data.config,issues=validateRewards(config);if(issues.length)fail('invalid-argument',issues[0]);const target=db.doc('rewardSettings/spark'),saved=await tx.get(target),version=saved.data()?.version||0;if(data.expectedVersion!==version)fail('failed-precondition','Spark settings changed. Reload before saving.');if(config.enabled)await requireRewardPackCatalogs(tx,db,config.prizes);const next={enabled:config.enabled,version:version+1,prizes:cleanPrizes(config.prizes)};tx.set(target,{...next,updatedAt:stamp(),updatedBy:uid});result={config:next};
+      }else if(action==='adminSparkReview'){
+        if(typeof data.customerUid!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(data.customerUid)||!Number.isSafeInteger(data.removeUnits)||data.removeUnits<0||data.removeUnits>1e12||typeof data.note!=='string'||data.note.trim().length<15||data.note.length>1000)fail('invalid-argument','Enter a customer, points adjustment and a review note.');const target=db.doc('testAccounts/'+data.customerUid),saved=await tx.get(target),owner=saved.data();if(!saved.exists||!owner.sparkReviewRequired||sparkBalance(owner).sparkRevision!==data.expectedRevision)fail('failed-precondition','Reload the current Spark review.');tx.update(target,postSpark(tx,target,owner,{id:operationId,kind:'refund-review',removeUnits:data.removeUnits,review:false,note:data.note.trim(),atMs:now()}));result={reviewed:true};
+      }else if(action==='redeemSpark'){
+        if(wallet.currency!=='TEST_USD')fail('failed-precondition','Spark redemptions are sandbox-only.');if(wallet.paymentHold||wallet.sparkReviewRequired||sparkBalance(wallet).sparkDebtUnits)fail('failed-precondition','Resolve the account payment or Spark review before redeeming.');
+        const saved=await tx.get(db.doc('rewardSettings/spark'));let config;try{config=saved.exists?readSpark(saved.data()):defaultSpark()}catch{fail('failed-precondition','Spark rewards need their configuration corrected.')}if(!config.enabled)fail('failed-precondition','Spark Spin is paused.');if(data.expectedVersion!==config.version)fail('failed-precondition','Spark prizes changed. Reload before redeeming.');if(sparkBalance(wallet).sparkUnits<SPARK_SPIN_UNITS)fail('failed-precondition','You need 25 Spark Points to redeem a spin.');await requireRewardPackCatalogs(tx,db,config.prizes);const prize=drawReward(config,randomInt(10000));
+        if(prize.kind==='credit'){if(wallet.balanceCents+prize.amountCents>100000000)fail('failed-precondition','Balance limit reached.');patch.balanceCents=wallet.balanceCents+prize.amountCents;creditMoves.push({bucket:'promotionalCents',cents:prize.amountCents})}else{tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:'spark-spin',testItem:true,wonAt:stamp()})}
+        patch={...patch,...postSpark(tx,account,wallet,{id:operationId,kind:'redeem',spendUnits:SPARK_SPIN_UNITS,atMs:now()})};result={prize,points:sparkBalance({...wallet,...patch}),...(prize.kind==='pack'?{inventoryPackId:operationId}:{})};activity={type:'reward',label:`Spark Spin · ${rewardLabel(prize)}`,amountCents:prize.kind==='credit'?prize.amountCents:0};
+      }else if(action==='claimWelcomeCase'){
+        const extras=rewardExtras(wallet,now());if(!extras.welcome.eligible)fail('failed-precondition','A verified first deposit is required for this bonus.');if(extras.welcome.claimed)fail('failed-precondition','Your welcome case has already been claimed.');const prize=extras.welcome.prize;await requireRewardPackCatalogs(tx,db,[{...prize,chanceBps:10000}]);patch.welcomeCaseClaimedAtMs=now();tx.create(account.collection('packs').doc(operationId),{id:operationId,packId:prize.packId,name:rewardLabel(prize),image:packImage(prize.packId),status:'available',source:'welcome-case',testItem:true,wonAt:stamp()});result={prize,extras:{welcome:rewardExtras({...wallet,...patch},now()).welcome}};activity={type:'reward',label:`Welcome case · ${rewardLabel(prize)}`,amountCents:0};
       } else if (action === 'topup') {
         if (!freeTopups()) fail('failed-precondition','Free test top-ups are currently paused.');
         const cents = data.amountCents;
@@ -222,7 +185,8 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           return { ...card, catalogItemId:card.id, id:`${operationId}-${i}`, packId:data.packId, status:'available', testItem:true, pack:i+1 };
         });
         creditMoves.push({spend:total});
-        patch = { balanceCents:wallet.balanceCents-total, packsOpened:wallet.packsOpened+cards.length, cardsCollected:wallet.cardsCollected+cards.length, grailsFound:wallet.grailsFound+cards.filter(c=>c.grail).length };
+        const eligibleUnits=ownedRef?0:readCredits(wallet).purchasedCents-calculateCredits(wallet,[{spend:total}]).buckets.purchasedCents;
+        patch = { ...(eligibleUnits?postSpark(tx,account,wallet,{id:operationId,kind:'purchase-earned',earnUnits:eligibleUnits,atMs:now()}):{}), balanceCents:wallet.balanceCents-total, packsOpened:wallet.packsOpened+cards.length, cardsCollected:wallet.cardsCollected+cards.length, grailsFound:wallet.grailsFound+cards.filter(c=>c.grail).length };
         if(referrer?.exists&&!referrer.data().closureStatus&&(referrer.data().referralCount||0)<referrals.limit&&referrer.data().balanceCents+referrals.creditCents<=100000000&&patch.balanceCents+referrals.creditCents<=100000000){
           patch.balanceCents+=referrals.creditCents;patch.referralAwarded=true;creditMoves.push({bucket:'promotionalCents',cents:referrals.creditCents});
           tx.update(referralAccount,{...postCredits(tx,referralAccount,referrer.data(),{id:'referral-'+operationId,kind:'referral',moves:[{bucket:'promotionalCents',cents:referrals.creditCents}],atMs:now()}),referralCount:(referrer.data().referralCount||0)+1,updatedAt:stamp()});

@@ -15,3 +15,5 @@
 .inventory-pagination{display:flex;flex-direction:column;align-items:center;gap:10px;margin:18px 0}.inventory-pagination .collection-note{margin:0;text-align:center;max-width:460px}.inventory-pagination .button{min-height:44px;padding:10px 20px}
 
 .credit-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px;margin:14px 0 0}.credit-breakdown>div{min-width:0}.credit-breakdown dt{font-size:11px;color:#a5bed0}.credit-breakdown dd{margin:3px 0 0;font-size:14px;font-weight:700;color:#b7e7ee;font-variant-numeric:tabular-nums}.profile-payment-hold{padding:14px 18px;border:1px solid #9f7950;border-radius:10px;color:#f2d5aa;background:#2b2116;font-size:12px;line-height:1.7}
+
+.profile-spark a{display:inline-flex;gap:8px;align-items:center;padding:10px 16px;border:1px solid #376378;border-radius:22px;background:#0b2331;color:#83e9f2;text-decoration:none;font-size:13px}

@@ -73,3 +73,5 @@ test('review and ledger cursors reach older records without silent first-page li
  for(let i=1;i<=27;i++)await f.set('testAccounts/'+f.uid+'/creditLedger/entry-'+i,{revision:i,kind:'fixture',balanceAfterCents:500,delta:{purchasedCents:0},atMs:i});
  const a=await f.call('adminPaymentWallet',{customerUid:f.uid});assert.equal(a.ledger.length,25);const b=await f.call('adminPaymentWallet',{customerUid:f.uid,beforeRevision:a.beforeRevision});assert.equal(b.ledger.length,2);
 });
+
+test('spent-credit refund flags earned Spark Points for review without inventing funding-lot attribution',async()=>{const f=await fixture({purchased:0});const wallet=await f.get('testAccounts/'+f.uid);await f.set('testAccounts/'+f.uid,{...wallet,sparkUnits:100,sparkEarnedUnits:500});await f.open();await f.resolve('record-refund');const after=await f.get('testAccounts/'+f.uid);assert.equal(after.sparkReviewRequired,true);assert.equal(after.sparkUnits,100);assert.equal(after.sparkRevision,1);});

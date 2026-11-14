@@ -1,5 +1,7 @@
 # Payment fees and promotion budget review
 
+Daily/streak scenarios below are historical and superseded by [Spark Points](SPARK-POINTS.md). Welcome and referral budgets still apply separately. The read-only audit now reports Spark costs.
+
 ## Inputs and evidence
 
 - Owner confirmed acquisition cost equals listed card value and sourcing is available. This is a planning input, not independently verified invoices or supplier guarantees.

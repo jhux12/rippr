@@ -30,7 +30,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /rewardSettings/{id} {
-      allow get: if id == 'daily';
+      allow get: if id in ['daily','spark'];
       allow list, write: if false;
     }
     function validGrading(item) {

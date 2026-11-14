@@ -73,9 +73,10 @@ const conditionBadge=card=>`<span class="condition-badge">${window.RipprCatalog.
     $('#retry-account').hidden=!user||!a.accountError;
     $('#gate-message').textContent=!a?.ready?'Loading your account…':!user?'Log in to view your items and balance.':a.accountError||'Loading your items…';
     $('#gate-message').classList.toggle('brand-loading',!a?.ready||Boolean(user&&!a.wallet&&!a.accountError));
-    if(!user||!a.wallet)return;
+    if(!user||!a.wallet){$('#profile-spark-balance').textContent='0';return;}
     if(a.accountError)status(a.accountError);
     $('#profile-name').textContent=a.wallet.displayName;
+    $('#profile-spark-balance').textContent=new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format((a.wallet.sparkUnits||0)/100);
     const photo=a.wallet.photoURL||user.photoURL;document.querySelector('.profile-avatar').src=window.RipprCatalog.safeImageURL(photo)?photo:'assets/mascot/pip-welcome.png';
     $('#profile-verified').hidden=!(user.phoneNumber||user.emailVerified);
     $('#stat-packs').textContent=a.wallet.packsOpened;

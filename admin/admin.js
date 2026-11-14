@@ -73,7 +73,7 @@
     document.querySelectorAll('[data-view]').forEach(button => {
       if (button.dataset.view === name) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
     });
-    $('#page-title').textContent = { packs:'Packs', library:'Card library', members:'Members', settings:'Settings', rewards:'Daily rewards',shipping:'Shipping requests',support:'Support inbox',referrals:'Referrals',payments:'Payment reviews',closures:'Account closures' }[name];
+    $('#page-title').textContent = { packs:'Packs', library:'Card library', members:'Members', settings:'Settings', rewards:'Spark rewards',shipping:'Shipping requests',support:'Support inbox',referrals:'Referrals',payments:'Payment reviews',closures:'Account closures' }[name];
     document.title = `${$('#page-title').textContent} — rippr Admin`;
     document.dispatchEvent(new CustomEvent('rippr:adminview',{detail:{name}}));
     setSidebar(false);

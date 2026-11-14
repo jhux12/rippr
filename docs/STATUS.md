@@ -248,3 +248,7 @@ Latest completed product work: the redesigned rewards page and server-controlled
 ## Updates
 
 During active work, post updates when a finding changes priorities, verification completes or something is blocked. Update this report and the board at completed milestones. No unattended background work or scheduled reporting is configured.
+
+## Spark Points
+
+Implemented the points earning/ledger, 25-point redemption, Rewards artwork/layout, profile balance link, owner prize controls and refund point review. New free daily/streak operations are retired; historical awards survive. Default prize EV is $0.063 per spin; referrals/welcome remain unchanged. Sandbox only, no live payment activation. Deploy account + Stripe handlers and Firestore rules alongside frontend. See SPARK-POINTS.md.
