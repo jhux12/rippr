@@ -303,3 +303,7 @@ test('Spark configuration is readable but all point settings and ledgers remain 
  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'rewardSettings/spark')));
  for(const c of [member,owner]){await assertFails(setDoc(doc(c.firestore(),'rewardSettings/spark'),{enabled:true,version:2}));await assertFails(setDoc(doc(c.firestore(),'testAccounts/member'),{sparkUnits:999999}));await assertFails(setDoc(doc(c.firestore(),'testAccounts/member/sparkLedger/forged'),{earnedUnits:999999}));}
 });
+
+test('promotion aggregates are served only by owner-authorized Functions',async()=>{
+ for(const c of [context(OWNER_PHONE),context('+12025550123'),env.unauthenticatedContext()]){await assertFails(getDoc(doc(c.firestore(),'promotionDays/2026-11-13')));await assertFails(setDoc(doc(c.firestore(),'promotionDays/2026-11-13'),{day:'2026-11-13',spark:{awards:100}}));}
+});

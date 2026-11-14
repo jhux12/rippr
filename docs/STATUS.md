@@ -260,3 +260,7 @@ Matched the approved navy/cyan desktop/mobile concept with four amount presets, 
 ## Basic pack referrals
 
 Replaced future referral credit awards with one Basic pack per account. Qualification uses cumulative purchased-credit spending (minimum $10) and a verified deposit; existing awards are not reissued. Old settings normalize without a manual migration. Updated Rewards, admin, economics audit and referral emails. Welcome case remains separate. See REFERRAL-PACKS.md for deployment and refund-review limits.
+
+## Promotion budget visibility
+
+Added Admin → Spark rewards promotion summary for welcome/referral packs and Spark rewards over 7/30/90 Indianapolis calendar days. Award transactions record exact pack EV and credit face value once, with no historical backfill or customer identifiers. Gross issued estimates are separate from profit/refund accounting. Deploy ripprAccount plus frontend. See PROMOTION-SUMMARY.md.
