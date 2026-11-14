@@ -252,3 +252,7 @@ During active work, post updates when a finding changes priorities, verification
 ## Spark Points
 
 Implemented the points earning/ledger, 25-point redemption, Rewards artwork/layout, profile balance link, owner prize controls and refund point review. New free daily/streak operations are retired; historical awards survive. Default prize EV is $0.063 per spin; referrals/welcome remain unchanged. Sandbox only, no live payment activation. Deploy account + Stripe handlers and Firestore rules alongside frontend. See SPARK-POINTS.md.
+
+## Top-up popup refresh
+
+Matched the approved navy/cyan desktop/mobile concept with four amount presets, custom amount, clear site-credit total, Spark earning explanation, actual Basic pack art and Stripe sandbox disclosure. First-deposit offer changes to a ready-to-claim Rewards link after verification and hides after claim. Free-test-credit mode hides deposit-only promotions and the Stripe provider line. Funding still uses the existing server-verified Stripe flow; no backend or secret changes.

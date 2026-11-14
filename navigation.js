@@ -166,7 +166,7 @@
   dialog.id = 'topup-dialog';
   dialog.className = 'topup-dialog';
   dialog.setAttribute('aria-labelledby', 'topup-title');
-  dialog.innerHTML = `<div class="topup-heading"><span><b>✦</b> rippr</span><button type="button" class="topup-close" aria-label="Close top up">×</button></div><h2 id="topup-title">Top up your balance</h2><p class="topup-muted">Free test credit. No payment required.</p><div class="topup-balance"><span>Current balance</span><strong id="topup-current-balance">${balance}</strong></div><div class="topup-presets" role="group" aria-label="Choose amount">${[5,10,25,50,100,250].map(n => `<button type="button" data-amount="${n}" aria-pressed="${n === 25}">$${n}</button>`).join('')}</div><form novalidate><label for="topup-amount">Custom amount</label><div class="topup-input"><span>$</span><input id="topup-amount" inputmode="decimal" type="text" value="25.00" aria-describedby="topup-error"><span>USD</span></div><p id="topup-error" class="topup-error" role="alert" hidden></p><div class="topup-total"><span>You add</span><strong id="topup-total">$25.00</strong></div><button class="topup-continue" type="submit">Add free test credit <span aria-hidden="true">+</span></button><p class="topup-review">Temporary test balance · no cash value.</p><p class="topup-notice" role="status" tabindex="-1">FREE TEST TOP-UP · NO CHARGE</p></form>`;
+  dialog.innerHTML = `<div class="topup-heading"><span>rippr<b aria-hidden="true">✦</b></span><button type="button" class="topup-close" aria-label="Close top up" autofocus>×</button></div><h2 id="topup-title">Top up your balance</h2><p class="topup-mode-badge">SANDBOX · NO REAL CHARGE</p><p class="topup-muted sr-only">Stripe test mode. No real charge.</p><div class="topup-balance sr-only"><span>Current balance</span><strong id="topup-current-balance">${balance}</strong></div><div class="topup-presets" role="group" aria-label="Choose amount">${[10,25,50,100].map(n => `<button type="button" data-amount="${n}" aria-pressed="${n === 25}">$${n}</button>`).join('')}</div><form novalidate><label for="topup-amount">Custom amount</label><div class="topup-input"><span aria-hidden="true">$</span><input id="topup-amount" inputmode="decimal" type="text" value="25.00" autocomplete="off" aria-describedby="topup-error"></div><p id="topup-error" class="topup-error" role="alert" hidden></p><div class="topup-spark"><span aria-hidden="true">✦</span><div><strong>Earn 1 Spark Point per $1 spent</strong><p>Points are earned when purchased credit is used on packs.</p></div></div><aside class="topup-welcome" hidden><img src="assets/pack-basic.svg" width="62" height="96" alt="rippr Basic pack"><div><strong id="topup-welcome-title">Your first deposit. A little extra.</strong><p id="topup-welcome-copy">Unlock one Basic pack</p><span class="topup-once">Once per account</span><a href="rewards.html" class="topup-bonus-link" hidden>View bonus case ↗</a></div></aside><div class="topup-checkout"><div class="topup-total"><span>Site credit</span><strong id="topup-total">$25.00</strong></div><button class="topup-continue" type="submit">Continue to checkout <span aria-hidden="true">→</span></button><p class="topup-provider"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Payments processed by Stripe</span></p><p class="topup-review">Credit stays on rippr. No cash withdrawals.</p></div><p class="topup-notice" role="status" tabindex="-1"></p></form>`;
   document.body.append(dialog);
   const input = dialog.querySelector('input');
   const error = dialog.querySelector('#topup-error');
@@ -202,7 +202,7 @@
   trigger.addEventListener('click', () => {
     if(!window.RIPPR_ACCOUNT?.user)return;
     if (menuToggle.getAttribute('aria-expanded') === 'true') menuToggle.click();
-    notice.textContent = window.RIPPR_ACCOUNT?.stripeTestTopups?'STRIPE SANDBOX · NO REAL CHARGE':window.RIPPR_ACCOUNT?.freeTopups===false?'TOP-UPS PAUSED':'FREE TEST TOP-UP · NO CHARGE';
+    notice.textContent = !window.RIPPR_ACCOUNT?.stripeTestTopups&&window.RIPPR_ACCOUNT?.freeTopups===false?'TOP-UPS PAUSED':'';
     update();
     dialog.showModal();
     announceState();
@@ -217,7 +217,7 @@
     const bounds = dialog.getBoundingClientRect();
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
   });
-  let lastStripeMode=null;
+  let lastStripeMode=null,topupBusy=false;
   function updateBalance(){
     const account=window.RIPPR_ACCOUNT;
     trigger.hidden=!account?.user;
@@ -228,14 +228,22 @@
     dialog.querySelector('#topup-current-balance').textContent=value;
     const stripeMode=account?.stripeTestTopups===true,paused=!stripeMode&&account?.freeTopups===false;
     const fundingMode=stripeMode?'stripe':paused?'paused':'free';
+    const wallet=account?.wallet,claimed=!!wallet?.welcomeCaseClaimedAtMs,eligible=Number.isFinite(wallet?.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=Date.now();
+    dialog.querySelector('.topup-welcome').hidden=!stripeMode||!wallet||claimed;
+    dialog.querySelector('#topup-welcome-title').textContent=eligible?'Your bonus case is ready.':'Your first deposit. A little extra.';
+    dialog.querySelector('#topup-welcome-copy').textContent=eligible?'Claim your Basic pack on Rewards.':'Unlock one Basic pack';
+    dialog.querySelector('.topup-bonus-link').hidden=!eligible;
+    dialog.querySelector('.topup-spark').hidden=!stripeMode;
+    dialog.querySelector('.topup-provider').hidden=!stripeMode;
+    dialog.querySelector('.topup-mode-badge').textContent=stripeMode?'SANDBOX · NO REAL CHARGE':paused?'TOP-UPS PAUSED':'FREE TEST CREDIT · NO CHARGE';
     if(fundingMode!==lastStripeMode){
       lastStripeMode=fundingMode;
       dialog.querySelector('.topup-muted').textContent=stripeMode?'Secure Checkout in Stripe test mode.':'Free test credit. No payment required.';
-      dialog.querySelector('.topup-continue').innerHTML=stripeMode?'Continue to Stripe':'Add free test credit <span aria-hidden="true">+</span>';
-      dialog.querySelector('.topup-review').textContent=stripeMode?'Test payment only · balance updates after payment confirmation.':'Temporary test balance · no cash value.';
-      notice.textContent=stripeMode?'STRIPE SANDBOX · NO REAL CHARGE':'FREE TEST TOP-UP · NO CHARGE';
+      dialog.querySelector('.topup-continue').innerHTML=stripeMode?'Continue to checkout <span aria-hidden="true">→</span>':'Add free test credit <span aria-hidden="true">+</span>';
+      dialog.querySelector('.topup-review').textContent=stripeMode?'Credit stays on rippr. No cash withdrawals.':'Temporary test balance · no cash value.';
+      notice.textContent='';
       if(paused){dialog.querySelector('.topup-muted').textContent='Balance funding is temporarily unavailable.';dialog.querySelector('.topup-continue').textContent='Top-ups unavailable';notice.textContent='TOP-UPS PAUSED';}
-      dialog.querySelector('.topup-continue').disabled=paused;
+      dialog.querySelector('.topup-continue').disabled=paused||topupBusy;
     }
 
   }
@@ -244,6 +252,7 @@
   updateBalance();
   dialog.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
+    if(topupBusy||(!window.RIPPR_ACCOUNT?.stripeTestTopups&&window.RIPPR_ACCOUNT?.freeTopups===false))return;
     if (!update()) {
       error.textContent = 'Enter an amount from $1 to $1,000 with up to two decimal places.';
       error.hidden = false;
@@ -253,7 +262,7 @@
     }
     if(!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);return;}
     const submit=dialog.querySelector('.topup-continue');
-    submit.disabled=true;input.disabled=true;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=true);
+    topupBusy=true;submit.disabled=true;input.disabled=true;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=true);
     const stripeMode=window.RIPPR_ACCOUNT.stripeTestTopups===true;
     notice.textContent=stripeMode?'Opening secure Stripe Checkout…':'Adding test credit…';
     try{
@@ -272,6 +281,6 @@
       const detail=error?.details;
       notice.textContent=detail?.provider==='stripe'&&messages[detail.reason]?messages[detail.reason]+(typeof detail.reference==='string'&&/^req_[A-Za-z0-9]{1,80}$/.test(detail.reference)?' Reference: '+detail.reference:''):window.RipprAccount?.errorMessage(error)||'Account services are unavailable in this preview.';
     }
-    finally{submit.disabled=false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
+    finally{topupBusy=false;submit.disabled=!window.RIPPR_ACCOUNT?.stripeTestTopups&&window.RIPPR_ACCOUNT?.freeTopups===false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
   });
 })();
