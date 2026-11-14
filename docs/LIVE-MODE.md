@@ -100,3 +100,18 @@ npx firebase deploy --only functions --project rippr-2b01c
 ```
 
 Pausing preserves the live ledger, incoming webhook settlement, account reads, support and payment review. It stops new funding/openings/reward claims. Do not copy sandbox balances or winnings into live records. No scheduled autonomous activation is configured.
+
+## Slow emulator downloads / Ctrl+C
+
+Firebase CLI can exit successfully after canceling a download, allowing a shell `&&` chain to continue. The repository's Rules runner now requires a standalone success marker from the completed test command; interruption or missing completion returns failure even if Firebase itself exits 0.
+
+For slow Cloud Shell downloads:
+
+```bash
+cd ~/rippr &&
+git pull --ff-only origin main &&
+node scripts/download-emulators.mjs &&
+npm run test:rules
+```
+
+The downloader uses the installed Firebase CLI's official binary metadata, IPv4 curl and persistent `.part` files. If interrupted, rerun it to resume. Files move into the CLI cache only after exact size and SHA-256 verification. Both Firestore and Storage binaries are required. Local emulator hub/logging explicitly bind IPv4 to avoid Cloud Shell's unavailable `::1` warnings. These local changes do not activate or deploy live payments.

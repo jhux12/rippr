@@ -280,3 +280,7 @@ Added Admin → Overview with full retained-record aggregation for payment holds
 ## Separate live mode prepared
 
 Added off-by-default live Stripe endpoints and isolated live ledgers, rewards, queues, museums, eligibility and email jobs. Profile/contact fields can be preserved; financial test state is never promoted. Server mode guards reject stale clients, free top-ups remain blocked live, and owner-only preview precedes public transactions. Live closure requires support review and sandbox cleanup protects shared identities. Mode-specific UI removes test/draft labels only in server-selected live mode. No real keys/deployment/charges were performed here. Official Rules emulator download is blocked; run it in Cloud Shell before activation. See LIVE-MODE.md for full setup and checks.
+
+## Emulator setup reliability
+
+Cloud Shell cancellation showed Firebase CLI returning success before Rules ran, allowing setup to proceed. Added a completion-marker Rules wrapper that fails on interruption/incomplete checks, resumable official downloads with size/SHA-256 validation, and IPv4 hub/logging bindings. Existing live secret creation does not imply activation or a passed Rules check. No financial setting or deployment changed.
