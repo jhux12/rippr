@@ -316,4 +316,18 @@ test('live balances and inventory remain server-written and account-scoped',asyn
  for(const c of [member,context(OWNER_PHONE)]){await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member'),{balanceCents:99999}));await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member/items/forged'),{valueCents:99999}));await assertFails(getDoc(doc(c.firestore(),'livePaymentReviewQueue/root/cases/private')));}
 });
 
-test('six graded homepage grails stay within the Rules evaluation budget',async()=>{const db=context(OWNER_PHONE).firestore(),target=doc(db,'settings/homepageGrails');await env.withSecurityRulesDisabled(c=>deleteDoc(doc(c.firestore(),'settings/homepageGrails')));const items=Array.from({length:6},(_,i)=>homepageItem({id:'graded-'+i,grading:{company:'PSA',grade:'10'}}));await assertSucceeds(setDoc(target,homepagePayload(items,1)));await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,id:items[0].id}:x),2)));await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,grading:{company:'PSA',grade:'9.5'}}:x),2)));await assertSucceeds(setDoc(target,homepagePayload(items.map(x=>({...x,grading:{company:'CGC',grade:'9.5'}})),2)));});
+test('six graded homepage grails stay within the Rules evaluation budget', async () => {
+ const target=doc(context(OWNER_PHONE).firestore(),'settings/homepageGrails');
+ await env.withSecurityRulesDisabled(c=>deleteDoc(doc(c.firestore(),'settings/homepageGrails')));
+ const items=Array.from({length:6},(_,i)=>homepageItem({id:'graded-'+i,grading:{company:'PSA',grade:'10'}}));
+ await assertFails(setDoc(target,homepagePayload(items,2)));
+ await assertSucceeds(setDoc(target,homepagePayload(items,1)));
+ await assertFails(setDoc(target,homepagePayload(items,1)));
+ await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,id:items[0].id}:x),2)));
+ await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,grading:{company:'PSA',grade:'9.5'}}:x),2)));
+ await assertSucceeds(setDoc(target,homepagePayload(items.map(x=>({...x,grading:{company:'CGC',grade:'9.5'}})),2)));
+ // Exercise all grading companies and the longer image validation branch too.
+ await assertSucceeds(setDoc(target,homepagePayload(items.map((x,i)=>({...x,
+  image:'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media',
+  grading:{company:['PSA','CGC','BGS','SGC','TAG','ACE'][i],grade:'10'}})),3)));
+});
