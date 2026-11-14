@@ -35,6 +35,13 @@ async function newPage(browser, init, seed) {
   return {page,errors};
 }
 function assertClean(errors) { assert.deepEqual(errors, []); }
+async function assertMobileTargets(page,selector,width){
+ if(width>760)return;
+ const small=await page.locator(selector).evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).map(n=>({name:n.id||n.getAttribute('aria-label')||n.textContent.trim(),height:n.getBoundingClientRect().height,width:n.getBoundingClientRect().width})).filter(n=>n.height<44||n.width<44));
+ assert.deepEqual(small,[],'Mobile journey controls must have 44px tap targets');
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile journey must not overflow horizontally');
+}
+
 
 async function authJourney(browser, width) {
   const {page,errors}=await newPage(browser,()=>{
@@ -56,6 +63,7 @@ async function authJourney(browser, width) {
     if(remember)await page.locator('#remember-me').check();
     await page.locator('#phone').fill('2015550123');await page.locator('#auth-submit').click();
     await page.locator('#code-step:not([hidden])').waitFor();
+    await assertMobileTargets(page,'.phone-code-actions button,#auth-submit',width);
     assert.deepEqual(await page.evaluate(()=>calls),[['sms',{link:false,remember}]]);
     await page.locator('#verification-code').fill('123456');await page.locator('#auth-submit').click();
     await page.waitForURL(origin+'/journey-return.html?from=login#saved');
@@ -109,6 +117,8 @@ async function profileJourney(browser, fixture, width) {
   await fixture.act(uid,'settings',{address});await fixture.act(other,'topup',{amountCents:1000});
   const {page,errors}=await accountFixture(browser,uid,fixture);await page.setViewportSize({width,height:900});await page.goto(origin+'/profile.html');
   await waitFor(page,()=>document.querySelectorAll('.item-card').length===3);
+  await assertMobileTargets(page,'.profile-account-links .button,.item-actions .button,.collection-toolbar>button,.item-filters button',width);
+  if(width<=760){await page.locator('#toggle-item-search').click();assert.equal(await page.locator('#item-search').evaluate(n=>parseFloat(getComputedStyle(n).fontSize)),16);await page.locator('#toggle-item-search').click();}
   const before=await fixture.act(uid,'snapshot'), ids=opened.cards.slice(0,2).map(c=>c.id),value=opened.cards.slice(0,2).reduce((s,c)=>s+c.valueCents,0);
   for(const id of ids)await page.locator(`[data-select="${id}"]`).check();
   assert.equal(await page.locator('#selected-count').textContent(),'2 selected');
