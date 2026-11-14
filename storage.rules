@@ -11,7 +11,7 @@ service firebase.storage {
     }
     match /card-images/{filename} {
       allow read: if true;
-      allow create: if owner() && filename.matches('[a-zA-Z0-9-]+\\.(jpg|png|webp)')
+      allow create: if resource == null && owner() && filename.matches('[a-zA-Z0-9-]+\\.(jpg|png|webp)')
         && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
       // Uploaded image URLs are immutable, so existing published art cannot be overwritten.
@@ -19,7 +19,7 @@ service firebase.storage {
     }
     match /homepage-grails/{filename} {
       allow read: if true;
-      allow create: if owner() && filename.matches('[a-zA-Z0-9-]+\\.(jpg|png|webp)')
+      allow create: if resource == null && owner() && filename.matches('[a-zA-Z0-9-]+\\.(jpg|png|webp)')
         && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
       // New uploads get new names; published homepage images remain immutable.
@@ -27,7 +27,7 @@ service firebase.storage {
     }
     match /profile-images/{uid}/{filename} {
       allow read: if true;
-      allow create: if activeAccount() && request.auth.uid == uid
+      allow create: if resource == null && activeAccount() && request.auth.uid == uid
         && filename.matches('[a-zA-Z0-9-]+\\.(jpg|png|webp)')
         && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
@@ -37,7 +37,7 @@ service firebase.storage {
       allow read: if request.auth != null && (owner() || (request.auth.uid == uid
         && (!firestore.exists(/databases/(default)/documents/accountClosureState/$(uid))
           || firestore.get(/databases/(default)/documents/accountClosureState/$(uid)).data.status != 'completed')));
-      allow create: if activeAccount() && request.auth.uid == uid
+      allow create: if resource == null && activeAccount() && request.auth.uid == uid
         && ticketId.matches('[a-zA-Z0-9-]{16,80}')
         && ((filename == 'screenshot.png' && request.resource.contentType == 'image/png')
           || (filename == 'screenshot.jpg' && request.resource.contentType == 'image/jpeg'))

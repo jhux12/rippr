@@ -284,3 +284,7 @@ Added off-by-default live Stripe endpoints and isolated live ledgers, rewards, q
 ## Emulator setup reliability
 
 Cloud Shell cancellation showed Firebase CLI returning success before Rules ran, allowing setup to proceed. Added a completion-marker Rules wrapper that fails on interruption/incomplete checks, resumable official downloads with size/SHA-256 validation, and IPv4 hub/logging bindings. Existing live secret creation does not imply activation or a passed Rules check. No financial setting or deployment changed.
+
+## First official Rules run: six failures addressed
+
+Owner's Cloud Shell run completed 32 checks: 26 passed, six failed. Four Storage tests showed overwrite attempts unexpectedly allowed, so every image/attachment create now explicitly requires `resource == null` in addition to owner/member, size and MIME checks. Homepage six-slot writes exceeded the 1,000-expression cap; cached scalar fields, a bounded string-ID set and lean grading validation reduce evaluation while retaining all field/URL/value/duplicate protections. An old test still denied self reads of live wallets, contradicting the intended live account contract; server-only payment audit tests remain strict and separate self-only wallet/ledger read tests cover live paths. Added a six-graded-grail budget regression case. Domain checks pass; official emulator confirmation still required in Cloud Shell because binary access here returns HTTP 403. Include Storage rules in the eventual deployment after a passing Rules run.

@@ -33,51 +33,59 @@ service cloud.firestore {
       allow get: if id in ['daily','spark'];
       allow list, write: if false;
     }
+    function validGradeMap(grading) {
+      let company = grading.company;
+      let grade = grading.grade;
+      return grading is map && grading.keys().hasOnly(['company', 'grade'])
+        && company in ['PSA', 'CGC', 'BGS', 'SGC', 'TAG', 'ACE']
+        && grade is string
+        && (company != 'PSA' || grade != '9.5')
+        && (!(company in ['TAG', 'ACE']) || grade.matches('(10|[1-9])'))
+        && grade.matches('(10|[1-9](\\.5)?)');
+    }
     function validGrading(item) {
       let grading = item.get('grading', null);
-      return grading == null || (grading is map
-        && grading.keys().hasAll(['company', 'grade'])
-        && grading.keys().hasOnly(['company', 'grade'])
-        && grading.company in ['PSA', 'CGC', 'BGS', 'SGC', 'TAG', 'ACE']
-        && grading.grade is string
-        && (grading.company != 'PSA' || grading.grade != '9.5')
-        && (!(grading.company in ['TAG', 'ACE']) || grading.grade.matches('(10|[1-9])'))
-        && grading.grade.matches('(10|[1-9](\\.5)?)'));
+      return grading == null || validGradeMap(grading);
     }
     function validHomepageGrail(item) {
+      let id = item.id;
+      let name = item.name;
+      let image = item.image;
+      let value = item.valueCents;
       return item is map
-        && item.keys().hasAll(['id', 'name', 'image', 'valueCents'])
         && item.keys().hasOnly(['id', 'name', 'image', 'valueCents', 'grading'])
-        && validGrading(item)
-        && item.id is string && item.id.size() > 0 && item.id.size() <= 80
-        && item.id.matches('[a-zA-Z0-9_-]+')
-        && item.name is string && item.name.trim().size() > 0 && item.name.size() <= 160
-        && item.image is string && item.image.size() > 0 && item.image.size() <= 2048
-        && ((item.image.matches('assets/[a-zA-Z0-9/_.-]+') && !item.image.matches('.*\\.\\..*'))
-          || item.image.matches('https://[^/ @]+(/[^ ]*)?')
-          || item.image.matches('http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?/[^ ]*'))
-        && item.valueCents is int && item.valueCents >= 0 && item.valueCents <= 100000000;
+        && id is string && id.size() > 0 && id.size() <= 80
+        && id.matches('[a-zA-Z0-9_-]+')
+        && name is string && name.trim().size() > 0 && name.size() <= 160
+        && image is string && image.size() > 0 && image.size() <= 2048
+        && ((image.matches('assets/[a-zA-Z0-9/_.-]+') && !image.matches('.*\\.\\..*'))
+          || image.matches('https://[^/ @]+(/[^ ]*)?')
+          || image.matches('http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?/[^ ]*'))
+        && value is int && value >= 0 && value <= 100000000
+        && validGrading(item);
     }
     function uniqueHomepageGrailIds(items) {
-      return (items.size() < 2 || items[1].id != items[0].id)
-        && (items.size() < 3 || (items[2].id != items[0].id && items[2].id != items[1].id))
-        && (items.size() < 4 || (items[3].id != items[0].id && items[3].id != items[1].id && items[3].id != items[2].id))
-        && (items.size() < 5 || (items[4].id != items[0].id && items[4].id != items[1].id && items[4].id != items[2].id && items[4].id != items[3].id))
-        && (items.size() < 6 || (items[5].id != items[0].id && items[5].id != items[1].id && items[5].id != items[2].id && items[5].id != items[3].id && items[5].id != items[4].id));
+      let count = items.size();
+      // Integer fillers cannot collide with validated string IDs. A single set
+      // check replaces 15 pairwise comparisons within the Rules expression cap.
+      let ids = [count > 0 ? items[0].id : 0, count > 1 ? items[1].id : 1,
+        count > 2 ? items[2].id : 2, count > 3 ? items[3].id : 3,
+        count > 4 ? items[4].id : 4, count > 5 ? items[5].id : 5];
+      return ids.toSet().size() == 6;
     }
     function validHomepageGrails() {
       let data = request.resource.data;
-      // The bounded list permits complete validation of every displayed item.
-      return data.keys().hasAll(['items', 'version', 'updatedBy', 'updatedAt'])
-        && data.keys().hasOnly(['items', 'version', 'updatedBy', 'updatedAt'])
-        && data.items is list && data.items.size() <= 6
-        && (data.items.size() < 1 || validHomepageGrail(data.items[0]))
-        && (data.items.size() < 2 || validHomepageGrail(data.items[1]))
-        && (data.items.size() < 3 || validHomepageGrail(data.items[2]))
-        && (data.items.size() < 4 || validHomepageGrail(data.items[3]))
-        && (data.items.size() < 5 || validHomepageGrail(data.items[4]))
-        && (data.items.size() < 6 || validHomepageGrail(data.items[5]))
-        && uniqueHomepageGrailIds(data.items)
+      let items = data.items;
+      let count = items.size();
+      return data.keys().hasOnly(['items', 'version', 'updatedBy', 'updatedAt'])
+        && items is list && count <= 6
+        && (count < 1 || validHomepageGrail(items[0]))
+        && (count < 2 || validHomepageGrail(items[1]))
+        && (count < 3 || validHomepageGrail(items[2]))
+        && (count < 4 || validHomepageGrail(items[3]))
+        && (count < 5 || validHomepageGrail(items[4]))
+        && (count < 6 || validHomepageGrail(items[5]))
+        && uniqueHomepageGrailIds(items)
         && data.version is int && data.version > 0
         && data.updatedBy == request.auth.uid
         && data.updatedAt == request.time;

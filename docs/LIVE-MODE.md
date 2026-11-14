@@ -63,7 +63,7 @@ Copy that endpoint's signing secret (`whsec_...`) and enter it at:
 
 ```bash
 npx firebase functions:secrets:set STRIPE_LIVE_WEBHOOK_SECRET --project rippr-2b01c
-npx firebase deploy --only functions,firestore:rules --project rippr-2b01c
+npx firebase deploy --only functions,firestore:rules,storage --project rippr-2b01c
 ```
 
 Creating the webhook before function deployment is fine; no live Checkout is available in prepare mode. Existing Resend/test secrets remain required by their existing functions. No Stripe publishable key is needed for server-created hosted Checkout.
@@ -115,3 +115,7 @@ npm run test:rules
 ```
 
 The downloader uses the installed Firebase CLI's official binary metadata, IPv4 curl and persistent `.part` files. If interrupted, rerun it to resume. Files move into the CLI cache only after exact size and SHA-256 verification. Both Firestore and Storage binaries are required. Local emulator hub/logging explicitly bind IPv4 to avoid Cloud Shell's unavailable `::1` warnings. These local changes do not activate or deploy live payments.
+
+## Rules correction after first complete Cloud Shell run
+
+The first full emulator run found immutable-upload and homepage expression-budget failures, plus an obsolete live-wallet read expectation. Those are patched; rerun `npm run test:rules` using the cached binaries before deployment. Intentional forbidden requests log `PERMISSION_DENIED` even when their negative tests pass; use the final test summary and success marker to determine the result. Owner self reads of live wallet/ledger records are allowed, while all browser financial writes and private payment notes stay denied.

@@ -92,6 +92,7 @@ test('card upload rules reject non-owners, SVGs, oversized files and overwrites'
   await assertFails(uploadBytes(ref(storage,'card-images/unsafe.svg'),bytes,{contentType:'image/svg+xml'}));
   await assertFails(uploadBytes(ref(storage,'card-images/large.png'),new Uint8Array(5*1024*1024+1),{contentType:'image/png'}));
   await assertFails(uploadBytes(ref(storage,'card-images/owner-test.png'),bytes,{contentType:'image/png'}));
+  await assertFails(uploadBytes(ref(storage,'card-images/owner-test.png'),new Uint8Array([9,8,7]),{contentType:'image/png'}));
 });
 
 test('members can read only their test account and cannot mint balances or winnings', async () => {
@@ -280,8 +281,8 @@ test('Stripe webhook ledger and funding records cannot be forged from the browse
 });
 
 
-test('payment review, owner notes and live-wallet paths remain server-only',async()=>{
- for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')])for(const path of ['paymentReviewQueue/root/cases/private','paymentReviewAudit/private','paymentAuditByAccount/member/entries/private','liveAccounts/member','liveAccounts/member/creditLedger/private']){await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{balanceCents:10000,note:'forged'}))}
+test('payment review and owner notes remain server-only',async()=>{
+ for(const client of [env.unauthenticatedContext(),context(OWNER_PHONE),context('+12025550123')])for(const path of ['paymentReviewQueue/root/cases/private','paymentReviewAudit/private','paymentAuditByAccount/member/entries/private']){await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{balanceCents:10000,note:'forged'}))}
  await assertFails(setDoc(doc(context('+12025550123').firestore(),'testAccounts/member/creditLedger/forged'),{delta:{purchasedCents:10000}}));
 });
 
@@ -309,8 +310,10 @@ test('promotion aggregates are served only by owner-authorized Functions',async(
 });
 
 test('live balances and inventory remain server-written and account-scoped',async()=>{
- await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'liveAccounts/member'),{currency:'USD',balanceCents:500});await setDoc(doc(c.firestore(),'liveAccounts/member/items/award'),{status:'available',testItem:false});});
+ await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'liveAccounts/member'),{currency:'USD',balanceCents:500});await setDoc(doc(c.firestore(),'liveAccounts/member/items/award'),{status:'available',testItem:false});await setDoc(doc(c.firestore(),'liveAccounts/member/creditLedger/posted'),{revision:1});});
  const member=context('+12025550123'),other=env.authenticatedContext('other',{phone_number:'+12025550124'});
- await assertSucceeds(getDoc(doc(member.firestore(),'liveAccounts/member')));await assertFails(getDoc(doc(other.firestore(),'liveAccounts/member')));
+ await assertSucceeds(getDoc(doc(member.firestore(),'liveAccounts/member')));await assertSucceeds(getDoc(doc(member.firestore(),'liveAccounts/member/creditLedger/posted')));await assertFails(getDoc(doc(other.firestore(),'liveAccounts/member/creditLedger/posted')));await assertFails(getDoc(doc(other.firestore(),'liveAccounts/member')));
  for(const c of [member,context(OWNER_PHONE)]){await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member'),{balanceCents:99999}));await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member/items/forged'),{valueCents:99999}));await assertFails(getDoc(doc(c.firestore(),'livePaymentReviewQueue/root/cases/private')));}
 });
+
+test('six graded homepage grails stay within the Rules evaluation budget',async()=>{const db=context(OWNER_PHONE).firestore(),target=doc(db,'settings/homepageGrails');await env.withSecurityRulesDisabled(c=>deleteDoc(doc(c.firestore(),'settings/homepageGrails')));const items=Array.from({length:6},(_,i)=>homepageItem({id:'graded-'+i,grading:{company:'PSA',grade:'10'}}));await assertSucceeds(setDoc(target,homepagePayload(items,1)));await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,id:items[0].id}:x),2)));await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,grading:{company:'PSA',grade:'9.5'}}:x),2)));await assertSucceeds(setDoc(target,homepagePayload(items.map(x=>({...x,grading:{company:'CGC',grade:'9.5'}})),2)));});
