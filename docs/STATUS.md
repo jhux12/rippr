@@ -264,3 +264,7 @@ Replaced future referral credit awards with one Basic pack per account. Qualific
 ## Promotion budget visibility
 
 Added Admin → Spark rewards promotion summary for welcome/referral packs and Spark rewards over 7/30/90 Indianapolis calendar days. Award transactions record exact pack EV and credit face value once, with no historical backfill or customer identifiers. Gross issued estimates are separate from profit/refund accounting. Deploy ripprAccount plus frontend. See PROMOTION-SUMMARY.md.
+
+## Mobile opening review
+
+Current lifecycle/resource checks passed: 29 batches / 83 cards at 320/390/1440px, audio signal/resource tests, and transient artwork recovery. No accumulating opening actors or audio contexts were reproduced. No runtime changes or deployment. Physical-device FPS/network checks remain separate. See MOBILE-PERFORMANCE-REVIEW.md.
