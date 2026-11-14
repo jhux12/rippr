@@ -118,4 +118,21 @@ The downloader uses the installed Firebase CLI's official binary metadata, IPv4 
 
 ## Rules correction after first complete Cloud Shell run
 
-The first full emulator run found immutable-upload and homepage expression-budget failures, plus an obsolete live-wallet read expectation. Those are patched; rerun `npm run test:rules` using the cached binaries before deployment. Intentional forbidden requests log `PERMISSION_DENIED` even when their negative tests pass; use the final test summary and success marker to determine the result. Owner self reads of live wallet/ledger records are allowed, while all browser financial writes and private payment notes stay denied.
+The first full emulator run found immutable-upload and homepage expression-budget failures, plus an obsolete live-wallet read expectation. Upload protection and wallet expectations are corrected; subsequent runs exposed the remaining graded-gallery budget failure addressed below. Rerun `npm run test:rules` using the cached binaries before deployment. Intentional forbidden requests log `PERMISSION_DENIED` even when their negative tests pass; use the final test summary and success marker to determine the result. Owner self reads of live wallet/ledger records are allowed, while all browser financial writes and private payment notes stay denied.
+
+## Homepage grail saves now run on the server
+
+Repeated official runs showed that six graded cards still exceeded the Rules expression budget after local optimizations. The admin UI now calls the owner-only `saveHomepageGrails` action on `ripprAccount`. The server validates every card using the shared catalog model, enforces the expected version in a Firestore transaction, stamps the verified owner/server time, and returns an identical committed retry safely. Browser writes to `settings/homepageGrails` are denied for everyone; public individual reads remain allowed. No gallery records or wallet settings are migrated or reset.
+
+The official emulator suite now tests the actual Admin SDK transaction against its demo database, alongside browser denials and malformed-card tests. The regular domain suite separately covers owner authorization, identity mismatch, concurrency, retries, invalid sixth cards, duplicate IDs, unsafe URLs and grading.
+
+Run the check before deploying the updated callable and rules together:
+
+```bash
+cd ~/rippr &&
+git pull --ff-only origin main &&
+npm run test:rules &&
+npx firebase deploy --only functions:ripprAccount,firestore:rules,storage --project rippr-2b01c
+```
+
+The `&&` chain stops deployment if tests fail. Deploying these changes does not activate live mode. The frontend bundle must also update through the normal site deployment; old cached admin pages using direct writes need a refresh after deployment.

@@ -1,3 +1,4 @@
+import {saveHomepageGrails} from './homepage-grails-service.js';
 import {scopedDatabase,validateMode,assertRuntime,ensureLiveAccount,LIVE_POLICY_VERSION,runtimeInput,authorizeLiveAction,protectSharedIdentity} from './runtime-mode.js';
 import {closureService,CLOSURE_ACTIONS,guardedLifecycle,assertAccountOpen} from './closure-service.js';
 import {getAuth} from 'firebase-admin/auth';
@@ -34,7 +35,14 @@ const closureOperate=closureService(getFirestore(),{emailEnabled:()=>emailEnable
 const accountDomain=accountService(getFirestore(), { freeTopups:()=>freeTestTopups.value(),emailOptions:emailConfig,stripeTopups:()=>stripeTestEnabled.value() });
 const operate = guardedLifecycle(getFirestore(),guardedAccount(getFirestore(),(uid,input,claims)=>CLOSURE_ACTIONS.includes(input?.action)?closureOperate(uid,input,claims):accountDomain(uid,input,claims)));
 export const ripprAccount = onCall({ region:'us-central1', maxInstances:10, timeoutSeconds:30 }, async request => {
- const mode=activeMode();assertRuntime(mode,request.data);if(mode==='test'){if(request.data?.action==='requestClosure'&&request.auth?.uid)await protectSharedIdentity(getFirestore(),request.auth.uid);if(request.data?.action==='adminClosureProcess'&&isAdminToken(request.auth?.token,request.auth?.uid)&&typeof request.data?.customerUid==='string')await protectSharedIdentity(getFirestore(),request.data.customerUid);return operate(request.auth?.uid,runtimeInput(request.data),request.auth?.token);}
+ const mode=activeMode();assertRuntime(mode,request.data);
+ // Homepage catalog settings are shared by both modes and owner-only. Validate
+ // them on the server rather than charging six slab validations to Rules.
+ if(request.data?.action==='saveHomepageGrails'){
+  const result=await saveHomepageGrails(getFirestore(),request.auth?.uid,runtimeInput(request.data),request.auth?.token);
+  return mode==='live'?{...result,mode}:result;
+ }
+ if(mode==='test'){if(request.data?.action==='requestClosure'&&request.auth?.uid)await protectSharedIdentity(getFirestore(),request.auth.uid);if(request.data?.action==='adminClosureProcess'&&isAdminToken(request.auth?.token,request.auth?.uid)&&typeof request.data?.customerUid==='string')await protectSharedIdentity(getFirestore(),request.data.customerUid);return operate(request.auth?.uid,runtimeInput(request.data),request.auth?.token);}
  const db=activeDb(),uid=request.auth?.uid;
  if(request.data?.action==='closureState')return{request:null,manualClosure:true,mode:'live'};
  if(CLOSURE_ACTIONS.includes(request.data?.action))throw new HttpsError('failed-precondition','Live account closure requires support review. Contact support; no funds or items have been relinquished.');

@@ -301,16 +301,7 @@ export async function saveHomepageGrails(config, expectedVersion) {
   if (issues.length || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
     throw Object.assign(new Error(issues[0] || 'Reload the homepage grails before saving.'), { code:'catalog/invalid-data' });
   }
-  const items = cleanHomepageGrailsItems(config.items), target = doc(getDatabase(), 'settings', 'homepageGrails');
-  return runTransaction(getDatabase(), async transaction => {
-    const previous = await transaction.get(target);
-    const version = previous.exists() ? previous.data().version : 0;
-    if (version !== expectedVersion) throw Object.assign(new Error('Homepage grails changed in another session. Reload before saving.'), { code:'catalog/conflict' });
-    if (auth.currentUser?.uid !== owner.uid) throw Object.assign(new Error('Your sign-in changed. Sign in again before saving.'), { code:'catalog/permission-denied' });
-    const next = version + 1;
-    transaction.set(target, { items, version:next, updatedBy:owner.uid, updatedAt:serverTimestamp() });
-    return { items, version:next, source:'firebase' };
-  });
+  return accountAction('saveHomepageGrails', {config:{items:cleanHomepageGrailsItems(config.items)},expectedVersion,accountUid:owner.uid});
 }
 export async function uploadHomepageGrailImage(file) {
   const owner = await requireAdmin();

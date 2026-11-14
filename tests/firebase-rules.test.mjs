@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import {initializeApp as initializeAdminApp,deleteApp as deleteAdminApp} from '../functions/node_modules/firebase-admin/lib/app/index.js';
+import {getFirestore as getAdminFirestore} from '../functions/node_modules/firebase-admin/lib/firestore/index.js';
+import {saveHomepageGrails as serverSaveHomepageGrails} from '../functions/homepage-grails-service.js';
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
@@ -6,14 +10,16 @@ import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { defaultPack, OWNER_PHONE } from '../src/catalog-model.js';
 import { cleanLibraryCard, nameKey } from '../src/library-model.js';
 
-let env;
+let env,adminApp,adminDb;
+const serverSave=(items,expectedVersion,overrides={},claims={sub:'owner',phone_number:OWNER_PHONE},uid='owner')=>serverSaveHomepageGrails(adminDb,uid,{action:'saveHomepageGrails',config:{items},expectedVersion,accountUid:uid,...overrides},claims);
 const context = (phone, verified = true) => env.authenticatedContext(phone === OWNER_PHONE ? 'owner' : 'member', verified ? {phone_number:phone} : {});
 const payload = (uid = 'owner', version = 1) => ({ items:defaultPack('basic').items, enabled:true, version, totalChanceBps:10000, updatedBy:uid, updatedAt:serverTimestamp() });
 before(async () => {
   env = await initializeTestEnvironment({ projectId:'demo-rippr', firestore:{ host:'127.0.0.1',port:8080,rules:await readFile('firestore.rules','utf8') }, storage:{ host:'127.0.0.1',port:9199,rules:await readFile('storage.rules','utf8') } });
   await env.clearFirestore(); await env.clearStorage();
+  adminApp=initializeAdminApp({projectId:'demo-rippr'},'homepage-rules-tests');adminDb=getAdminFirestore(adminApp);
 });
-after(async () => { await env?.cleanup(); });
+after(async () => { await env?.cleanup(); if(adminApp)await deleteAdminApp(adminApp); });
 test('owner may publish 1,000 pack entries while 1,001 and member writes remain blocked',async()=>{
   const owner=context(OWNER_PHONE),member=context('+12025550123');
   const items=Array.from({length:1000},(_,i)=>({...defaultPack('basic').items[0],id:'large-'+i,chanceBps:10}));
@@ -128,22 +134,20 @@ test('the previous email and a phone saved in a profile cannot grant owner right
 
 const homepageItem = (overrides = {}) => ({id:'moonstone',name:'Moonstone',image:'assets/grail-moonstone.svg',valueCents:800,...overrides});
 const homepagePayload = (items = [homepageItem()], version = 1, updatedBy = 'owner') => ({items,version,updatedBy,updatedAt:serverTimestamp()});
-test('homepage grails are public display data; only verified phone owner can save or clear them',async()=>{
+test('homepage grails are publicly readable and saved only through the owner server action',async()=>{
  const target=doc(context(OWNER_PHONE).firestore(),'settings/homepageGrails');
- await assertSucceeds(setDoc(target,homepagePayload()));
+ await serverSave([homepageItem()],0);
  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'settings/homepageGrails')));
- await assertSucceeds(setDoc(target,homepagePayload([homepageItem({image:'https://firebasestorage.googleapis.com/v0/b/rippr/o/homepage-grails%2Ftest.png?alt=media',valueCents:100000000})],2)));
- await assertSucceeds(setDoc(target,homepagePayload([],3)));
- for(const ctx of [env.unauthenticatedContext(),context(OWNER_PHONE,false),context('+12025550123'),env.authenticatedContext('old-owner',{email:'jhuxf12@outlook.com',email_verified:true})]){
-  await assertFails(setDoc(doc(ctx.firestore(),'settings/homepageGrails'),homepagePayload([],4,'member')));
- }
+ await serverSave([homepageItem({image:'https://firebasestorage.googleapis.com/v0/b/rippr/o/homepage-grails%2Ftest.png?alt=media',valueCents:100000000})],1);
+ await serverSave([],2);
+ for(const ctx of [env.unauthenticatedContext(),context(OWNER_PHONE),context(OWNER_PHONE,false),context('+12025550123')])await assertFails(setDoc(doc(ctx.firestore(),'settings/homepageGrails'),homepagePayload([],4)));
  await assertFails(getDocs(collection(env.unauthenticatedContext().firestore(),'settings')));
  await assertFails(deleteDoc(target));
- await assertFails(setDoc(target,homepagePayload([],3)));
- await assertFails(setDoc(target,homepagePayload([],5)));
+ await assert.rejects(()=>serverSave([],0),{code:'aborted'});
+ await assert.rejects(()=>serverSave([],4),{code:'aborted'});
  await assertFails(setDoc(doc(context(OWNER_PHONE).firestore(),'settings/other'),homepagePayload()));
 });
-test('homepage rules validate all six slots, metadata, image URLs and integer dollar values',async()=>{
+test('homepage server validates every slot, metadata, image URL and integer dollar value',async()=>{
  const target=doc(context(OWNER_PHONE).firestore(),'settings/homepageGrails');
  const badItems=[
   homepageItem({id:''}),homepageItem({id:'bad/id'}),homepageItem({id:'x'.repeat(81)}),
@@ -156,18 +160,18 @@ test('homepage rules validate all six slots, metadata, image URLs and integer do
  ];
  for(const invalid of badItems){
   // The sixth item must be checked as strictly as the first.
-  await assertFails(setDoc(target,homepagePayload([...Array.from({length:5},(_,i)=>homepageItem({id:'valid-'+i})),invalid],4)));
+  await assert.rejects(()=>serverSave([...Array.from({length:5},(_,i)=>homepageItem({id:'valid-'+i})),invalid],3),{code:'invalid-argument'});
  }
  for(let later=1;later<6;later++)for(let earlier=0;earlier<later;earlier++){
   const duplicate=Array.from({length:6},(_,i)=>homepageItem({id:'slot-'+i}));duplicate[later].id=duplicate[earlier].id;
-  await assertFails(setDoc(target,homepagePayload(duplicate,4)));
+  await assert.rejects(()=>serverSave(duplicate,3),{code:'invalid-argument'});
  }
- await assertFails(setDoc(target,homepagePayload(Array.from({length:7},(_,i)=>homepageItem({id:'slot-'+i})),4)));
+ await assert.rejects(()=>serverSave(Array.from({length:7},(_,i)=>homepageItem({id:'slot-'+i})),3),{code:'invalid-argument'});
  await assertFails(setDoc(target,{...homepagePayload([],4),updatedBy:'another-user'}));
  await assertFails(setDoc(target,{...homepagePayload([],4),updatedAt:new Date(0)}));
  await assertFails(setDoc(target,{...homepagePayload([],4),role:'admin'}));
  await assertFails(setDoc(target,{...homepagePayload([],4),items:{}}));
- await assertSucceeds(setDoc(target,homepagePayload(Array.from({length:6},(_,i)=>homepageItem({id:'grail_'+i,image:i===0?'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media':'https://cards.example/image.png',valueCents:i===1?0:800})),4)));
+ await serverSave(Array.from({length:6},(_,i)=>homepageItem({id:'grail_'+i,image:i===0?'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media':'https://cards.example/image.png',valueCents:i===1?0:800})),3);
 });
 test('homepage grail image uploads allow public reads and immutable owner JPEG, PNG and WebP files',async()=>{
  const bytes=new Uint8Array([1,2,3]);
@@ -240,10 +244,10 @@ test('homepage slab metadata is owner-only, validated and backward compatible',a
  await env.withSecurityRulesDisabled(async ctx=>deleteDoc(doc(ctx.firestore(),'settings/homepageGrails')));
  const item={id:'slab',name:'Graded card',image:'assets/card-placeholder.svg',valueCents:1000};
  const data=(items,version)=>({items,version,updatedBy:'owner',updatedAt:serverTimestamp()});
- await assertSucceeds(setDoc(target,data([item],1)));
- await assertSucceeds(setDoc(target,data([{...item,grading:{company:'PSA',grade:'10'}}],2)));
- for(const grading of [{company:'PSA',grade:'9.5'},{company:'PSA',grade:'11'},{company:'Unknown',grade:'10'},{company:'PSA',grade:'10',extra:true}])await assertFails(setDoc(target,data([{...item,grading}],3)));
- await assertSucceeds(setDoc(target,data([{...item,grading:{company:'CGC',grade:'9.5'}}],3)));
+ await serverSave([item],0);
+ await serverSave([{...item,grading:{company:'PSA',grade:'10'}}],1);
+ for(const grading of [{company:'PSA',grade:'9.5'},{company:'PSA',grade:'11'},{company:'Unknown',grade:'10'},{company:'PSA',grade:'10',extra:true}])await assert.rejects(()=>serverSave([{...item,grading}],2),{code:'invalid-argument'});
+ await serverSave([{...item,grading:{company:'CGC',grade:'9.5'}}],2);
  await assertFails(setDoc(doc(context('+12025550123').firestore(),'settings/homepageGrails'),{...data([item],4),updatedBy:'member'}));
 });
 
@@ -316,18 +320,19 @@ test('live balances and inventory remain server-written and account-scoped',asyn
  for(const c of [member,context(OWNER_PHONE)]){await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member'),{balanceCents:99999}));await assertFails(setDoc(doc(c.firestore(),'liveAccounts/member/items/forged'),{valueCents:99999}));await assertFails(getDoc(doc(c.firestore(),'livePaymentReviewQueue/root/cases/private')));}
 });
 
-test('six graded homepage grails stay within the Rules evaluation budget', async () => {
+test('six graded homepage grails save through the owner server transaction without Rules budget limits',async()=>{
  const target=doc(context(OWNER_PHONE).firestore(),'settings/homepageGrails');
  await env.withSecurityRulesDisabled(c=>deleteDoc(doc(c.firestore(),'settings/homepageGrails')));
  const items=Array.from({length:6},(_,i)=>homepageItem({id:'graded-'+i,grading:{company:'PSA',grade:'10'}}));
- await assertFails(setDoc(target,homepagePayload(items,2)));
- await assertSucceeds(setDoc(target,homepagePayload(items,1)));
- await assertFails(setDoc(target,homepagePayload(items,1)));
- await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,id:items[0].id}:x),2)));
- await assertFails(setDoc(target,homepagePayload(items.map((x,i)=>i===5?{...x,grading:{company:'PSA',grade:'9.5'}}:x),2)));
- await assertSucceeds(setDoc(target,homepagePayload(items.map(x=>({...x,grading:{company:'CGC',grade:'9.5'}})),2)));
- // Exercise all grading companies and the longer image validation branch too.
- await assertSucceeds(setDoc(target,homepagePayload(items.map((x,i)=>({...x,
-  image:'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media',
-  grading:{company:['PSA','CGC','BGS','SGC','TAG','ACE'][i],grade:'10'}})),3)));
+ await assert.rejects(()=>serverSave(items,1),{code:'aborted'});
+ await serverSave(items,0);
+ await serverSave(items,0); // Lost-response retry is safe.
+ await assert.rejects(()=>serverSave(items.map((x,i)=>i===5?{...x,id:items[0].id}:x),1),{code:'invalid-argument'});
+ await assert.rejects(()=>serverSave(items.map((x,i)=>i===5?{...x,grading:{company:'PSA',grade:'9.5'}}:x),1),{code:'invalid-argument'});
+ await serverSave(items.map(x=>({...x,grading:{company:'CGC',grade:'9.5'}})),1);
+ await serverSave(items.map((x,i)=>({...x,image:'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media',grading:{company:['PSA','CGC','BGS','SGC','TAG','ACE'][i],grade:'10'}})),2);
+ const saved=await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'settings/homepageGrails')));
+ assert.equal(saved.data().items.length,6);assert.equal(saved.data().version,3);assert.equal(saved.data().updatedBy,'owner');
+ assert.equal(typeof saved.data().updatedAt.toMillis(),'number');
+ await assertFails(setDoc(target,homepagePayload(items,4)));
 });

@@ -33,66 +33,11 @@ service cloud.firestore {
       allow get: if id in ['daily','spark'];
       allow list, write: if false;
     }
-    function validGradeMap(grading) {
-      let company = grading.company;
-      let grade = grading.grade;
-      return grading is map && grading.keys().hasOnly(['company', 'grade'])
-        && company is string && grade is string
-        && (company + ':' + grade).matches('(PSA:(10|[1-9]|[1-8]\\.5)|(CGC|BGS|SGC):(10|[1-9](\\.5)?)|(TAG|ACE):(10|[1-9]))');
-    }
-    function validGrading(item) {
-      let grading = item.get('grading', null);
-      return grading == null || validGradeMap(grading);
-    }
-    function validHomepageGrail(item) {
-      let id = item.id;
-      let name = item.name;
-      let image = item.image;
-      let value = item.valueCents;
-      return item.keys().hasOnly(['id', 'name', 'image', 'valueCents', 'grading'])
-        && id is string && id.matches('[a-zA-Z0-9_-]{1,80}')
-        && name is string && name.trim().size() > 0 && name.size() <= 160
-        && image is string && image.size() <= 2048
-        && ((image.matches('assets/[a-zA-Z0-9/_.-]+') && !image.matches('.*\\.\\..*'))
-          || image.matches('https://[^/ @]+(/[^ ]*)?')
-          || image.matches('http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?/[^ ]*'))
-        && value is int && value >= 0 && value <= 100000000
-        && validGrading(item);
-    }
-    function uniqueHomepageGrailIds(items) {
-      let count = items.size();
-      // Integer fillers cannot collide with validated string IDs. A single set
-      // check replaces 15 pairwise comparisons within the Rules expression cap.
-      let ids = [count > 0 ? items[0].id : 0, count > 1 ? items[1].id : 1,
-        count > 2 ? items[2].id : 2, count > 3 ? items[3].id : 3,
-        count > 4 ? items[4].id : 4, count > 5 ? items[5].id : 5];
-      return ids.toSet().size() == 6;
-    }
-    function validHomepageGrails() {
-      let data = request.resource.data;
-      let items = data.items;
-      let count = items.size();
-      return data.keys().hasOnly(['items', 'version', 'updatedBy', 'updatedAt'])
-        && items is list && count <= 6
-        && (count < 1 || validHomepageGrail(items[0]))
-        && (count < 2 || validHomepageGrail(items[1]))
-        && (count < 3 || validHomepageGrail(items[2]))
-        && (count < 4 || validHomepageGrail(items[3]))
-        && (count < 5 || validHomepageGrail(items[4]))
-        && (count < 6 || validHomepageGrail(items[5]))
-        && uniqueHomepageGrailIds(items)
-        && data.version is int && data.version > 0
-        && data.updatedBy == request.auth.uid
-        && data.updatedAt == request.time;
-    }
     match /settings/homepageGrails {
       allow get: if true;
-      allow list, delete: if false;
-      // Keep one validation branch for set() writes: the evaluator can consider
-      // both create and update permissions, charging duplicate work to its budget.
-      allow create, update: if owner()
-        && request.resource.data.version == (resource == null ? 1 : resource.data.version + 1)
-        && validHomepageGrails();
+      // Full six-card validation and optimistic versioning run in the owner-only
+      // ripprAccount saveHomepageGrails action, outside the Rules expression cap.
+      allow list, write: if false;
     }
     // Server-only delivery records may contain private account details and links.
     match /emailOutbox/{id} { allow read, write: if false; }
