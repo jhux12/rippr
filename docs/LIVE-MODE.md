@@ -136,3 +136,13 @@ npx firebase deploy --only functions:ripprAccount,firestore:rules,storage --proj
 ```
 
 The `&&` chain stops deployment if tests fail. Deploying these changes does not activate live mode. The frontend bundle must also update through the normal site deployment; old cached admin pages using direct writes need a refresh after deployment.
+
+## Live key configuration diagnosis
+
+If Checkout still reports that the live payment key needs configuration after resetting it, run:
+
+```bash
+node scripts/check-live-stripe-key.mjs rippr-2b01c
+```
+
+This reads the latest secret into memory, reports only its version and format classification, compares both deployed live functions' secret bindings, and checks authentication with a read-only Stripe balance request. It never prints the secret or balance and creates no payment. Access/HTTP failures are summarized without raw provider messages. A good latest key with an older deployment binding requires redeploying both live Stripe functions; a 401 from Stripe requires an active replacement key. Do not paste secret values or raw secret-access output into chat.
