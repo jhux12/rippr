@@ -1,3 +1,7 @@
+# Latest: owner-provided saved pack audit
+
+Reviewed the owner-provided public Firestore audit output: Basic v32 $1/118 entries/80% expected credit return; Plus v52 $5/163 entries/82%; Premium v20 **$10**/229 entries/84%. No active saved $15 pack; disabled Icy Rush at $15 still contains demos. Disabled Elite/Ultimate remain demo catalogs and Mythic is unsaved. [SAVED-PACK-REVIEW.md](SAVED-PACK-REVIEW.md) records repeat/rarity/economic findings and limits. The report does not establish stock, current values, artwork/condition, costs or cash margin. No price/odds/catalog change made; confirm intended Premium price before any change.
+
 # Latest: read-only pack readiness review
 
 Reviewed purchase/catalog code and prepared [PACK-READINESS-REVIEW.md](PACK-READINESS-REVIEW.md). Verified missing-core-catalog demo fallback, repository price fallbacks differing from owner targets and no physical-stock reservation in the test purchase path. Actual saved catalogs could not be read because the workspace proxy blocks Firestore. Added `npm run audit:packs` / `scripts/audit-packs.mjs` for a read-only public-catalog report in Cloud Shell, with exact EV/rarity/repeat metrics and no fallback substitution. Calculation tests pass. No prices, odds, cards, stock, customer data or deployment settings changed. The per-pack saved-data assessment remains pending the command output.
