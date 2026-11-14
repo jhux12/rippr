@@ -154,6 +154,7 @@ test('homepage server validates every slot, metadata, image URL and integer doll
   homepageItem({name:''}),homepageItem({name:' \t\n '}),homepageItem({name:'x'.repeat(161)}),
   homepageItem({image:'javascript:alert(1)'}),homepageItem({image:'data:image/png;base64,eA=='}),
   homepageItem({image:'assets/../secret.svg'}),homepageItem({image:'http://cards.example/image.png'}),
+  homepageItem({image:'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/test.png'}),
   homepageItem({image:'https://owner:password@cards.example/image.png'}),homepageItem({image:'https://example.com/'+ 'x'.repeat(2048)}),
   homepageItem({valueCents:-1}),homepageItem({valueCents:1.5}),homepageItem({valueCents:'800'}),homepageItem({valueCents:100000001}),
   {...homepageItem(),isAdmin:true},{id:'missing-fields'},null
@@ -171,7 +172,7 @@ test('homepage server validates every slot, metadata, image URL and integer doll
  await assertFails(setDoc(target,{...homepagePayload([],4),updatedAt:new Date(0)}));
  await assertFails(setDoc(target,{...homepagePayload([],4),role:'admin'}));
  await assertFails(setDoc(target,{...homepagePayload([],4),items:{}}));
- await serverSave(Array.from({length:6},(_,i)=>homepageItem({id:'grail_'+i,image:i===0?'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media':'https://cards.example/image.png',valueCents:i===1?0:800})),3);
+ await serverSave(Array.from({length:6},(_,i)=>homepageItem({id:'grail_'+i,image:'https://cards.example/image.png',valueCents:i===1?0:800})),3);
 });
 test('homepage grail image uploads allow public reads and immutable owner JPEG, PNG and WebP files',async()=>{
  const bytes=new Uint8Array([1,2,3]);
@@ -330,7 +331,7 @@ test('six graded homepage grails save through the owner server transaction witho
  await assert.rejects(()=>serverSave(items.map((x,i)=>i===5?{...x,id:items[0].id}:x),1),{code:'invalid-argument'});
  await assert.rejects(()=>serverSave(items.map((x,i)=>i===5?{...x,grading:{company:'PSA',grade:'9.5'}}:x),1),{code:'invalid-argument'});
  await serverSave(items.map(x=>({...x,grading:{company:'CGC',grade:'9.5'}})),1);
- await serverSave(items.map((x,i)=>({...x,image:'http://127.0.0.1:9199/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media',grading:{company:['PSA','CGC','BGS','SGC','TAG','ACE'][i],grade:'10'}})),2);
+ await serverSave(items.map((x,i)=>({...x,image:'https://firebasestorage.googleapis.com/v0/b/demo-rippr.appspot.com/o/homepage-grails%2Fimage.png?alt=media',grading:{company:['PSA','CGC','BGS','SGC','TAG','ACE'][i],grade:'10'}})),2);
  const saved=await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'settings/homepageGrails')));
  assert.equal(saved.data().items.length,6);assert.equal(saved.data().version,3);assert.equal(saved.data().updatedBy,'owner');
  assert.equal(typeof saved.data().updatedAt.toMillis(),'number');
