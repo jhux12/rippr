@@ -268,3 +268,7 @@ Added Admin → Spark rewards promotion summary for welcome/referral packs and S
 ## Mobile opening review
 
 Current lifecycle/resource checks passed: 29 batches / 83 cards at 320/390/1440px, audio signal/resource tests, and transient artwork recovery. No accumulating opening actors or audio contexts were reproduced. No runtime changes or deployment. Physical-device FPS/network checks remain separate. See MOBILE-PERFORMANCE-REVIEW.md.
+
+## Account and abuse review
+
+Hardened welcome/referral deposit eligibility during payment review and after newly reconciled reversals. New verified funding can restore pending eligibility; past awards are not reissued. SMS resend convenience cooldown now survives reloads/tabs without storing phone/code. Remaining gaps include multi-phone/person referral abuse and unverified Firebase project settings; no one-person guarantee is claimed. Deploy account, Stripe and webhook together. See ACCOUNT-ABUSE-REVIEW.md.

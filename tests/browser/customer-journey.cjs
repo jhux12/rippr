@@ -51,7 +51,7 @@ async function authJourney(browser, width) {
   await page.route('**/account-state.js',r=>r.fulfill({contentType:'application/javascript',body:''}));
   for(const remember of [false,true]){
     await page.goto(origin+'/auth.html?mode=login&next='+encodeURIComponent('/journey-return.html?from=login#saved')+'&ref=RIPPR-AAAAAAAAAAAAAAAA');
-    await waitFor(page,()=>!document.querySelector('#auth-submit').disabled);
+    await waitFor(page,()=>!document.querySelector('#auth-submit').disabled);await page.evaluate(()=>localStorage.removeItem('rippr:sms-last-request'));
     assert(await page.locator('#invite-code-group').isHidden());assert(await page.locator('#remember-group').isVisible());
     if(remember)await page.locator('#remember-me').check();
     await page.locator('#phone').fill('2015550123');await page.locator('#auth-submit').click();
@@ -61,7 +61,7 @@ async function authJourney(browser, width) {
     await page.waitForURL(origin+'/journey-return.html?from=login#saved');
   }
   await page.goto(origin+'/auth.html?mode=signup&next='+encodeURIComponent('/journey-return.html?from=signup'));
-  await waitFor(page,()=>!document.querySelector('#auth-submit').disabled);
+  await waitFor(page,()=>!document.querySelector('#auth-submit').disabled);await page.evaluate(()=>localStorage.removeItem('rippr:sms-last-request'));
   assert(await page.locator('#remember-group').isHidden());assert(await page.locator('#invite-code-group').isVisible());await page.locator('#eligibility-dob').fill('1990-01-01');await page.locator('#eligibility-terms').check();await page.locator('#eligibility-privacy').check();
   await page.locator('#phone').fill('2015550123');await page.locator('#invite-code').fill('RIPPR-0000000000000000');await page.locator('#auth-submit').click();
   await page.locator('#invite-code-error:not([hidden])').waitFor();assert.equal(await page.evaluate(()=>calls.filter(c=>c[0]==='sms').length),0);
@@ -70,7 +70,7 @@ async function authJourney(browser, width) {
   await page.locator('#verification-code').fill('123456');await page.locator('#auth-submit').click();await page.waitForURL(origin+'/journey-return.html?from=signup');
   // External redirects are rejected by the actual phone helper and auth page.
   await page.goto(origin+'/auth.html?mode=login&next='+encodeURIComponent('https://outside.invalid/'));
-  await waitFor(page,()=>!document.querySelector('#auth-submit').disabled);
+  await waitFor(page,()=>!document.querySelector('#auth-submit').disabled);await page.evaluate(()=>localStorage.removeItem('rippr:sms-last-request'));
   await page.locator('#phone').fill('2015550123');await page.locator('#auth-submit').click();await page.locator('#code-step:not([hidden])').waitFor();
   await page.locator('#verification-code').fill('123456');await page.locator('#auth-submit').click();await page.waitForURL(origin+'/');
   assertClean(errors);await page.close();console.log('PASS auth: distinct modes, referral check before SMS, Remember me option, successful same-site returns, external redirect rejection');

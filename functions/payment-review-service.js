@@ -77,7 +77,7 @@ export async function paymentReviewService(db,stripe,actor,input,claims,{now=Dat
     if(job.creditedAtMs)fail('failed-precondition','This payment was already credited. Choose Release paid payment.');
     if(wallet.balanceCents+job.amountCents>1000000)fail('failed-precondition','The test balance cap is still exceeded.');
     patch=postCredits(tx,account,wallet,{id:'stripe-'+data.topupId,kind:'reviewed-stripe-funding',moves:[{bucket:'purchasedCents',cents:job.amountCents}],atMs:now(),reference:job.sessionId});adjustment=job.amountCents;
-    patch.firstVerifiedDepositAtMs=wallet.firstVerifiedDepositAtMs||now();patch.firstVerifiedDepositMode=wallet.firstVerifiedDepositMode||'stripe-test';
+    patch.lastVerifiedDepositAtMs=now();patch.firstVerifiedDepositAtMs=wallet.firstVerifiedDepositAtMs||now();patch.firstVerifiedDepositMode=wallet.firstVerifiedDepositMode||'stripe-test';
     jobPatch={creditedAtMs:now(),paymentIntentId:provider.paymentIntentId,taxCents:provider.taxCents,totalCents:provider.grossCents};
     tx.create(account.collection('activity').doc('stripe-'+data.topupId),{type:'stripe-topup',label:'Reviewed Stripe sandbox top-up',amountCents:job.amountCents,createdAt:stamp(),testOnly:true});
    }
@@ -89,6 +89,7 @@ export async function paymentReviewService(db,stripe,actor,input,claims,{now=Dat
    const refunded=provider.disputeStatus==='lost'||provider.refundedCents>=provider.grossCents?job.amountCents:Math.min(job.amountCents,provider.refundedCents);
    const delta=job.creditedAtMs?Math.max(0,refunded-(job.refundedPrincipalCents||0)):0,available=readCredits(wallet).purchasedCents,take=Math.min(delta,available);debt+=delta-take;adjustment=-take;
    patch=postCredits(tx,account,wallet,{id:'review-'+operationId,kind:'stripe-refund-reconciliation',moves:[{bucket:'purchasedCents',cents:-take}],atMs:now(),reference:job.sessionId});
+   if(delta>0)patch.lastPromotionReversalAtMs=now();
    if(delta>take&&(wallet.sparkEarnedUnits||0)>0)patch={...patch,...postSpark(tx,account,wallet,{id:'payment-review-'+operationId,kind:'payment-review-hold',review:true,note:'Spent purchased credit was refunded. Review Spark earnings before further redemption.',atMs:now()})};
    jobPatch={status:'refunded',reconciledGrossRefundCents:Math.max(job.reconciledGrossRefundCents||0,provider.refundedCents),refundedPrincipalCents:Math.max(job.refundedPrincipalCents||0,refunded)};
   }

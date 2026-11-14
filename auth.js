@@ -14,7 +14,7 @@
   function rememberInvite(){const url=new URL(location.href),value=invite.value.trim().toUpperCase();if(value)url.searchParams.set('ref',value);else url.searchParams.delete('ref');history.replaceState(null,'',url)}
   invite.addEventListener('input',rememberInvite);
   function clearEligibility(){submittedEligibility=null;$('#eligibility-dob').value='';$('#eligibility-terms').checked=false;$('#eligibility-privacy').checked=false;}
-  const sentAt = new Map();
+  const sentAt = new Map(),smsCooldownKey='rippr:sms-last-request';
   let ready = false, busy = false, operation = '', step = 'phone', sentNumber = '', user = null, generation = 0, policyTrigger;
   const errors = {
     'auth/invalid-phone-number':'Enter a 10-digit US phone number, or include your country code.',
@@ -59,7 +59,7 @@
   function message(text) { const target=$('#auth-status'); target.textContent=text; target.hidden=false; target.focus(); }
   function clearStatus() { $('#auth-status').hidden=true; $('#auth-status').textContent=''; }
   function resetPasswordVisibility() { legacyPassword.value=''; legacyPassword.type='password'; $('#password-toggle').setAttribute('aria-pressed','false'); $('#password-toggle').setAttribute('aria-label','Show password'); }
-  function remaining(number=sentNumber) { return Math.max(0,Math.ceil(((sentAt.get(number)||0)+60000-Date.now())/1000)); }
+  function remaining(number=sentNumber) {let last=sentAt.get(number)||0;try{const saved=Number(localStorage.getItem(smsCooldownKey));if(Number.isSafeInteger(saved)&&saved>0&&saved<=Date.now()+60000)last=Math.max(last,saved)}catch{}return Math.min(60,Math.max(0,Math.ceil((last+60000-Date.now())/1000))); }
   function controls() {
     for(const input of document.querySelectorAll('#eligibility-fields input'))input.disabled=busy||!ready;
     for(const id of ['phone','verification-code','auth-submit','change-phone','legacy-email','legacy-password','legacy-submit','password-toggle','reset-password','link-signout','invite-code','skip-invite','remember-me']) $('#'+id).disabled=busy||!ready;
@@ -128,7 +128,7 @@
       submittedInvite=signup&&!linking?invite.value:'';
       const result=await client.startPhoneSignIn(number,{link:linking,remember:signup||remember.checked});
       if(ticket!==generation)return;
-      sentNumber=result.phoneNumber; sentAt.set(sentNumber,Date.now()); step='code'; code.value=''; renderStep(); code.focus();
+      sentNumber=result.phoneNumber; sentAt.set(sentNumber,Date.now());try{localStorage.setItem(smsCooldownKey,String(Date.now()))}catch{} step='code'; code.value=''; renderStep(); code.focus();
     } catch(error) { if(ticket===generation){step='phone';code.value='';renderStep();if(signup&&invite.value&&error.code?.startsWith('functions/'))fieldError(invite,['functions/invalid-argument','functions/failed-precondition'].includes(error.code)?error.message:'Referral checking is unavailable. Try again or remove the code.');else message(errorMessage(error))} }
     finally { if(ticket===generation)setBusy(false); }
   }
@@ -198,6 +198,7 @@
   }));
   $('#policy-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>policyTrigger?.focus());
   dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()});
+  window.addEventListener('storage',event=>{if(event.key===smsCooldownKey)controls()});
   let cooldown=setInterval(controls,1000);
   window.addEventListener('pagehide',()=>{clearInterval(cooldown);cooldown=null;clearEligibility();resetPhoneRequest()});
   window.addEventListener('pageshow',event=>{if(event.persisted){redirecting=false;setBusy(false);showUser(client?.currentUser());if(!cooldown)cooldown=setInterval(controls,1000)}});

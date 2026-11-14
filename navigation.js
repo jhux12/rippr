@@ -228,10 +228,10 @@
     dialog.querySelector('#topup-current-balance').textContent=value;
     const stripeMode=account?.stripeTestTopups===true,paused=!stripeMode&&account?.freeTopups===false;
     const fundingMode=stripeMode?'stripe':paused?'paused':'free';
-    const wallet=account?.wallet,claimed=!!wallet?.welcomeCaseClaimedAtMs,eligible=Number.isFinite(wallet?.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=Date.now();
+    const wallet=account?.wallet,claimed=!!wallet?.welcomeCaseClaimedAtMs,depositAt=wallet?.lastVerifiedDepositAtMs??wallet?.firstVerifiedDepositAtMs,blocked=!!(wallet?.paymentHold||wallet?.paymentDebtCents>0||wallet?.paymentReviewCount>0||wallet?.legacyPaymentHold),reversed=!!wallet?.lastPromotionReversalAtMs&&!(depositAt>wallet.lastPromotionReversalAtMs),eligible=Number.isSafeInteger(depositAt)&&depositAt>0&&depositAt<=Date.now()&&!blocked&&!reversed;
     dialog.querySelector('.topup-welcome').hidden=!stripeMode||!wallet||claimed;
-    dialog.querySelector('#topup-welcome-title').textContent=eligible?'Your bonus case is ready.':'Your first deposit. A little extra.';
-    dialog.querySelector('#topup-welcome-copy').textContent=eligible?'Claim your Basic pack on Rewards.':'Unlock one Basic pack';
+    dialog.querySelector('#topup-welcome-title').textContent=blocked?'Bonus pending payment review.':reversed?'Deposit bonus paused.':eligible?'Your bonus case is ready.':'Your first deposit. A little extra.';
+    dialog.querySelector('#topup-welcome-copy').textContent=blocked?'Resolve payment review before claiming.':reversed?'A refunded deposit does not unlock a bonus.':eligible?'Claim your Basic pack on Rewards.':'Unlock one Basic pack';
     dialog.querySelector('.topup-bonus-link').hidden=!eligible;
     dialog.querySelector('.topup-spark').hidden=!stripeMode;
     dialog.querySelector('.topup-provider').hidden=!stripeMode;

@@ -118,7 +118,7 @@ export async function applyStripeEvent(db,stripe,event,{now=Date.now}={}){
   const pi=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id;
   if(!pi)throw new Error('Paid Checkout has no payment intent.');
   tx.update(target,{status:'credited',paymentIntentId:pi,taxCents:tax,totalCents:session.amount_total,creditedAtMs:time});
-  tx.update(account,{...postCredits(tx,account,wallet,{id:'stripe-'+topupId,kind:'stripe-test-funding',moves:[{bucket:'purchasedCents',cents:job.amountCents}],atMs:time,reference:session.id}),firstVerifiedDepositAtMs:Number.isSafeInteger(wallet.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=time?wallet.firstVerifiedDepositAtMs:time,firstVerifiedDepositMode:wallet.firstVerifiedDepositMode||'stripe-test',updatedAt:stamp()});
+  tx.update(account,{...postCredits(tx,account,wallet,{id:'stripe-'+topupId,kind:'stripe-test-funding',moves:[{bucket:'purchasedCents',cents:job.amountCents}],atMs:time,reference:session.id}),firstVerifiedDepositAtMs:Number.isSafeInteger(wallet.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=time?wallet.firstVerifiedDepositAtMs:time,lastVerifiedDepositAtMs:time,firstVerifiedDepositMode:wallet.firstVerifiedDepositMode||'stripe-test',updatedAt:stamp()});
   tx.create(account.collection('activity').doc('stripe-'+topupId),{type:'stripe-topup',label:'Stripe sandbox top-up · test credit',amountCents:job.amountCents,createdAt:stamp(),testOnly:true});
   ack('credited');return{credited:true};
  });

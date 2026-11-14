@@ -38,11 +38,15 @@ export function drawReward(config,roll){
 // Separate from daily spin odds and its testing cooldown bypass.
 export const streakPrizes=()=>[5,5,10,10,25,25].map((amountCents,i)=>({id:`streak-${i+1}`,kind:'credit',amountCents})).concat({id:'streak-7',kind:'pack',packId:'basic'});
 export const welcomePrize=()=>({id:'welcome-basic',kind:'pack',packId:'basic'});
+export function eligibleDeposit(wallet={},time=Date.now()){
+ const at=wallet.lastVerifiedDepositAtMs??wallet.firstVerifiedDepositAtMs,reversed=wallet.lastPromotionReversalAtMs||0;
+ return Number.isSafeInteger(at)&&at>0&&at<=time&&Number.isSafeInteger(reversed)&&reversed>=0&&at>reversed&&!wallet.paymentHold&&!(wallet.paymentDebtCents>0)&&!(wallet.paymentReviewCount>0)&&!wallet.legacyPaymentHold;
+}
 export function rewardExtras(wallet={},time=Date.now()){
  const last=Number.isSafeInteger(wallet.lastStreakAtMs)?wallet.lastStreakAtMs:0;
  const expired=last>0&&time-last>=2*REWARD_COOLDOWN_MS;
  const count=!expired&&last&&Number.isSafeInteger(wallet.streakCount)&&wallet.streakCount>0?wallet.streakCount:0;
  const nextClaimAtMs=count?last+REWARD_COOLDOWN_MS:0,ready=nextClaimAtMs<=time;
- const deposit=Number.isSafeInteger(wallet.firstVerifiedDepositAtMs)&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=time;
- return {streak:{count,lastClaimAtMs:last,ready,day:count%7+1,claimedDays:count%7||(count&&!ready?7:0),nextClaimAtMs,prizes:streakPrizes()},welcome:{eligible:deposit,claimed:Boolean(wallet.welcomeCaseClaimedAtMs),prize:welcomePrize()}};
+ const deposit=eligibleDeposit(wallet,time),blocked=Boolean(wallet.paymentHold||wallet.paymentDebtCents>0||wallet.paymentReviewCount>0||wallet.legacyPaymentHold);const reversed=Boolean(wallet.lastPromotionReversalAtMs)&&!deposit;
+ return {streak:{count,lastClaimAtMs:last,ready,day:count%7+1,claimedDays:count%7||(count&&!ready?7:0),nextClaimAtMs,prizes:streakPrizes()},welcome:{eligible:deposit,blockedReason:blocked?'payment-review':reversed?'deposit-reversed':null,claimed:Boolean(wallet.welcomeCaseClaimedAtMs),prize:welcomePrize()}};
 }

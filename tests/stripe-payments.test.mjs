@@ -33,7 +33,7 @@ test('server Checkout request fixes currency/amount/return origin and retries a 
 test('paid signed-event processing credits once across duplicate/different event IDs and sets verified test deposit metadata',async()=>{
  const f=fixture();await f.seed();const opened=await f.checkout();opened.session.payment_status='paid';opened.session.status='complete';
  const event=f.event(opened.session);await Promise.all([f.apply(event),f.apply(event)]);await f.apply(f.event(opened.session,'checkout.session.async_payment_succeeded'));
- const wallet=await f.get('testAccounts/alice');assert.equal(wallet.balanceCents,2500);assert.equal(wallet.firstVerifiedDepositAtMs,f.now());assert.equal(wallet.firstVerifiedDepositMode,'stripe-test');assert.equal((await f.run('alice',{action:'status',topupId:opened.id})).status,'credited');
+ const wallet=await f.get('testAccounts/alice');assert.equal(wallet.balanceCents,2500);assert.equal(wallet.firstVerifiedDepositAtMs,f.now());assert.equal(wallet.lastVerifiedDepositAtMs,f.now());assert.equal(wallet.firstVerifiedDepositMode,'stripe-test');assert.equal((await f.run('alice',{action:'status',topupId:opened.id})).status,'credited');
 });
 test('unpaid, live, wrong currency/amount and foreign metadata never fund a balance',async()=>{
  for(const mutation of ['unpaid','live','currency','amount','metadata']){

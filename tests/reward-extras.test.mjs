@@ -29,3 +29,10 @@ test('extras reject guests, stale days and balance overflow without writes',asyn
  await assert.rejects(()=>f.call('claimStreak',{expectedDay:7}),code('failed-precondition'));
  await f.patch({balanceCents:100000000});const before=await f.call('snapshot');await assert.rejects(()=>f.call('claimStreak',{expectedDay:1}),code('failed-precondition'));assert.deepEqual(await f.call('snapshot'),before);
 });
+
+test('payment holds, debt, reviews and reversed deposits block new welcome awards without consuming them',async()=>{
+ for(const patch of [{paymentHold:true},{paymentDebtCents:1},{paymentReviewCount:1},{legacyPaymentHold:true},{lastPromotionReversalAtMs:1000000000}]){const f=fixture();await f.patch({firstVerifiedDepositAtMs:1,...patch});const before=await f.call('snapshot');assert.equal((await f.call('sparkState')).extras.welcome.eligible,false);await assert.rejects(()=>f.call('claimWelcomeCase'),code('failed-precondition'));assert.deepEqual(await f.call('snapshot'),before);}
+ const f=fixture();await f.patch({firstVerifiedDepositAtMs:1,lastPromotionReversalAtMs:f.now()-1});await f.patch({lastVerifiedDepositAtMs:f.now()});assert.equal((await f.call('sparkState')).extras.welcome.eligible,true);await f.call('claimWelcomeCase');assert.equal((await f.call('snapshot')).packs.length,1);
+});
+
+test('a saved welcome receipt can replay during a hold but cannot create a second award',async()=>{const f=fixture();await f.patch({firstVerifiedDepositAtMs:1});const id=randomUUID(),first=await f.call('claimWelcomeCase',{},id);await f.patch({paymentHold:true,lastPromotionReversalAtMs:f.now()});assert.deepEqual(await f.call('claimWelcomeCase',{},id),first);await assert.rejects(()=>f.call('claimWelcomeCase'),code('failed-precondition'));assert.equal((await f.call('snapshot')).packs.length,1);});

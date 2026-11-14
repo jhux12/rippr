@@ -12,7 +12,7 @@ import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
-import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS, rewardExtras } from './reward-model.js';
+import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS, rewardExtras, eligibleDeposit } from './reward-model.js';
 import { isAdminToken, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem, packImage, gradingFields } from './catalog-model.js';
 
 const fail = (code, message) => { throw new HttpsError(code, message); };
@@ -57,7 +57,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
     if(accountUid && accountUid!==uid) fail('unauthenticated','Your sign-in changed. Please retry from your current account.');
     if(EMAIL_ACTIONS.includes(action))return emailVerification(db,uid,input,{...emailOptions(),now});
     if(SUPPORT_ACTIONS.includes(action))return supportService(db,uid,input,claims,now);
-    if(REFERRAL_ACTIONS.includes(action))return referralService(db,uid,input,claims,initial);
+    if(REFERRAL_ACTIONS.includes(action))return referralService(db,uid,input,claims,initial,now());
     const account = db.doc(`testAccounts/${uid}`);
     if (['adminShipments','adminShipment','updateShipment'].includes(action)) {
       if(!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage shipping.');
@@ -185,7 +185,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const referrals=action==='purchase'&&wallet.referrerUid&&!wallet.referralAwarded?await readReferralConfig(tx,db):null;
         const referralSpend=(wallet.referralPurchasedSpendCents||0)+eligibleUnits;
         let referralAccount,referrer,recordReferral;
-        if(referrals&&referrals.enabled&&wallet.referrerUid!==uid&&referralSpend>=referrals.minimumCents&&wallet.firstVerifiedDepositAtMs>0&&wallet.firstVerifiedDepositAtMs<=now()){
+        if(referrals&&referrals.enabled&&wallet.referrerUid!==uid&&referralSpend>=referrals.minimumCents&&eligibleDeposit(wallet,now())){
           referralAccount=db.doc(`testAccounts/${wallet.referrerUid}`);referrer=await tx.get(referralAccount);
           if(referrer.exists&&!referrer.data().closureStatus&&(referrer.data().referralCount||0)<referrals.limit){const catalogs=await requireRewardPackCatalogs(tx,db,[{kind:'pack',packId:'basic',chanceBps:10000}]);recordReferral=await preparePromotion(tx,db,{category:'referral',awards:2,packs:2,packEvUnits:2*packEvUnits(catalogs.basic),atMs:now()});}
         }

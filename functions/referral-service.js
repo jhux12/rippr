@@ -1,3 +1,4 @@
+import {eligibleDeposit} from './reward-model.js';
 import {createHash} from 'node:crypto';
 import {FieldValue} from 'firebase-admin/firestore';
 import {HttpsError} from 'firebase-functions/v2/https';
@@ -12,7 +13,7 @@ export async function readReferralConfig(tx,db){
  const legacy=await tx.get(db.doc('rewardSettings/journey'));if(!legacy.exists)return defaultReferrals();const old=legacy.data();
  try{return normalizeReferrals({version:0,enabled:old.referralEnabled,creditCents:old.referralCreditCents,minimumCents:old.referralMinimumCents,limit:old.referralLimit})}catch{return defaultReferrals()}
 }
-export async function referralService(db,uid,input,claims,initial){
+export async function referralService(db,uid,input,claims,initial,time=Date.now()){
  const {action,operationId,accountUid,...data}=input;
  if(action==='saveReferrals'&&!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may change referrals.');
  if(action!=='referralState'&&!/^[a-zA-Z0-9-]{16,80}$/.test(operationId||''))fail('invalid-argument','A valid operation ID is required.');
@@ -24,7 +25,7 @@ export async function referralService(db,uid,input,claims,initial){
   let patch={},result;
   if(action==='referralState'){
    let referralStatus=wallet.referralAwarded?'awarded':wallet.referrerUid?'pending':'none';
-   if(wallet.referrerUid&&!wallet.referralAwarded){const sponsor=await tx.get(db.doc(`testAccounts/${wallet.referrerUid}`));if(!config.enabled)referralStatus='paused';else if(!sponsor.exists||sponsor.data().closureStatus||(sponsor.data().referralCount||0)>=config.limit)referralStatus='limit'}
+   if(wallet.referrerUid&&!wallet.referralAwarded){const sponsor=await tx.get(db.doc(`testAccounts/${wallet.referrerUid}`));if(!config.enabled)referralStatus='paused';else if(wallet.firstVerifiedDepositAtMs&&!eligibleDeposit(wallet,time))referralStatus='payment-review';else if(!sponsor.exists||sponsor.data().closureStatus||(sponsor.data().referralCount||0)>=config.limit)referralStatus='limit'}
    result={config,code,count:wallet.referralCount||0,applied:Boolean(wallet.referrerUid),status:referralStatus,rewardKind:wallet.referralRewardKind||(wallet.referralAwarded?'credit':null),canApply:!wallet.referrerUid&&!(wallet.packsOpened>0)};
   }else if(action==='saveReferrals'){
    let value;try{value=cleanReferrals(data.config)}catch(e){fail('invalid-argument',e.message)}
