@@ -8,7 +8,7 @@ Live Checkout now requires $10–$1,000 per top-up. The popup displays and valid
 
 Payment success/canceled pages no longer claim that no real money is charged. Cancellation asks users who completed payment elsewhere to check My account, rather than assuming an unpaid state. Pending-payment copy explains payment confirmation without implementation jargon. Live Checkout errors show a customer-appropriate retry/support message and a sanitized provider request reference when available; configuration details remain in server logs. Header balance accessibility text is mode-neutral.
 
-Live policy sections use their approved operational wording rather than retired future-launch/review wording. No claims of legal or provider approval are introduced. Existing policy windows and cash-withdrawal restrictions remain. Unverified Trustpilot placeholders are hidden in live mode, and unconfigured social buttons are hidden rather than acting as dead links. No rating, review count, shipment history or social account is fabricated.
+Live policy sections use their approved operational wording rather than retired future-launch/review wording. No claims of legal or provider approval are introduced. Existing policy windows and cash-withdrawal restrictions remain. The unverified Trustpilot placeholder was replaced by a linked “Leave a review” invitation with five outlined, unscored stars, and unconfigured social buttons are hidden rather than acting as dead links. No rating, review count, shipment history or social account is fabricated.
 
 ## Admin overview
 
