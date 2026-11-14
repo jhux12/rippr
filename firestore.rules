@@ -37,11 +37,8 @@ service cloud.firestore {
       let company = grading.company;
       let grade = grading.grade;
       return grading is map && grading.keys().hasOnly(['company', 'grade'])
-        && company in ['PSA', 'CGC', 'BGS', 'SGC', 'TAG', 'ACE']
-        && grade is string
-        && (company != 'PSA' || grade != '9.5')
-        && (!(company in ['TAG', 'ACE']) || grade.matches('(10|[1-9])'))
-        && grade.matches('(10|[1-9](\\.5)?)');
+        && company is string && grade is string
+        && (company + ':' + grade).matches('(PSA:(10|[1-9]|[1-8]\\.5)|(CGC|BGS|SGC):(10|[1-9](\\.5)?)|(TAG|ACE):(10|[1-9]))');
     }
     function validGrading(item) {
       let grading = item.get('grading', null);
@@ -52,12 +49,10 @@ service cloud.firestore {
       let name = item.name;
       let image = item.image;
       let value = item.valueCents;
-      return item is map
-        && item.keys().hasOnly(['id', 'name', 'image', 'valueCents', 'grading'])
-        && id is string && id.size() > 0 && id.size() <= 80
-        && id.matches('[a-zA-Z0-9_-]+')
+      return item.keys().hasOnly(['id', 'name', 'image', 'valueCents', 'grading'])
+        && id is string && id.matches('[a-zA-Z0-9_-]{1,80}')
         && name is string && name.trim().size() > 0 && name.size() <= 160
-        && image is string && image.size() > 0 && image.size() <= 2048
+        && image is string && image.size() <= 2048
         && ((image.matches('assets/[a-zA-Z0-9/_.-]+') && !image.matches('.*\\.\\..*'))
           || image.matches('https://[^/ @]+(/[^ ]*)?')
           || image.matches('http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?/[^ ]*'))
