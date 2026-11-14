@@ -10,7 +10,7 @@ Source: owner-provided Cloud Shell output from `scripts/audit-packs.mjs`, readin
 | Plus | 52 | $5.00 | 163 | $4.10 | 82.00% | $0.90 | 65.68% | 6.49% |
 | Premium | 20 | **$10.00** | 229 | $8.40 | 84.00% | $1.60 | 69.71% | 4.78% |
 
-The $15 pack described earlier is not currently an enabled saved pack in this output. Icy Rush is saved at $15 but disabled and still contains demo entries. Verify whether Premium's $10 price is intentional before changing it.
+The $15 pack described earlier is not currently an enabled saved pack in this output. Icy Rush is saved at $15 but disabled and still contains demo entries. The owner confirmed Premium should remain $10. The active target lineup is $1/$5/$10; no repricing is needed.
 
 The mathematical checks apply to the reported distribution of entries, with independent draws and replacement. They are not evidence of real stock, current market prices, independent randomness certification or distinct card identities beyond the saved entries.
 
@@ -20,9 +20,9 @@ The mathematical checks apply to the reported distribution of entries, with inde
 
 **Plus:** retain the current odds provisionally. The 163-entry pool gives 0.66% consecutive-repeat probability and 9.71 expected distinct entries in ten. Legendary probability is 4.24%, with a broad $9–$100 tier range. That 4.24% is the chance of the entire tier, not the chance of the $100 item. Verify each featured grail's individual probability from the detailed JSON or admin pool. The $0.90 credit spread still excludes all actual operating costs.
 
-**Premium:** resolve the intended price first. At the saved $10 price, 229 entries and 0.49% consecutive-repeat probability provide good entry variety; ten openings average 9.78 distinct entries. Its 84% average credit return is higher than Plus, but fewer outcomes meet or exceed its price (30.29%, versus Plus 34.32%). Review that experience deliberately rather than assuming a higher average means more frequent break-even outcomes. Legendary is 1.72% with saved values $25–$200. Individual high-value-item probabilities remain unknown from this summary.
+**Premium:** retain the owner-confirmed $10 price. At the saved $10 price, 229 entries and 0.49% consecutive-repeat probability provide good entry variety; ten openings average 9.78 distinct entries. Its 84% average credit return is higher than Plus, but fewer outcomes meet or exceed its price (30.29%, versus Plus 34.32%). Review that experience deliberately rather than assuming a higher average means more frequent break-even outcomes. Legendary is 1.72% with saved values $25–$200. Individual high-value-item probabilities remain unknown from this summary.
 
-If Premium is intended to become $15, do not simply reprice this pool: the same $8.40 EV would then return 56% of the opening price. Maintaining its current 84% expected credit return at $15 would require a $12.60 EV, which needs a separately reviewed pool/odds configuration and cost model. Neither change is authorized or applied by this report.
+Owner decision: keep Premium at $10 with its existing pool/odds. The prior $15 proposal is not being pursued. No saved configuration was changed.
 
 ## Disabled/unconfigured tiers
 
@@ -43,4 +43,4 @@ The three active catalogs parsed successfully using the same validator as the ap
 4. Detailed item-level odds, possible duplicate physical cards represented by different entries, maximum-probability entries and grail-feature accuracy. The detailed `/tmp/rippr-pack-readiness.json` can support this next pass without exporting customer data.
 5. Deployed UI agreement with these configurations, legal/processor approval, tax treatment and the separate live-money/physical-fulfillment rollout.
 
-Recommended order: confirm the $10/$15 Premium decision → examine the detailed public item rows and acquisition costs → verify artwork/condition/stock → implement fail-closed catalogs and appropriate physical-stock handling before real-money fulfillment. Preserve existing prices/odds during review.
+Recommended order: examine the detailed public item rows and acquisition costs → verify artwork/condition/stock → implement fail-closed catalogs and appropriate physical-stock handling before real-money fulfillment. Preserve existing prices/odds during review.

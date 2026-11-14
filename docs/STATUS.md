@@ -1,3 +1,7 @@
+# Latest: Premium price confirmed
+
+Owner confirmed Premium stays $10. Audit targets now match the active $1/$5/$10 lineup. Existing saved prices, odds and pools are unchanged; the price decision is resolved in SAVED-PACK-REVIEW.md.
+
 # Latest: owner-provided saved pack audit
 
 Reviewed the owner-provided public Firestore audit output: Basic v32 $1/118 entries/80% expected credit return; Plus v52 $5/163 entries/82%; Premium v20 **$10**/229 entries/84%. No active saved $15 pack; disabled Icy Rush at $15 still contains demos. Disabled Elite/Ultimate remain demo catalogs and Mythic is unsaved. [SAVED-PACK-REVIEW.md](SAVED-PACK-REVIEW.md) records repeat/rarity/economic findings and limits. The report does not establish stock, current values, artwork/condition, costs or cash margin. No price/odds/catalog change made; confirm intended Premium price before any change.

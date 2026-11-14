@@ -2,7 +2,7 @@
 
 ## Scope
 
-Owner reports packs priced at $1, $5 and $15. This review does not change prices, odds, card pools, values or stock. Saved Firestore configurations are not stored in Git, and their live contents have not been retrieved here: the workspace proxy rejected the public Firestore GET with HTTP 403 at CONNECT. That is an environment access restriction, not evidence that the public site or Firebase rules are broken.
+Owner confirmed the active targets are $1, $5 and $10 (Premium stays $10). This review does not change prices, odds, card pools, values or stock. Saved Firestore configurations are not stored in Git, and their live contents have not been retrieved here: the workspace proxy rejected the public Firestore GET with HTTP 403 at CONNECT. That is an environment access restriction, not evidence that the public site or Firebase rules are broken.
 
 No per-pack live EV, card count, probability or image-health result is claimed without the saved data. Repository seed cards are explicitly not treated as the owner's current packs.
 
@@ -10,7 +10,7 @@ No per-pack live EV, card count, probability or image-health result is claimed w
 
 1. **Missing standard catalogs fall back to illustrative cards.** `functions/service.js` reads `packContents/{id}` and uses `defaultPack(id)` if absent; standard core defaults are enabled. Saved seasonal/Mythic inventory catalogs have a narrower missing-document safeguard. The core fallback contains five fictional/demo entries. Before live launch, require a valid explicitly saved catalog for every enabled purchasable tier. Do not infer the owner is currently selling demo cards: document existence is unverified.
 2. **Physical stock is not reserved by openings.** The purchase transaction draws with replacement from configured items and writes awarded test inventory records. It does not consult/decrement a warehouse stock record. An item may be awarded repeatedly without a physical-quantity limit. Before physical fulfillment, implement reliable stock/reservations or a reviewed sourcing guarantee; do not silently reroll an unavailable outcome and change published odds.
-3. **Repository price defaults differ from the owner's stated prices.** Basic defaults to $1.99, Plus $4.99, Premium $14.99. Saved prices override them. This is a fallback risk, not proof of incorrect current prices. Explicitly save the intended $1/$5/$15 and verify the saved values.
+3. **Repository price defaults differ from the owner's stated prices.** Basic defaults to $1.99, Plus $4.99, Premium $14.99. Saved prices override them. This is a fallback risk, not proof of incorrect current prices. Explicitly save the intended $1/$5/$10 and verify the saved values.
 4. **Several existing correctness controls are present.** Saved item odds must total 10,000 basis points; values/rarities/grades/images receive structural validation; the server checks the price/version the customer approved; one card is written per pack before reveal; retries do not duplicate awards/debits; zero-probability grails are excluded from the opening gallery. These do not independently verify live art, warehouse stock or market pricing.
 5. **Value freshness and costs remain unknown.** Pack items contain the saved sellback/reference value. A catalog update timestamp does not establish the date of every market price. Acquisition costs, processor fees, promotional liabilities and shipping/packaging costs are not available for a gross-margin calculation.
 
