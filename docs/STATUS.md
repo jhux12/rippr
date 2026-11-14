@@ -1,3 +1,7 @@
+# Latest: read-only pack readiness review
+
+Reviewed purchase/catalog code and prepared [PACK-READINESS-REVIEW.md](PACK-READINESS-REVIEW.md). Verified missing-core-catalog demo fallback, repository price fallbacks differing from owner targets and no physical-stock reservation in the test purchase path. Actual saved catalogs could not be read because the workspace proxy blocks Firestore. Added `npm run audit:packs` / `scripts/audit-packs.mjs` for a read-only public-catalog report in Cloud Shell, with exact EV/rarity/repeat metrics and no fallback substitution. Calculation tests pass. No prices, odds, cards, stock, customer data or deployment settings changed. The per-pack saved-data assessment remains pending the command output.
+
 # Latest: reviewed sandbox account closure
 
 Account settings now supports phone-reverified closure requests, explicit test-entitlement relinquishment, status and pre-processing withdrawal. Admin → Account closures adds a paginated review queue, blockers, audit notes and bounded retryable cleanup. Request freezes new activity and hides public collections; processing redacts personal data, removes profile uploads/Auth identity and retains required records. Transactional request/completion notices use the existing outbox with a hashed verified-recipient binding after redaction. Scope/retention limits and deployment are in [ACCOUNT-CLOSURE.md](ACCOUNT-CLOSURE.md). No real accounts, files, payments, messages or deployed settings were mutated here. Tax/live payments remain off.
