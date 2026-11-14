@@ -9,7 +9,7 @@ import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { defaultRewards, readRewards, validateRewards, cleanPrizes, drawReward, rewardLabel, REWARD_COOLDOWN_MS, rewardExtras } from './reward-model.js';
-import { isAdminToken, defaultPack, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem, packImage, gradingFields } from './catalog-model.js';
+import { isAdminToken, readStoredPack, DEFAULT_PRICES, PACK_IDS, drawItem, packImage, gradingFields } from './catalog-model.js';
 
 const fail = (code, message) => { throw new HttpsError(code, message); };
 const stamp = () => FieldValue.serverTimestamp();
@@ -29,8 +29,9 @@ async function requireRewardPackCatalogs(tx, db, prizes) {
   const catalogs = await Promise.all(packIds.map(packId => tx.get(db.doc(`packContents/${packId}`))));
   for (const [index, saved] of catalogs.entries()) {
     const packId = packIds[index];
+    if(!saved.exists)fail('failed-precondition', `The ${packId} reward pack needs a saved catalog before daily rewards can be saved or claimed.`);
     let catalog;
-    try { catalog = saved.exists ? readStoredPack(saved.data()) : defaultPack(packId); }
+    try { catalog = readStoredPack(saved.data()); }
     catch { fail('failed-precondition', `The ${packId} reward pack needs its catalog corrected before daily rewards can be saved or claimed.`); }
     const price = catalog.priceCents ?? DEFAULT_PRICES[packId];
     if (!catalog.enabled || !Number.isSafeInteger(price) || price < 0) {
@@ -200,9 +201,9 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         const saved = await tx.get(db.doc(`packContents/${data.packId}`));
         // Unconfigured pack defaults are illustrative, not a replacement for a removed
         // catalog. Keep an earned pack intact until its catalog is restored.
-        if(ownedRef&&['icy-rush','mythic'].includes(data.packId)&&!saved.exists)fail('failed-precondition','This pack needs its saved catalog restored before it can open.');
+        if(!saved.exists)fail('failed-precondition','This pack needs its saved catalog restored before it can open.');
         let pack;
-        try { pack = saved.exists ? readStoredPack(saved.data()) : defaultPack(data.packId); }
+        try { pack = readStoredPack(saved.data()); }
         catch { fail('failed-precondition','This pack needs its catalog corrected before it can open.'); }
         // Ending sales does not revoke a pack already owned by this account.
         if (action==='purchase'&&!pack.enabled) fail('failed-precondition','This pack is currently unavailable.');

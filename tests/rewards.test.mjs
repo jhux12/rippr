@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {accountService} from '../functions/service.js';
 import {defaultRewards,validateRewards,drawReward,REWARD_COOLDOWN_MS} from '../src/reward-model.js';
 import {OWNER_PHONE,defaultPack} from '../src/catalog-model.js';
-import {memoryDatabase} from './helpers/memory-database.mjs';
+import {catalogDatabase as memoryDatabase} from './helpers/catalog-database.mjs';
 const code=c=>e=>e.code===c;
 function fixture(){const db=memoryDatabase();let time=10000000;const run=accountService(db,{now:()=>time});const call=(uid,action,data={},operationId=randomUUID(),claims={})=>run(uid,{action,...data,operationId},claims);return {db,run,call,advance:n=>time+=n,config:async prizes=>{const current=await call('owner','rewardState');return call('owner','saveRewards',{config:{enabled:true,testingNoCooldown:false,prizes},expectedVersion:current.config.version},randomUUID(),{sub:'owner',phone_number:OWNER_PHONE})}}}
 const credit={id:'credit',kind:'credit',amountCents:125,chanceBps:10000};
@@ -34,7 +34,7 @@ test('concurrent daily claims cannot award twice, even from different tabs',asyn
 });
 test('awarded packs are saved unopened, consumed once for a real card, and never debit balance',async()=>{
  const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});let saved=await f.call('member','snapshot');assert.equal(saved.items.length,0);assert.equal(saved.packs[0].status,'available');assert.equal(saved.account.packsOpened,0);
- const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:0,expectedPriceCents:999999};const op=randomUUID();
+ const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1,expectedPriceCents:999999};const op=randomUUID();
  const opened=await f.call('member','openInventoryPack',data,op);assert.equal(opened.totalCents,0);assert.equal(opened.cards.length,1);
  assert.deepEqual(await f.call('member','openInventoryPack',data,op),opened);
  saved=await f.call('member','snapshot');assert.equal(saved.account.balanceCents,0);assert.equal(saved.packs[0].status,'opened');assert.equal(saved.items.length,1);assert.equal(saved.account.packsOpened,1);
@@ -43,7 +43,7 @@ test('awarded packs are saved unopened, consumed once for a real card, and never
  await assert.rejects(()=>f.call('member','sell',{itemIds:[reward.inventoryPackId]}),code('failed-precondition'));
 });
 test('inventory packs cannot be swapped, batched or consumed from invalid/stale catalogs',async()=>{
- const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:0};
+ const f=fixture();await f.config([pack]);const reward=await f.call('member','claimReward',{expectedVersion:1});const data={packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1};
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,packId:'ultimate'}),code('failed-precondition'));
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,quantity:2}),code('invalid-argument'));
  await assert.rejects(()=>f.call('member','openInventoryPack',{...data,expectedVersion:4}),code('failed-precondition'));
@@ -192,7 +192,7 @@ test('exact inventory-pack lookup is authenticated, account scoped and includes 
  await assert.rejects(()=>f.call('other','inventoryPack',data),code('not-found'));
  await assert.rejects(()=>f.call('member','inventoryPack',{...data,accountUid:'other'}),code('unauthenticated'));
  for(const inventoryPackId of ['../private','short','x'.repeat(81)])await assert.rejects(()=>f.call('member','inventoryPack',{inventoryPackId}),code('invalid-argument'));
- await f.call('member','openInventoryPack',{packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:0});
+ await f.call('member','openInventoryPack',{packId:'basic',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1});
  assert.equal((await f.call('member','inventoryPack',data)).pack.status,'opened');
 });
 

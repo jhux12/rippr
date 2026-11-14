@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {memoryDatabase} from './helpers/memory-database.mjs';
+import {catalogDatabase as memoryDatabase} from './helpers/catalog-database.mjs';
 import {accountService} from '../functions/service.js';
 import {applyStripeEvent} from '../functions/stripe-service.js';
 import {paymentReviewService} from '../functions/payment-review-service.js';
@@ -28,7 +28,7 @@ test('live wallet foundation starts at zero and cannot import test balance or le
 test('legacy test balance stays legacy while newly sourced credits and spend remain auditable',async()=>{
  const db=memoryDatabase(),run=accountService(db);await db.runTransaction(async tx=>tx.set(db.doc('testAccounts/alice'),{currency:'TEST_USD',balanceCents:500,packsOpened:0,cardsCollected:0,grailsFound:0}));
  await run('alice',{action:'topup',amountCents:1000,operationId:randomUUID()});let wallet=await db.runTransaction(async tx=>(await tx.get(db.doc('testAccounts/alice'))).data());assert.deepEqual(wallet.creditBuckets,{purchasedCents:0,promotionalCents:1000,sellbackCents:0,legacyTestCents:500});
- await run('alice',{action:'purchase',packId:'basic',quantity:3,expectedPriceCents:199,expectedVersion:0,operationId:randomUUID()});wallet=await db.runTransaction(async tx=>(await tx.get(db.doc('testAccounts/alice'))).data());assert.equal(wallet.balanceCents,903);assert.equal(wallet.creditBuckets.legacyTestCents,0);assert.equal(wallet.creditBuckets.promotionalCents,903);assert.equal(wallet.creditRevision,2);assert.equal((await db.doc('testAccounts/alice').collection('creditLedger').orderBy('revision').get()).docs.length,3);
+ await run('alice',{action:'purchase',packId:'basic',quantity:3,expectedPriceCents:199,expectedVersion:1,operationId:randomUUID()});wallet=await db.runTransaction(async tx=>(await tx.get(db.doc('testAccounts/alice'))).data());assert.equal(wallet.balanceCents,903);assert.equal(wallet.creditBuckets.legacyTestCents,0);assert.equal(wallet.creditBuckets.promotionalCents,903);assert.equal(wallet.creditRevision,2);assert.equal((await db.doc('testAccounts/alice').collection('creditLedger').orderBy('revision').get()).docs.length,3);
 });
 test('ordinary members cannot inspect or resolve payment reviews',async()=>{
  const f=await fixture();for(const action of ['adminPaymentReviews','adminPaymentInspect','adminPaymentResolve','adminPaymentWallet','adminSandboxDebtWaive'])await assert.rejects(()=>f.call(action,{customerUid:f.uid,topupId:f.id},randomUUID(),{sub:'owner',phone_number:'+12025550123'}),deny('permission-denied'));

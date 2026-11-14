@@ -2,7 +2,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
 const {randomUUID}=require('node:crypto');const root=path.resolve(__dirname,'../..'),origin='http://localhost:3000';
 const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2'};
 (async()=>{
- const {accountService}=await import('../../functions/service.js'),{memoryDatabase}=await import('../helpers/memory-database.mjs'),{OWNER_PHONE}=await import('../../src/catalog-model.js'),{defaultRewards,REWARD_COOLDOWN_MS:DAY}=await import('../../src/reward-model.js');
+ const {accountService}=await import('../../functions/service.js'),{catalogDatabase:memoryDatabase}=await import('../helpers/catalog-database.mjs'),{OWNER_PHONE}=await import('../../src/catalog-model.js'),{defaultRewards,REWARD_COOLDOWN_MS:DAY}=await import('../../src/reward-model.js');
  const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
  try{for(const width of [320,390,1440]){
   const db=memoryDatabase();let time=Date.now(),counts={},uid='member';const run=accountService(db,{now:()=>time});

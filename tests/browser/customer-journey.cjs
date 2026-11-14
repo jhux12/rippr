@@ -104,7 +104,7 @@ async function accountFixture(browser, uid, fixture) {
 }
 async function profileJourney(browser, fixture, width) {
   const uid='journey-profile',other='journey-other';await fixture.act(uid,'topup',{amountCents:10000});
-  const opened=await fixture.act(uid,'purchase',{packId:'basic',quantity:3,expectedVersion:0,expectedPriceCents:199});
+  const opened=await fixture.act(uid,'purchase',{packId:'basic',quantity:3,expectedVersion:1,expectedPriceCents:199});
   const address={fullName:'Fixture Collector',line1:'123 Test Street',city:'Test City',region:'IN',postalCode:'46000',country:'US'};
   await fixture.act(uid,'settings',{address});await fixture.act(other,'topup',{amountCents:1000});
   const {page,errors}=await accountFixture(browser,uid,fixture);await page.setViewportSize({width,height:900});await page.goto(origin+'/profile.html');
@@ -123,7 +123,7 @@ async function profileJourney(browser, fixture, width) {
   await page.locator('#shipping-form [type="submit"]').click();await page.waitForURL(/order-tracking\.html\?request=/);
   const shipped=await fixture.act(uid,'snapshot');assert.equal(shipped.shipments.length,1);assert.equal(shipped.items.find(i=>i.id===opened.cards[2].id).status,'shipping');assert.equal(shipped.shipments[0].address.line1,address.line1);
   // Sign-out / account switch closes in-progress dialogs and removes prior inventory.
-  const fresh=await fixture.act(uid,'purchase',{packId:'basic',quantity:1,expectedVersion:0,expectedPriceCents:199});
+  const fresh=await fixture.act(uid,'purchase',{packId:'basic',quantity:1,expectedVersion:1,expectedPriceCents:199});
   await page.goto(origin+'/profile.html');await waitFor(page,()=>document.querySelectorAll('[data-ship]').length===1);await page.locator('[data-ship]').click();await page.locator('#shipping-dialog[open]').waitFor();
   await page.evaluate(next=>window.__switchUser(next),other);await waitFor(page,()=>window.RIPPR_ACCOUNT?.user?.uid==='journey-other'&&window.RIPPR_ACCOUNT?.wallet);
   assert(await page.locator('#shipping-dialog').evaluate(d=>!d.open));assert.equal(await page.locator('.item-card').count(),0);assert.equal(await page.locator('#bulk-actions').isHidden(),true);
@@ -220,7 +220,7 @@ async function openingJourney(browser, fixture, width) {
 (async()=>{
   const {accountService}=await import(pathToFileURL(path.join(root,'functions/service.js')));
   const {museumService}=await import(pathToFileURL(path.join(root,'functions/museum-service.js')));
-  const {memoryDatabase}=await import(pathToFileURL(path.join(root,'tests/helpers/memory-database.mjs')));
+  const {catalogDatabase:memoryDatabase}=await import(pathToFileURL(path.join(root,'tests/helpers/catalog-database.mjs')));
   const {defaultPack,DEFAULT_PRICES}=await import(pathToFileURL(path.join(root,'functions/catalog-model.js')));
   const createFixture=()=>{const db=memoryDatabase(),run=accountService(db);return {db,run,museumRun:museumService(db),act:(uid,action,data={})=>run(uid,{action,...data,operationId:randomUUID()}),catalog:async id=>{const found=await db.runTransaction(tx=>tx.get(db.doc('packContents/'+id)));const c=found.exists?found.data():defaultPack(id);return {...c,priceCents:c.priceCents??DEFAULT_PRICES[id]}}}};
   const executablePath=process.env.CHROMIUM_PATH||undefined;

@@ -33,7 +33,7 @@ Owner decision: keep Premium at $10 with its existing pool/odds. The prior $15 p
 
 ## Evidence that supports readiness
 
-The three active catalogs parsed successfully using the same validator as the application; no active demo, variety, concentration or duplicate-name warning appeared in the supplied summary. This supports configuration-level correctness, not full launch clearance. The saved prices override repository defaults, resolving the earlier fallback-price concern for these three existing documents. Missing standard catalogs still fall back to demos in code, so fail-closed behavior remains a separate pre-live recommendation.
+The three active catalogs parsed successfully using the same validator as the application; no active demo, variety, concentration or duplicate-name warning appeared in the supplied summary. This supports configuration-level correctness, not full launch clearance. The saved prices override repository defaults, resolving the earlier fallback-price concern for these three existing documents. The subsequent CATALOG-AVAILABILITY.md change removes missing-catalog fallback in code; deploy the account Function and frontend to apply it. Saved demo pools still require replacement before use.
 
 ## Still unverified
 

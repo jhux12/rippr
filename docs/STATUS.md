@@ -1,3 +1,7 @@
+# Latest: fail-closed catalog availability
+
+Removed server default-pool substitution for missing catalogs on every purchase/owned-pack tier and reachable reward-pack validation. Customer reads reject missing catalogs and show an unavailable opening; admin can still create a disabled draft. Existing owned packs remain intact and can redeem valid disabled/restored saved catalogs. No saved prices, odds, items or enablement changed. Explicit persisted fixtures replace legacy fallback-dependent tests. See [CATALOG-AVAILABILITY.md](CATALOG-AVAILABILITY.md); deployment requires the frontend and `ripprAccount`, with no rules/secrets/indexes. Saved demo pools and physical stock reservation remain separate review items.
+
 # Latest: Premium price confirmed
 
 Owner confirmed Premium stays $10. Audit targets now match the active $1/$5/$10 lineup. Existing saved prices, odds and pools are unchanged; the price decision is resolved in SAVED-PACK-REVIEW.md.

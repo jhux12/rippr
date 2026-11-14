@@ -150,10 +150,11 @@ async function requireAdmin(refresh = true) {
   }
   return user;
 }
-export async function loadPackContents(packId) {
+export async function loadPackContents(packId, { forEditor = false } = {}) {
   assertPackId(packId);
   const snapshot = await getDoc(doc(getDatabase(), 'packContents', packId));
-  const pack = snapshot.exists() ? readStoredPack(snapshot.data()) : defaultPack(packId);
+  if(!snapshot.exists()&&!forEditor)throw Object.assign(new Error('This pack needs its saved catalog restored before it can open.'),{code:'catalog/unconfigured'});
+  const pack = snapshot.exists() ? readStoredPack(snapshot.data()) : {...defaultPack(packId),enabled:false,source:'missing'};
   return { ...pack, priceCents:pack.priceCents ?? DEFAULT_PRICES[packId] };
 }
 

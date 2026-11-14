@@ -178,7 +178,7 @@
     const request = ++generation, uid = ownerUid;
     setBusy(true);
     const results = await Promise.allSettled(tiers.map(async tier => {
-      const result = await Promise.race([client.loadPackContents(tier.id), new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out.')), 9000))]);
+      const result = await Promise.race([client.loadPackContents(tier.id,{forEditor:true}), new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out.')), 9000))]);
       return [tier.id, result];
     }));
     if (request !== generation || !owner() || ownerUid !== uid) return;

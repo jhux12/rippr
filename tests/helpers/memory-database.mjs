@@ -1,8 +1,8 @@
 // Strict transactional fixture for the domain suite when the official emulator
 // cannot be downloaded. It checks rollback/read-before-write, not Security Rules
 // or Firestore's network/retry implementation; run test:accounts:emulator for that.
-export function memoryDatabase(){
- const records=new Map();let queue=Promise.resolve();
+export function memoryDatabase(initialRecords=[]){
+ const records=new Map(initialRecords);let queue=Promise.resolve();
  // Timestamp instances are immutable. Keep their precision/prototype instead of
  // structuredClone turning them into plain objects unlike the real SDK.
  const clone=value=>value?.constructor?.name==='Timestamp'?value:Array.isArray(value)?value.map(clone):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([k,v])=>[k,clone(v)])):value;

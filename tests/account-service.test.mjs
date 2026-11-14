@@ -1,9 +1,9 @@
-import { test, after } from 'node:test';
+import { test, after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { accountService } from '../functions/service.js';
 import { defaultPack } from '../functions/catalog-model.js';
-import { memoryDatabase } from './helpers/memory-database.mjs';
+import { catalogDatabase as memoryDatabase } from './helpers/catalog-database.mjs';
 
 let db, app;
 if(process.env.FIRESTORE_EMULATOR_HOST){
@@ -11,10 +11,11 @@ if(process.env.FIRESTORE_EMULATOR_HOST){
   const { getFirestore }=await import('../functions/node_modules/firebase-admin/lib/firestore/index.js');
   app=initializeApp({projectId:'demo-rippr'});db=getFirestore(app);after(()=>deleteApp(app));
 }else db=memoryDatabase();
+before(async()=>{if(process.env.FIRESTORE_EMULATOR_HOST)await db.doc('packContents/basic').set({...defaultPack('basic'),version:1})});
 const run=accountService(db);
 const act=(uid,action,data={},id=randomUUID())=>run(uid,{action,...data,operationId:id});
 const user=()=>randomUUID();
-const purchase=(uid,data={},id)=>act(uid,'purchase',{packId:'basic',quantity:1,expectedPriceCents:199,expectedVersion:0,...data},id);
+const purchase=(uid,data={},id)=>act(uid,'purchase',{packId:'basic',quantity:1,expectedPriceCents:199,expectedVersion:1,...data},id);
 const snapshot=uid=>act(uid,'snapshot');
 const code=expected=>error=>error.code===expected;
 

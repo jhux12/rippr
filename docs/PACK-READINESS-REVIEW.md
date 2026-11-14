@@ -45,3 +45,5 @@ Calculations assume the code's independent draws with replacement. These exact c
 ## Remaining owner inputs
 
 Confirm physical quantities/sourcing for every possible card, acquisition costs by card/tier, actual Near Mint checks and slab identity, recent value references, current reward/referral costs, and how many openings to support before restocking. Keep real payments/fulfillment off until the relevant launch gates are met.
+
+Subsequent fix: CATALOG-AVAILABILITY.md removes the missing-catalog fallback for server openings/rewards and customer reads. Existing saved prices/odds are unchanged. The original fallback finding above is historical; deployment of the new account Function/frontend applies the fix.
