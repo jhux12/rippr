@@ -47,3 +47,24 @@ export function profileItemState(item, shipments=[]){
  }
  return {filter:status||'unknown',label:'Status unavailable',canManage:false};
 }
+
+// Shipment validation is stricter than a saved contact address. Carrier address
+// verification happens later; this checks structure, not deliverability.
+const shippingStates=Object.fromEntries('AL:Alabama|AK:Alaska|AZ:Arizona|AR:Arkansas|CA:California|CO:Colorado|CT:Connecticut|DE:Delaware|DC:District of Columbia|FL:Florida|GA:Georgia|HI:Hawaii|ID:Idaho|IL:Illinois|IN:Indiana|IA:Iowa|KS:Kansas|KY:Kentucky|LA:Louisiana|ME:Maine|MD:Maryland|MA:Massachusetts|MI:Michigan|MN:Minnesota|MS:Mississippi|MO:Missouri|MT:Montana|NE:Nebraska|NV:Nevada|NH:New Hampshire|NJ:New Jersey|NM:New Mexico|NY:New York|NC:North Carolina|ND:North Dakota|OH:Ohio|OK:Oklahoma|OR:Oregon|PA:Pennsylvania|RI:Rhode Island|SC:South Carolina|SD:South Dakota|TN:Tennessee|TX:Texas|UT:Utah|VT:Vermont|VA:Virginia|WA:Washington|WV:West Virginia|WI:Wisconsin|WY:Wyoming'.split('|').flatMap(entry=>{const [code,name]=entry.split(':');return [[code,code],[name.toUpperCase(),code]]}));
+export function cleanShippingAddress(value,{live=false}={}){
+ const address=cleanAddress(value);
+ if(live){
+  if(!address)invalid('Add a delivery address before requesting shipping.');
+  if(address.country!=='US')invalid('Shipping is currently available to US addresses only.');
+  const region=shippingStates[address.region.toUpperCase()];if(!region||['AK','HI'].includes(region))invalid('Shipping currently supports the contiguous United States and DC. Enter a valid state.');address.region=region;
+  address.postalCode=address.postalCode.replace(/^(\d{5})(\d{4})$/,'$1-$2');
+  if(!/^\d{5}(-\d{4})?$/.test(address.postalCode))invalid('Enter a valid US ZIP code (12345 or 12345-6789).');
+ }
+ return address;
+}
+export function carrierTrackingURL(carrier,number){
+ if(typeof carrier!=='string'||typeof number!=='string')return null;
+ const value=number.trim();if(!/^[a-zA-Z0-9 -]{1,160}$/.test(value))return null;
+ const prefix={usps:'https://tools.usps.com/go/TrackConfirmAction?tLabels=',ups:'https://www.ups.com/track?loc=en_US&tracknum=',fedex:'https://www.fedex.com/fedextrack/?trknbr=',dhl:'https://www.dhl.com/us-en/home/tracking.html?tracking-id=','dhl express':'https://www.dhl.com/us-en/home/tracking.html?tracking-id='}[carrier.trim().toLowerCase()];
+ return prefix?prefix+encodeURIComponent(value):null;
+}

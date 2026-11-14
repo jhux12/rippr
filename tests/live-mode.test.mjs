@@ -37,3 +37,19 @@ test('a valid smaller Checkout created before the new minimum can still settle o
  await f.event('checkout.session.completed');await f.event('checkout.session.completed');
  assert.equal((await f.call('snapshot')).account.balanceCents,500);
 });
+
+test('live shipping requires an address, locks items once, and permits only forward fulfillment',async()=>{
+ const f=await fixture();await f.pay('member',{action:'checkout',amountCents:2500,operationId:randomUUID()});await f.event('checkout.session.completed');
+ const won=await f.call('purchase',{packId:'basic',quantity:1,expectedVersion:1,expectedPriceCents:199}),itemId=won.cards[0].id;
+ const address={fullName:'Collector',line1:'123 Example St',city:'Indianapolis',region:'IN',postalCode:'462041234',country:'US'};
+ for(const invalid of [undefined,null,{...address,country:'CA'},{...address,region:''},{...address,postalCode:'invalid'}])await assert.rejects(()=>f.call('ship',{itemIds:[itemId],address:invalid,requireAddress:false}),e=>e.code==='invalid-argument');
+ let snapshot=await f.call('snapshot');assert.equal(snapshot.items[0].status,'available');assert.equal(snapshot.shipments.length,0);const balance=snapshot.account.balanceCents;
+ const id=randomUUID(),input={itemIds:[itemId],address},created=await f.call('ship',input,id);assert.deepEqual(await f.call('ship',input,id),created);
+ snapshot=await f.call('snapshot');assert.equal(snapshot.account.balanceCents,balance);assert.equal(snapshot.shipments.length,1);assert.equal(snapshot.shipments[0].address.postalCode,'46204-1234');assert.equal(snapshot.shipments[0].status,'review');
+ await assert.rejects(()=>f.call('sell',{itemIds:[itemId]}),e=>e.code==='failed-precondition');
+ const service=accountService(f.db,{mode:'live'}),base={customerUid:'member',shipmentId:created.shipmentId,carrier:'USPS',trackingNumber:'9400000000000000000000'},update=(status,expectedVersion)=>service('owner',{action:'updateShipment',...base,status,expectedVersion,operationId:randomUUID()},owner);
+ await assert.rejects(()=>update('delivered',0),e=>e.code==='failed-precondition');
+ await update('packing',0);await assert.rejects(()=>update('review',1),e=>e.code==='failed-precondition');
+ await update('shipped',1);await update('delivered',2);await assert.rejects(()=>update('packing',3),e=>e.code==='failed-precondition');
+ snapshot=await f.call('snapshot');assert.equal(snapshot.shipments[0].status,'delivered');assert.equal(snapshot.account.balanceCents,balance);
+});

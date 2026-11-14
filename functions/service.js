@@ -9,7 +9,7 @@ import {EMAIL_ACTIONS,emailVerification} from './email-verification.js';
 import {inventoryPage} from './inventory-service.js';
 import {REFERRAL_ACTIONS,referralService,readReferralConfig,validateSignupReferral} from './referral-service.js';
 import {SUPPORT_ACTIONS,supportService} from './support-service.js';
-import { cleanAddress, cleanSettingsPatch } from './account-settings-model.js';
+import { cleanAddress, cleanSettingsPatch, cleanShippingAddress, shipmentStage } from './account-settings-model.js';
 import { randomInt } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -76,16 +76,19 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       }
       if(!/^[-a-zA-Z0-9]{16,80}$/.test(operationId||''))fail('invalid-argument','A valid operation ID is required.');
       const statuses=['test-request','review','packing','shipped','delivered'];
-      if(!statuses.includes(data.status)||!Number.isInteger(data.expectedVersion))fail('invalid-argument','Choose a valid status and reload the saved version.');
+      if(!statuses.includes(data.status)||(mode==='live'&&data.status==='test-request')||!Number.isInteger(data.expectedVersion))fail('invalid-argument','Choose a valid status and reload the saved version.');
       const carrier=typeof data.carrier==='string'?data.carrier.trim():'',trackingNumber=typeof data.trackingNumber==='string'?data.trackingNumber.trim():'';
       if(carrier.length>80||trackingNumber.length>160||(['shipped','delivered'].includes(data.status)&&(!carrier||!trackingNumber)))fail('invalid-argument','Add carrier and tracking details before marking shipped or delivered.');
       const op=account.collection('operations').doc(operationId),fingerprint=JSON.stringify({action,data});
       return db.runTransaction(async tx=>{
-        const [prior,found,closure]=await Promise.all([tx.get(op),tx.get(target),tx.get(db.doc('accountClosureState/'+data.customerUid))]);
+        const [prior,found,closure,customerWallet]=await Promise.all([tx.get(op),tx.get(target),tx.get(db.doc('accountClosureState/'+data.customerUid)),tx.get(db.doc('testAccounts/'+data.customerUid))]);
         if(['processing','completed'].includes(closure.data()?.status))fail('failed-precondition','This account is being closed. Shipping edits are paused.');
         if(prior.exists){if(prior.data().fingerprint!==fingerprint)fail('already-exists','Operation ID already used.');return prior.data().result}
         if(!found.exists)fail('not-found','Shipping request not found.');const request=found.data();
         if((request.version||0)!==data.expectedVersion)fail('failed-precondition','This request changed. Reload before saving.');
+        const before=shipmentStage(request.status),after=shipmentStage(data.status);if(before<3&&after>=3&&(customerWallet.data()?.paymentHold||customerWallet.data()?.paymentDebtCents>0))fail('failed-precondition','Resolve the payment review before dispatching this request.');if(after>=3&&['purchasing','unknown','pending'].includes(request.labelStatus))fail('failed-precondition','Reconcile the pending carrier label before marking this request dispatched.');
+        if(before<0||after<before)fail('failed-precondition','Shipping status cannot move backward. Reload the request before updating.');
+        if(data.status==='delivered'&&before<shipmentStage('shipped'))fail('failed-precondition','Mark the request shipped with tracking before marking it delivered.');
         const patch={status:data.status,carrier,trackingNumber,version:(request.version||0)+1,updatedAt:stamp(),updatedBy:uid};
         tx.update(target,patch);
         tx.set(queue.doc(data.customerUid+'_'+data.shipmentId),{...request,...patch,id:data.shipmentId,customerUid:data.customerUid});
@@ -232,11 +235,12 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           let address=wallet.address||null;
           if(data.address!==undefined){try{address=cleanAddress(data.address)}catch(error){fail('invalid-argument',error.message)}}
           if(data.requireAddress===true&&!address)fail('invalid-argument','Add a delivery address before submitting.');
+          if(mode==='live'){try{address=cleanShippingAddress(address,{live:true})}catch(error){fail('invalid-argument',error.message)}}
           const shipment={itemIds:ids,items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents,...gradingFields(c)}}),address,status:mode==='live'?'review':'test-request',version:0,shippingMethod:'standard-tracked',estimateCents:null,quoteStatus:'unavailable',createdAt:stamp(),testOnly:mode!=='live'};
           tx.create(account.collection('shipments').doc(operationId),shipment);
           tx.create(db.doc(`shippingQueue/root/requests/${uid}_${operationId}`),{...shipment,id:operationId,customerUid:uid});
           result = { count:ids.length, shipmentId:operationId };
-          activity = { type:'shipping', label:`Test shipping request · ${ids.length} item${ids.length===1?'':'s'}`, amountCents:0 };
+          activity = { type:'shipping', label:`${mode==='live'?'Shipping request':'Test shipping request'} · ${ids.length} item${ids.length===1?'':'s'}`, amountCents:0 };
         }
       } else if (action === 'smsConsent') {
         let consent;try{consent=recordSmsChoice(wallet.smsConsent,data,claims,now())}catch(error){fail('invalid-argument',error.message)}

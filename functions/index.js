@@ -1,10 +1,13 @@
+import {testShippo} from './shippo-test.js';
+import {shippingService} from './shipping-service.js';
+import {shippoProvider} from './shippo-provider.js';
 import {monitorFailure,withOpeningMonitoring} from './operations-monitor.js';
 import {saveHomepageGrails} from './homepage-grails-service.js';
 import {scopedDatabase,validateMode,assertRuntime,ensureLiveAccount,LIVE_POLICY_VERSION,runtimeInput,authorizeLiveAction,protectSharedIdentity} from './runtime-mode.js';
 import {closureService,CLOSURE_ACTIONS,guardedLifecycle,assertAccountOpen} from './closure-service.js';
 import {getAuth} from 'firebase-admin/auth';
 import {getStorage} from 'firebase-admin/storage';
-import {guardedAccount,guardedStripe} from './eligibility-service.js';
+import {requireEligibility,guardedAccount,guardedStripe} from './eligibility-service.js';
 import {isAdminToken} from './catalog-model.js';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -113,3 +116,22 @@ export const ripprLiveEmailEvents=onDocumentWritten({document:'liveAccounts/{uid
 export const ripprLiveEmailWelcome=onDocumentWritten({document:'liveAccounts/{uid}',region:'us-central1',retry:true,maxInstances:5},async event=>{if(!emailEnabled.value()||!event.data?.after.exists)return;const after=event.data.after.data(),before=event.data.before.exists?event.data.before.data():null;if(verifiedRecipient(after)&&!verifiedRecipient(before))await queueEmail(scopedDatabase(getFirestore(),'live'),event.params.uid,{type:'welcome',key:'welcome',data:{}})});
 export const ripprLiveEmailDelivery=onDocumentCreated({document:'liveEmailOutbox/{emailId}',region:'us-central1',secrets:[emailKey],retry:true,maxInstances:3,timeoutSeconds:60},event=>deliverEmail(scopedDatabase(getFirestore(),'live'),event.params.emailId,emailConfig(),{apiKey:emailKey.value()}));
 export const ripprLiveEmailRetry=onSchedule({schedule:'every 10 minutes',region:'us-central1',secrets:[emailKey],maxInstances:1,timeoutSeconds:300},async()=>{if(!emailEnabled.value())return;const db=scopedDatabase(getFirestore(),'live'),pending=await db.collection('emailOutbox').where('status','in',['pending','retry','processing']).limit(10).get();for(const doc of pending.docs)await deliverEmail(db,doc.id,emailConfig(),{apiKey:emailKey.value()})});
+
+
+const shippoTestKey=defineSecret('SHIPPO_TEST_API_KEY'),shippoLiveKey=defineSecret('SHIPPO_LIVE_API_KEY');
+async function shippingRequest(request,mode,key){
+ assertRuntime(mode,request.data);if(activeMode()!==mode)throw new HttpsError('failed-precondition','Shipping mode changed. Reload before continuing.');
+ const db=scopedDatabase(getFirestore(),mode),uid=request.auth?.uid;
+ if(!request.data?.action?.startsWith('admin'))await assertAccountOpen(db,uid);
+ if(request.data?.action==='payShipment')await requireEligibility(db,uid,request.data);
+ const result=await shippingService(db,{provider:shippoProvider({mode,key})})(uid,runtimeInput(request.data),request.auth?.token);
+ return{...result,mode};
+}
+export const ripprShipping=onCall({region:'us-central1',maxInstances:5,timeoutSeconds:60,secrets:[shippoTestKey]},r=>shippingRequest(r,'test',()=>shippoTestKey.value()));
+export const ripprLiveShipping=onCall({region:'us-central1',maxInstances:5,timeoutSeconds:60,secrets:[shippoLiveKey]},r=>shippingRequest(r,'live',()=>shippoLiveKey.value()));
+
+
+export const ripprShippoTest=onCall({region:'us-central1',maxInstances:1,timeoutSeconds:60,secrets:[shippoTestKey]},async request=>{
+ assertRuntime(activeMode(),request.data);
+ return testShippo(activeDb(),request.auth?.uid,runtimeInput(request.data),request.auth?.token,shippoProvider({mode:'test',key:()=>shippoTestKey.value()}));
+});

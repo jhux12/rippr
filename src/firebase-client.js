@@ -418,3 +418,20 @@ export async function stripeAction(action,data={},operationId){
  let result;try{result=await httpsCallable(functions,runtimeMode()==='live'?'ripprLiveStripe':'ripprStripe',{timeout:60000})({action,...data,...runtimeEnvelope(),accountUid:uid,...(operationId?{operationId}:{})})}catch(error){return eligibilityRedirect(error)}
  if(auth.currentUser?.uid!==uid)throw Object.assign(new Error('Your account changed.'),{code:'functions/unauthenticated'});return result.data;
 }
+
+
+export async function shippingAction(action,data={},operationId){
+ await ready;const uid=auth.currentUser?.uid;if(!uid)throw Object.assign(Error('Log in to manage shipping.'),{code:'functions/unauthenticated'});
+ try{const result=(await httpsCallable(callableFunctions(),runtimeMode()==='live'?'ripprLiveShipping':'ripprShipping',{timeout:60000})({action,...data,accountUid:uid,...runtimeEnvelope(),...(operationId?{operationId}:{})})).data;
+ if(auth.currentUser?.uid!==uid)throw Object.assign(Error('Your sign-in changed.'),{code:'functions/unauthenticated'});
+ if(result.mode!==runtimeMode())throw Object.assign(Error('Shipping mode changed. Reload before continuing.'),{code:'functions/failed-precondition'});return result;
+ }catch(error){return eligibilityRedirect(error)}
+}
+
+
+export async function testShippo(createLabel=false){
+ const owner=await requireAdmin();
+ const result=(await httpsCallable(callableFunctions(),'ripprShippoTest',{timeout:60000})({accountUid:owner.uid,createLabel,...runtimeEnvelope()})).data;
+ if(auth.currentUser?.uid!==owner.uid||result.testOnly!==true)throw Object.assign(Error('Shippo test could not be verified.'),{code:'functions/failed-precondition'});
+ return result;
+}

@@ -25,15 +25,20 @@
    const select=$('#request-select');select.replaceChildren();for(const request of list.some(s=>s.id===id)?list:[{id},...list]){const option=document.createElement('option');option.value=request.id;option.textContent=label(request.id);option.selected=request.id===id;select.append(option)}
    currentRequestId=id;$('#account-gate').hidden=true;$('#tracking-content').hidden=false;
    $('#request-number').textContent=label(id);$('#request-number').title=id;
-   const index=model.shipmentStage(data.status),status=index<0?'Status unavailable':model.SHIPMENT_STAGES[index];
+   const canceled=data.status==='canceled',index=model.shipmentStage(data.status),status=canceled?'Canceled':index<0?'Status unavailable':model.SHIPMENT_STAGES[index];
    $('#request-status').textContent=status;
    $('#request-timeline').innerHTML=model.SHIPMENT_STAGES.map((text,i)=>`<li class="${index>=i?'is-complete':''}" ${index===i?'aria-current="step"':''}><span aria-hidden="true">${index>=i?'✓':i+1}</span>${text}</li>`).join('');
-   $('#request-note').textContent=index<0?'The saved status is not recognized. Contact support for help.':index===0?'Your request is saved. Updates will appear here.':index===4?'Your request is marked delivered.':'Latest recorded status: '+status+'.';
+   $('#request-timeline').hidden=canceled;
+   $('#request-note').textContent=canceled?'This request was canceled. Its cards are available in My items.':index<0?'The saved status is not recognized. Contact support for help.':index===0?'Your request is saved. Updates will appear here.':index===4?'Your request is marked delivered.':'Latest recorded status: '+status+'.';
+   if(['FAILURE','RETURNED'].includes(data.carrierStatus))$('#request-note').textContent='The carrier reported a delivery issue. Contact support and check the carrier tracking link.';
    const items=Array.isArray(data.items)?data.items:[];
    $('#request-items').innerHTML=items.map(item=>{const image=window.RipprCatalog.safeImageURL(item.image)?(window.RIPPR_ASSET_URLS?.[item.image]||item.image):'assets/card-placeholder.svg';const color=window.RipprCatalog.RARITIES.find(r=>r.name===item.rarity)?.color||'#adbdcf';return `<article class="request-item"><img src="${esc(image)}" alt="${esc(item.name)}"><div><h3>${esc(item.name)}</h3><p><span class="status-pill" style="color:${color};border-color:${color}">${esc(item.rarity)}</span><span class="condition-badge">${window.RipprCatalog.conditionLabel(item)}</span>1 card</p></div></article>`}).join('')||'<p>Item details are unavailable. Keep your request number for support.</p>';
    $('#request-items').querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{img.src='assets/card-placeholder.svg'},{once:true}));
    const address=$('#request-address');address.replaceChildren();const lines=model.addressLines(data.address);for(const text of lines){const p=document.createElement('p');p.textContent=text;address.append(p)}if(!lines.length)address.textContent='No delivery address was saved with this request.';
    $('#carrier').textContent=data.carrier||'Assigned after dispatch';$('#tracking-number').textContent=data.trackingNumber||'Available after dispatch';
+   const trackingURL=model.carrierTrackingURL(data.carrier,data.trackingNumber);
+   if(trackingURL&&index>=3){const link=document.createElement('a');link.href=trackingURL;link.target='_blank';link.rel='noopener noreferrer';link.className='carrier-tracking-link';link.textContent='Track with carrier ↗';link.setAttribute('aria-label','Track your shipment with '+data.carrier+' (opens in a new tab)');$('#tracking-number').append(link)}
+   document.dispatchEvent(new CustomEvent('rippr:shipmentloaded',{detail:{id,data}}));
    const url=new URL(location.href);url.searchParams.set('request',id);history.replaceState(null,'',url);
   }catch(error){if(ticket!==generation||uid!==state()?.user?.uid)return;gate(error.code==='account/not-found'?'Request not found':'Request unavailable',error.code==='account/not-found'?'This request does not belong to your current account or no longer exists.':'Could not load the request. Please try again.',{retry:true})}
  }
