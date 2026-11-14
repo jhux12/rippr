@@ -9,7 +9,7 @@ const fail=(code,message)=>{throw new HttpsError(code,message)};
 const stamp=()=>FieldValue.serverTimestamp();
 const validId=value=>typeof value==='string'&&/^[a-zA-Z0-9-]{16,80}$/.test(value);
 const stripeMode=mode=>{if(!['test','live'].includes(mode))throw Error('Invalid payment mode.');return{live:mode==='live',namespace:mode==='live'?'rippr-live-balance-v1':'rippr-sandbox-balance-v1',currency:mode==='live'?'USD':'TEST_USD'}};
-export function requireStripeKey(key,mode='test'){const prefix=mode==='live'?'sk_live_':'sk_test_';if(!['test','live'].includes(mode)||typeof key!=='string'||!key.startsWith(prefix))throw Object.assign(new Error('Stripe key does not match payment mode.'),{code:'stripe-config-key'});return key}
+export function requireStripeKey(key,mode='test'){const prefixes=mode==='live'?['sk_live_','rk_live_']:['sk_test_'];if(!['test','live'].includes(mode)||typeof key!=='string'||key!==key.trim()||!prefixes.some(prefix=>key.startsWith(prefix)&&key.length>prefix.length))throw Object.assign(new Error('Stripe key does not match payment mode.'),{code:'stripe-config-key'});return key}
 export function stripeConfig(options){
  let site;try{site=new URL(options.siteUrl||'')}catch{throw Object.assign(new Error('Invalid Stripe site origin.'),{code:'stripe-config-site'})}
  if(site.protocol!=='https:'||site.username||site.password||site.pathname!=='/'||site.search||site.hash)throw Object.assign(new Error('Stripe site origin must be HTTPS without a path.'),{code:'stripe-config-site'});

@@ -145,4 +145,11 @@ If Checkout still reports that the live payment key needs configuration after re
 node scripts/check-live-stripe-key.mjs rippr-2b01c
 ```
 
-This reads the latest secret into memory, reports only its version and format classification, compares both deployed live functions' secret bindings, and checks authentication with a read-only Stripe balance request. It never prints the secret or balance and creates no payment. Access/HTTP failures are summarized without raw provider messages. A good latest key with an older deployment binding requires redeploying both live Stripe functions; a 401 from Stripe requires an active replacement key. Do not paste secret values or raw secret-access output into chat.
+This reads the latest secret into memory, reports only its version and format classification, compares both deployed live functions' secret bindings, and checks authentication with a read-only Checkout Sessions list request. It never prints the secret or session data and creates no payment. Access/HTTP failures are summarized without raw provider messages. A good latest key with an older deployment binding requires redeploying both live Stripe functions; a 401 from Stripe requires an active replacement key. Do not paste secret values or raw secret-access output into chat.
+
+
+## Restricted live keys
+
+The live integration accepts both `sk_live_` and `rk_live_` server keys. Publishable, test and webhook secrets remain rejected as live API credentials. This prefix support does not bypass Stripe permissions or alter live/test isolation. In Stripe's custom key permission screen, enable Checkout Sessions Write; Payment Intents, Charges and Disputes Read. Enable Products and Prices Write for the inline product/price setup used when creating top-up Sessions. Leave unrelated resources at None. The diagnostic uses Checkout Sessions Read (included by Write) rather than asking for balance access. No API refund write, payout, transfer or account-management permission is required by this implementation. Tax remains off.
+
+Store the restricted key in the existing `STRIPE_LIVE_SECRET_KEY` Firebase secret, verify the diagnostic, then deploy `functions:ripprLiveStripe,functions:ripprLiveStripeWebhook`. Updating the secret alone does not update already deployed function secret bindings. This does not enable public live access.

@@ -21,7 +21,7 @@ if(has('describe')&&has('secrets')){
 else process.exit(1);
 `,{mode:0o755});
 writeFileSync(join(dir,'fetch.mjs'),`globalThis.fetch=async(url,options)=>{
- if(url!=='https://api.stripe.com/v1/balance'||options.headers.Authorization!=='Bearer '+process.env.MOCK_KEY)throw Error('Unexpected request');
+ if(url!=='https://api.stripe.com/v1/checkout/sessions?limit=1'||options.headers.Authorization!=='Bearer '+process.env.MOCK_KEY)throw Error('Unexpected request');
  return new Response('',{status:Number(process.env.MOCK_STATUS||200)});
 };`);
 const run=extra=>{
@@ -40,7 +40,12 @@ test('lookup and value-access errors are distinct without disclosing command std
  const access=run({MOCK_ACCESS_FAIL:'1'});assert.equal(access.status,1);assert.match(access.output,/value access: permission denied/);
 });
 test('diagnostic distinguishes invalid format, whitespace, and Stripe rejection',()=>{
- const invalid=run({MOCK_KEY:'pk_live_mockPublishable'});assert.equal(invalid.status,1);assert.match(invalid.output,/not a live secret API key/);
+ const invalid=run({MOCK_KEY:'pk_live_mockPublishable'});assert.equal(invalid.status,1);assert.match(invalid.output,/not a live server API key/);
  const space=run({MOCK_KEY:sentinel+'\n'});assert.equal(space.status,1);assert.match(space.output,/surrounding whitespace/);
  const rejected=run({MOCK_STATUS:'401'});assert.equal(rejected.status,1);assert.match(rejected.output,/Stripe rejected the saved key/);
+});
+
+test('restricted live key is accepted without requesting balance permission',()=>{
+ const r=run({MOCK_KEY:'rk_live_mockRestricted'});assert.equal(r.status,0);assert.match(r.output,/PASS: Stripe accepts/);
+ const denied=run({MOCK_KEY:'rk_live_mockRestricted',MOCK_STATUS:'403'});assert.equal(denied.status,1);assert.match(denied.output,/Checkout Sessions read\/write permission/);
 });
