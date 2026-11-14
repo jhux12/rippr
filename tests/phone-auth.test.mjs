@@ -38,3 +38,28 @@ test('sign-in return destinations preserve same-site queries and hashes and reje
  assert.equal(safeAuthReturn('https://rippr.example/rewards.html#prizes',origin),'/rewards.html#prizes');
  for(const path of ['https://evil.example/','//evil.example','javascript:alert(1)','/auth','auth.html?mode=signup','/auth.html#top','/%61uth.html','https://user@rippr.example/profile.html',null,''])assert.equal(safeAuthReturn(path,origin),null);
 });
+
+test('failed resend preserves the same phone confirmation but cancellation never restores it',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../src/firebase-client.js',import.meta.url),'utf8');
+  const start=source.slice(source.indexOf('export async function startPhoneSignIn('),source.indexOf('export async function confirmPhoneSignIn(')).replace('export ','');
+  const make=new Function('send',`
+    const ready=Promise.resolve(),auth={currentUser:null},normalizePhoneNumber=x=>x;
+    const setPersistence=async()=>{},browserLocalPersistence={},browserSessionPersistence={};
+    const phoneError=(code,message)=>Object.assign(new Error(message),{code});
+    let phoneGeneration=1,phoneVerifier=null;
+    const confirmation={confirm:async()=>{}};
+    let phoneAttempt={confirmation,generation:1,uid:null,phoneNumber:'+12015550123'};
+    function clearPhoneVerifier(){phoneVerifier=null}
+    function cancelPhoneSignIn(){phoneGeneration++;phoneAttempt=null;clearPhoneVerifier()}
+    class RecaptchaVerifier {}
+    const signInWithPhoneNumber=async()=>send(cancelPhoneSignIn),linkWithPhoneNumber=signInWithPhoneNumber;
+    ${start}
+    return {startPhoneSignIn,get:()=>phoneAttempt,confirmation};`);
+  const failure=Object.assign(new Error('offline'),{code:'auth/network-request-failed'});
+  const same=make(async()=>{throw failure});
+  await assert.rejects(same.startPhoneSignIn('+12015550123'),{code:failure.code});
+  assert.equal(same.get().confirmation,same.confirmation);assert.equal(same.get().generation,2);
+  const changed=make(async()=>{throw failure});await assert.rejects(changed.startPhoneSignIn('+12015550124'));assert.equal(changed.get(),null);
+  const canceled=make(async cancel=>{cancel();throw failure});await assert.rejects(canceled.startPhoneSignIn('+12015550123'));assert.equal(canceled.get(),null);
+});

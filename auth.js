@@ -121,15 +121,15 @@
     const number=phoneModel.normalizePhoneNumber(step==='code'?sentNumber:phone.value);
     if(!number){fieldError(phone,errors['auth/invalid-phone-number']);return}
     if(remaining(number)>0){message(`Wait ${remaining(number)} seconds before requesting another code.`);return}
-    const ticket=++generation, linking=Boolean(client.currentUser());
+    const previousStep=step, ticket=++generation, linking=Boolean(client.currentUser());
     setBusy(true,'send');
     try {
       if(signup&&!linking&&invite.value){await client.validateSignupReferral(invite.value);if(ticket!==generation)return}
       submittedInvite=signup&&!linking?invite.value:'';
       const result=await client.startPhoneSignIn(number,{link:linking,remember:signup||remember.checked});
       if(ticket!==generation)return;
-      sentNumber=result.phoneNumber; sentAt.set(sentNumber,Date.now());try{localStorage.setItem(smsCooldownKey,String(Date.now()))}catch{} step='code'; code.value=''; renderStep(); code.focus();
-    } catch(error) { if(ticket===generation){step='phone';code.value='';renderStep();if(signup&&invite.value&&error.code?.startsWith('functions/'))fieldError(invite,['functions/invalid-argument','functions/failed-precondition'].includes(error.code)?error.message:'Referral checking is unavailable. Try again or remove the code.');else message(errorMessage(error))} }
+      sentNumber=result.phoneNumber; sentAt.set(sentNumber,Date.now());try{localStorage.setItem(smsCooldownKey,String(Date.now()))}catch{} step='code'; code.value=''; setBusy(false); renderStep(); code.focus();
+    } catch(error) { if(ticket===generation){step=previousStep;code.value='';setBusy(false);renderStep();if(signup&&invite.value&&error.code?.startsWith('functions/'))fieldError(invite,['functions/invalid-argument','functions/failed-precondition'].includes(error.code)?error.message:'Referral checking is unavailable. Try again or remove the code.');else message(errorMessage(error))} }
     finally { if(ticket===generation)setBusy(false); }
   }
   form.addEventListener('submit',async event=>{
@@ -145,7 +145,7 @@
       code.value=''; setBusy(false); await showUser(next);
     } catch(error) {
       if(ticket!==generation)return;
-      code.value='';
+      setBusy(false);code.value='';
       if(['auth/code-expired','auth/session-expired','auth/invalid-verification-id','auth/invalid-link-session'].includes(error.code)) {
         client.cancelPhoneSignIn(); step='phone'; renderStep(); message(errorMessage(error));
       } else if(error.code==='auth/invalid-verification-code')fieldError(code,errorMessage(error));

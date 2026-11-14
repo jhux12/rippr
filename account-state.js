@@ -109,7 +109,7 @@
     },
     errorMessage(error) {
       if(error?.code==='functions/unauthenticated')return 'Log in to continue.';
-      if(error?.code==='functions/resource-exhausted')return 'Not enough balance. Add free test credit to continue.';
+      if(error?.code==='functions/resource-exhausted')return /not enough balance/i.test(error.message||'')?'Not enough balance. Top up to continue.':'Too many requests. Please wait a moment and try again.';
       if(['functions/failed-precondition','functions/invalid-argument','functions/already-exists'].includes(error?.code))return error.message;
       if(error?.code==='functions/not-found')return 'Account services are not deployed yet. Please try again after setup.';
       return 'Account service unavailable. Retry to safely continue the same request.';

@@ -83,6 +83,7 @@ export async function startPhoneSignIn(value, { link = false, remember = true } 
   if (link && (!user || user.phoneNumber)) throw phoneError('auth/invalid-link-session', 'Sign in to the existing account before linking a phone.');
   if (!link && user) throw phoneError('auth/already-signed-in', 'Sign out before using another account.');
   if(!link)await setPersistence(auth,remember?browserLocalPersistence:browserSessionPersistence);
+  const previousAttempt=phoneAttempt;
   cancelPhoneSignIn();
   const generation = phoneGeneration;
   const verifier = phoneVerifier = new RecaptchaVerifier(auth, 'phone-recaptcha', { size:'invisible' });
@@ -91,6 +92,13 @@ export async function startPhoneSignIn(value, { link = false, remember = true } 
     if (generation !== phoneGeneration || (link && auth.currentUser?.uid !== user.uid)) throw phoneError('auth/cancelled-phone-request', 'The sign-in request changed. Send a new code.');
     phoneAttempt = { confirmation, generation, uid:link ? user.uid : null, phoneNumber };
     return { phoneNumber };
+  } catch(error) {
+    // A failed resend must not discard the prior code's confirmation session.
+    if(generation===phoneGeneration&&previousAttempt?.phoneNumber===phoneNumber
+      &&previousAttempt.uid===(link?user.uid:null)&&auth.currentUser?.uid===user?.uid){
+      phoneAttempt={...previousAttempt,generation};
+    }
+    throw error;
   } finally { if (phoneVerifier === verifier) clearPhoneVerifier(); }
 }
 export async function confirmPhoneSignIn(value) {

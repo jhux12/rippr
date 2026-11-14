@@ -50,7 +50,7 @@ async function authJourney(browser, width) {
     window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>current,observe:()=>{},cancelPhoneSignIn:()=>{},
       startPhoneSignIn:async(number,options)=>{calls.push(['sms',options]);return {phoneNumber:number}},
       validateSignupReferral:async code=>{calls.push(['check',code]);if(code.endsWith('0000'))throw {code:'functions/failed-precondition',message:'Invalid referral'}},
-      confirmPhoneSignIn:async()=>{current={uid:'auth-member',phoneNumber:'+12015550123'};return current},
+      confirmPhoneSignIn:async()=>{if(window.rejectCode)throw {code:'auth/invalid-verification-code'};current={uid:'auth-member',phoneNumber:'+12015550123'};return current},
       accountAction:async()=>({canApply:false,config:{enabled:true,version:0}})};
   });
   await page.setViewportSize({width,height:900});
@@ -63,6 +63,9 @@ async function authJourney(browser, width) {
     if(remember)await page.locator('#remember-me').check();
     await page.locator('#phone').fill('2015550123');await page.locator('#auth-submit').click();
     await page.locator('#code-step:not([hidden])').waitFor();
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'verification-code','Code field receives focus after sending');
+    await page.evaluate(()=>window.rejectCode=true);await page.locator('#verification-code').fill('000000');await page.locator('#auth-submit').click();await page.locator('#verification-code-error:not([hidden])').waitFor();
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'verification-code','Invalid code returns focus to editable field');await page.evaluate(()=>window.rejectCode=false);
     await assertMobileTargets(page,'.phone-code-actions button,#auth-submit',width);
     assert.deepEqual(await page.evaluate(()=>calls),[['sms',{link:false,remember}]]);
     await page.locator('#verification-code').fill('123456');await page.locator('#auth-submit').click();
