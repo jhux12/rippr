@@ -29,7 +29,7 @@
    }else if(['review','failed','expired','refunded'].includes(result.status)){
     done=true;headline(result.status==='review'?'We’re reviewing your top-up':result.status==='refunded'?'Top-up refunded':'Top-up not completed');text.textContent=result.status==='review'?'This top-up needs payment review. Contact support.':result.status==='refunded'?'This top-up has been refunded. Check your account for its current balance.':'This Checkout did not complete. You can start a new top-up.';cleanUrl();
     try{sessionStorage.removeItem('rippr:stripe-topup:'+(live()?'live:':'')+uid+':'+result.amountCents)}catch{}
-   }else{text.textContent='Waiting for Stripe payment confirmation. Your balance will update after the webhook arrives.';if(attempts<12)timer=setTimeout(check,5000);else retry.hidden=false}
+   }else{text.textContent='Waiting for Stripe payment confirmation. Your balance will update once payment is confirmed.';if(attempts<12)timer=setTimeout(check,5000);else retry.hidden=false}
   }catch{
    if(ticket===generation&&uid===window.RIPPR_ACCOUNT?.user?.uid){text.textContent='Could not check this top-up. Retry or return to this page later.';retry.hidden=false}
   }finally{busy=false;if(ticket!==generation)sync()}
@@ -40,7 +40,7 @@
   if(!busy&&!timer&&!done)check();
  }
  retry.addEventListener('click',()=>{attempts=0;check()});
- if(cancelled){text.textContent='Stripe Checkout was cancelled. No credit has been added by this return page.';cleanUrl();return}
+ if(cancelled){text.textContent='Checkout canceled. If you completed payment in another tab, check My account before trying again.';cleanUrl();return}
  document.addEventListener('rippr:authchange',sync);document.addEventListener('rippr:walletchange',sync);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clear();else sync()});window.addEventListener('pagehide',clear);window.addEventListener('pageshow',sync);sync();
 })();

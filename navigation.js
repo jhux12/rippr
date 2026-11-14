@@ -98,7 +98,7 @@
     if(button.dataset.navDialog==='how'){ location.href='how-it-works.html'; return; }
     dialogTrigger = button;
     setMenu(false);
-    content.innerHTML = '<h2 id="nav-dialog-title">How it works</h2><ol><li>Add free test credit to your account.</li><li>Choose a pack and open it using your balance.</li><li>Rip the foil. Your card is saved to your items.</li></ol><p>Test credit has no cash value. Shipping requests are tests.</p>';
+    content.innerHTML = '<h2 id="nav-dialog-title">How it works</h2><ol><li>Add site credit through secure Stripe Checkout.</li><li>Choose a pack and open it using your balance.</li><li>Rip the foil. Your card is saved to your items.</li></ol><p>Each pack contains one card. Sellback adds site credit; no cash withdrawals.</p>';
     const explore = document.createElement('a');
     explore.className = 'nav-dialog-action';
     explore.href = packsTarget;
@@ -155,7 +155,7 @@
   trigger.type = 'button';
   trigger.className = 'topup-trigger nav-balance';
   trigger.hidden = !window.RIPPR_ACCOUNT?.user;
-  trigger.setAttribute('aria-label', `Test balance ${balance}. Open top up`);
+  trigger.setAttribute('aria-label', `Balance ${balance}. Open top up`);
   trigger.setAttribute('aria-haspopup', 'dialog');
   trigger.setAttribute('aria-controls', 'topup-dialog');
   trigger.title = 'Top up balance';
@@ -166,7 +166,7 @@
   dialog.id = 'topup-dialog';
   dialog.className = 'topup-dialog';
   dialog.setAttribute('aria-labelledby', 'topup-title');
-  dialog.innerHTML = `<div class="topup-heading"><span>rippr<b aria-hidden="true">✦</b></span><button type="button" class="topup-close" aria-label="Close top up" autofocus>×</button></div><h2 id="topup-title">Top up your balance</h2><p class="topup-mode-badge">SANDBOX · NO REAL CHARGE</p><p class="topup-muted sr-only">Stripe test mode. No real charge.</p><div class="topup-balance sr-only"><span>Current balance</span><strong id="topup-current-balance">${balance}</strong></div><div class="topup-presets" role="group" aria-label="Choose amount">${[10,25,50,100].map(n => `<button type="button" data-amount="${n}" aria-pressed="${n === 25}">$${n}</button>`).join('')}</div><form novalidate><label for="topup-amount">Custom amount</label><div class="topup-input"><span aria-hidden="true">$</span><input id="topup-amount" inputmode="decimal" type="text" value="25.00" autocomplete="off" aria-describedby="topup-error"></div><p id="topup-error" class="topup-error" role="alert" hidden></p><div class="topup-spark"><span aria-hidden="true">✦</span><div><strong>Earn 1 Spark Point per $1 spent</strong><p>Points are earned when purchased credit is used on packs.</p></div></div><aside class="topup-welcome" hidden><img src="assets/pack-basic.svg" width="62" height="96" alt="rippr Basic pack"><div><strong id="topup-welcome-title">Your first deposit. A little extra.</strong><p id="topup-welcome-copy">Unlock one Basic pack</p><span class="topup-once">Once per account</span><a href="rewards.html" class="topup-bonus-link" hidden>View bonus case ↗</a></div></aside><div class="topup-checkout"><div class="topup-total"><span>Site credit</span><strong id="topup-total">$25.00</strong></div><button class="topup-continue" type="submit">Continue to checkout <span aria-hidden="true">→</span></button><p class="topup-provider"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Payments processed by Stripe</span></p><p class="topup-review">Credit stays on rippr. No cash withdrawals.</p></div><p class="topup-notice" role="status" tabindex="-1"></p></form>`;
+  dialog.innerHTML = `<div class="topup-heading"><span>rippr<b aria-hidden="true">✦</b></span><button type="button" class="topup-close" aria-label="Close top up" autofocus>×</button></div><h2 id="topup-title">Top up your balance</h2><p class="topup-mode-badge">SANDBOX · NO REAL CHARGE</p><p class="topup-muted sr-only">Stripe test mode. No real charge.</p><div class="topup-balance sr-only"><span>Current balance</span><strong id="topup-current-balance">${balance}</strong></div><div class="topup-presets" role="group" aria-label="Choose amount">${[10,25,50,100].map(n => `<button type="button" data-amount="${n}" aria-pressed="${n === 25}">$${n}</button>`).join('')}</div><form novalidate><label for="topup-amount">Custom amount</label><div class="topup-input"><span aria-hidden="true">$</span><input id="topup-amount" inputmode="decimal" type="text" value="25.00" autocomplete="off" aria-describedby="topup-limits topup-error"></div><p id="topup-limits" class="topup-limits">Minimum $10 · Maximum $1,000</p><p id="topup-error" class="topup-error" role="alert" hidden></p><div class="topup-spark"><span aria-hidden="true">✦</span><div><strong>Earn 1 Spark Point per $1 spent</strong><p>Points are earned when purchased credit is used on packs.</p></div></div><aside class="topup-welcome" hidden><img src="assets/pack-basic.svg" width="62" height="96" alt="rippr Basic pack"><div><strong id="topup-welcome-title">Your first deposit. A little extra.</strong><p id="topup-welcome-copy">Unlock one Basic pack</p><span class="topup-once">Once per account</span><a href="rewards.html" class="topup-bonus-link" hidden>View bonus case ↗</a></div></aside><div class="topup-checkout"><div class="topup-total"><span>Site credit</span><strong id="topup-total">$25.00</strong></div><button class="topup-continue" type="submit">Continue to checkout <span aria-hidden="true">→</span></button><p class="topup-provider"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Payments processed by Stripe</span></p><p class="topup-review">Credit stays on rippr. No cash withdrawals.</p></div><p class="topup-notice" role="status" tabindex="-1"></p></form>`;
   document.body.append(dialog);
   const input = dialog.querySelector('input');
   const error = dialog.querySelector('#topup-error');
@@ -179,13 +179,14 @@
       detail: { menuOpen: !menu.hidden, dialogOpen: dialog.open || header.querySelector('#nav-dialog').open }
     }));
   }
+  const minimumTopup=()=>window.RIPPR_ACCOUNT?.mode==='live'||window.RIPPR_RUNTIME?.mode==='live'?1000:100;
   function amount() {
     const value = input.value.trim();
     return /^\d+(\.\d{1,2})?$/.test(value) ? Math.round(Number(value) * 100) : NaN;
   }
   function update() {
     const cents = amount();
-    const valid = Number.isSafeInteger(cents) && cents >= 100 && cents <= 100000;
+    const valid = Number.isSafeInteger(cents) && cents >= minimumTopup() && cents <= 100000;
     dialog.querySelector('#topup-total').textContent = valid ? currency.format(cents / 100) : '—';
     dialog.querySelectorAll('[data-amount]').forEach(button => {
       button.setAttribute('aria-pressed', String(Number(button.dataset.amount) * 100 === cents));
@@ -224,10 +225,11 @@
     if(trigger.hidden&&dialog.open)dialog.close();
     const value=account?.user&&!account.wallet?'—':currency.format((account?.wallet?.balanceCents||0)/100);
     trigger.querySelector('.nav-balance-amount').textContent=value;
-    trigger.setAttribute('aria-label',`Test balance ${value}. Open top up`);
+    trigger.setAttribute('aria-label',`Balance ${value}. Open top up`);
     dialog.querySelector('#topup-current-balance').textContent=value;
     const live=account?.mode==='live'||window.RIPPR_RUNTIME?.mode==='live',stripeMode=account?.stripeTestTopups===true||account?.stripeLiveTopups===true,paused=!stripeMode&&(live||account?.freeTopups===false);
     const fundingMode=stripeMode?(live?'stripe-live':'stripe'):paused?'paused':'free';dialog.querySelector('.topup-mode-badge').hidden=live;
+    dialog.querySelector('#topup-limits').textContent=`Minimum $${minimumTopup()/100} · Maximum $1,000`;
     const wallet=account?.wallet,claimed=!!wallet?.welcomeCaseClaimedAtMs,depositAt=wallet?.lastVerifiedDepositAtMs??wallet?.firstVerifiedDepositAtMs,blocked=!!(wallet?.paymentHold||wallet?.paymentDebtCents>0||wallet?.paymentReviewCount>0||wallet?.legacyPaymentHold),reversed=!!wallet?.lastPromotionReversalAtMs&&!(depositAt>wallet.lastPromotionReversalAtMs),eligible=Number.isSafeInteger(depositAt)&&depositAt>0&&depositAt<=Date.now()&&!blocked&&!reversed;
     dialog.querySelector('.topup-welcome').hidden=!stripeMode||!wallet||claimed;
     dialog.querySelector('#topup-welcome-title').textContent=blocked?'Bonus pending payment review.':reversed?'Deposit bonus paused.':eligible?'Your bonus case is ready.':'Your first deposit. A little extra.';
@@ -254,7 +256,7 @@
     event.preventDefault();
     if(topupBusy||(!(window.RIPPR_ACCOUNT?.stripeTestTopups||window.RIPPR_ACCOUNT?.stripeLiveTopups)&&(window.RIPPR_ACCOUNT?.mode==='live'||window.RIPPR_ACCOUNT?.freeTopups===false)))return;
     if (!update()) {
-      error.textContent = 'Enter an amount from $1 to $1,000 with up to two decimal places.';
+      error.textContent = `Enter an amount from $${minimumTopup()/100} to $1,000 with up to two decimal places.`;
       error.hidden = false;
       input.setAttribute('aria-invalid', 'true');
       input.focus();
@@ -279,7 +281,8 @@
     catch(error){
       const messages={key:window.RIPPR_ACCOUNT?.mode==='live'?'The live payment key needs configuration.':'Stripe rejected the sandbox key. Check STRIPE_TEST_SECRET_KEY in Firebase.',tax:'Automatic tax needs a valid tax code. Disable automatic tax for now.',site:'The payment service needs the correct site URL.',permission:'The payment service needs a permission update. Check server logs.',checkout:'Stripe rejected the Checkout setup. Check server logs for details.',retry:'Stripe is processing this attempt. Wait a moment and retry.',temporary:'Stripe Checkout is temporarily unavailable. Retry the same top-up.'};
       const detail=error?.details;
-      notice.textContent=detail?.provider==='stripe'&&messages[detail.reason]?messages[detail.reason]+(typeof detail.reference==='string'&&/^req_[A-Za-z0-9]{1,80}$/.test(detail.reference)?' Reference: '+detail.reference:''):window.RipprAccount?.errorMessage(error)||'Account services are unavailable in this preview.';
+      const publicMessage=minimumTopup()===1000&&detail?.reason!=='retry'?'Checkout is temporarily unavailable. Please try again or contact support.':messages[detail?.reason];
+      notice.textContent=detail?.provider==='stripe'&&publicMessage?publicMessage+(typeof detail.reference==='string'&&/^req_[A-Za-z0-9]{1,80}$/.test(detail.reference)?' Reference: '+detail.reference:''):window.RipprAccount?.errorMessage(error)||'Account services are temporarily unavailable. Please try again.';
     }
     finally{topupBusy=false;submit.disabled=!(window.RIPPR_ACCOUNT?.stripeTestTopups||window.RIPPR_ACCOUNT?.stripeLiveTopups)&&window.RIPPR_ACCOUNT?.freeTopups===false;input.disabled=false;dialog.querySelectorAll('[data-amount]').forEach(b=>b.disabled=false);notice.focus();}
   });

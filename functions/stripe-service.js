@@ -33,8 +33,8 @@ export function stripeService(db,{getStripe,options=()=>({enabled:false}),now=Da
   }
   if(action!=='checkout')fail('invalid-argument','Unknown payment action.');
   if(!options().enabled)fail('failed-precondition',live?'Balance funding is currently paused.':'Stripe sandbox top-ups are not enabled yet.');
-  const config=stripeConfig(options()),amount=input.amountCents,id=input.operationId,time=now();
-  if(!validId(id)||!Number.isSafeInteger(amount)||amount<100||amount>100000)fail('invalid-argument','Choose a top-up from $1 to $1,000 with up to two decimal places.');
+  const config=stripeConfig(options()),amount=input.amountCents,id=input.operationId,time=now(),minimum=live?1000:100;
+  if(!validId(id)||!Number.isSafeInteger(amount)||amount<minimum||amount>100000)fail('invalid-argument',`Choose a top-up from $${minimum/100} to $1,000 with up to two decimal places.`);
   const target=account.collection(collection).doc(id),rate=account.collection('meta').doc('stripeTopupRate');
   const job=await db.runTransaction(async tx=>{
    const [saved,owner,limited]=await Promise.all([tx.get(target),tx.get(account),tx.get(rate)]);

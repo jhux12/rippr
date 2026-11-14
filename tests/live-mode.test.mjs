@@ -17,3 +17,23 @@ test('restricted live API keys work while publishable, webhook and cross-mode ke
  for(const key of ['rk_test_fixture','pk_live_fixture','whsec_fixture','sk_test_fixture','rk_live_','rk_live_fixture\n'])assert.throws(()=>requireStripeKey(key,'live'));
  assert.throws(()=>requireStripeKey('rk_live_fixture','test'));
 });
+
+test('live Checkout enforces a $10 minimum without creating a payment below it',async()=>{
+ const f=await fixture();
+ for(const amountCents of [100,500,999])await assert.rejects(()=>f.pay('member',{action:'checkout',amountCents,operationId:randomUUID()}),e=>e.code==='invalid-argument'&&e.message.includes('$10'));
+ assert.equal(f.session,undefined);
+ await f.pay('member',{action:'checkout',amountCents:1000,operationId:randomUUID()});assert.equal(f.session.amount_subtotal,1000);
+ await f.event('checkout.session.completed');assert.equal((await f.call('snapshot')).account.balanceCents,1000);
+});
+
+test('a valid smaller Checkout created before the new minimum can still settle once',async()=>{
+ const f=await fixture(),id=randomUUID();await f.pay('member',{action:'checkout',amountCents:1000,operationId:id});
+ // Model a pre-rollout $5 Session and its already-saved funding record.
+ const request=structuredClone(f.session);request.line_items[0].price_data.unit_amount=500;
+ await f.stripe.checkout.sessions.create(request);
+ const target=f.db.doc('testAccounts/member/stripeTopups/'+id);
+ await f.db.runTransaction(async tx=>{const saved=await tx.get(target);tx.set(target,{...saved.data(),amountCents:500,request})});
+ assert.equal((await f.pay('member',{action:'status',topupId:id})).amountCents,500);
+ await f.event('checkout.session.completed');await f.event('checkout.session.completed');
+ assert.equal((await f.call('snapshot')).account.balanceCents,500);
+});

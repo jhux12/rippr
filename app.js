@@ -191,7 +191,7 @@
 
   document.querySelectorAll('[data-dialog]').forEach(button => button.addEventListener('click', () => {
     if (button.dataset.dialog === 'how') {
-      show('<div class="modal-kicker">ONE PACK. ONE CARD.</div><h2 id="modal-title">How it works</h2><ol><li>Add free test credit.</li><li>Open a pack using your balance.</li><li>Reveal one card per pack, saved to your items.</li></ol><p>Test credit has no cash value. Shipping requests are tests.</p><button class="primary-button" data-explore>Explore packs</button>', button);
+      show('<div class="modal-kicker">ONE PACK. ONE CARD.</div><h2 id="modal-title">How it works</h2><ol><li>Add site credit through secure Stripe Checkout.</li><li>Open a pack using your balance.</li><li>Reveal one card per pack, saved to your items.</li></ol><p>One card per pack. Sellback adds site credit; no cash withdrawals.</p><button class="primary-button" data-explore>Explore packs</button>', button);
     } else if (button.dataset.dialog === 'collection') {
       location.href='profile.html'; return;
     } else {

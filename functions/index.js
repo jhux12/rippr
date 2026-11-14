@@ -1,3 +1,4 @@
+import {monitorFailure,withOpeningMonitoring} from './operations-monitor.js';
 import {saveHomepageGrails} from './homepage-grails-service.js';
 import {scopedDatabase,validateMode,assertRuntime,ensureLiveAccount,LIVE_POLICY_VERSION,runtimeInput,authorizeLiveAction,protectSharedIdentity} from './runtime-mode.js';
 import {closureService,CLOSURE_ACTIONS,guardedLifecycle,assertAccountOpen} from './closure-service.js';
@@ -34,7 +35,7 @@ const stripeOptions=()=>({enabled:stripeTestEnabled.value(),siteUrl:stripeSite.v
 const closureOperate=closureService(getFirestore(),{emailEnabled:()=>emailEnabled.value(),deleteAuth:async uid=>{await protectSharedIdentity(getFirestore(),uid);try{await getAuth().deleteUser(uid)}catch(e){if(e.code!=='auth/user-not-found')throw e}},removePhotos:async uid=>{await protectSharedIdentity(getFirestore(),uid);const bucket=getStorage().bucket('rippr-2b01c.firebasestorage.app');const [files]=await bucket.getFiles({prefix:'profile-images/'+uid+'/',maxResults:100,autoPaginate:false});await Promise.all(files.map(file=>file.delete({ignoreNotFound:true})));return files.length===100}});
 const accountDomain=accountService(getFirestore(), { freeTopups:()=>freeTestTopups.value(),emailOptions:emailConfig,stripeTopups:()=>stripeTestEnabled.value() });
 const operate = guardedLifecycle(getFirestore(),guardedAccount(getFirestore(),(uid,input,claims)=>CLOSURE_ACTIONS.includes(input?.action)?closureOperate(uid,input,claims):accountDomain(uid,input,claims)));
-export const ripprAccount = onCall({ region:'us-central1', maxInstances:10, timeoutSeconds:30 }, async request => {
+async function accountRequest(request) {
  const mode=activeMode();assertRuntime(mode,request.data);
  // Homepage catalog settings are shared by both modes and owner-only. Validate
  // them on the server rather than charging six slab validations to Rules.
@@ -50,7 +51,8 @@ export const ripprAccount = onCall({ region:'us-central1', maxInstances:10, time
  const allowed=authorizeLiveAction(uid,request.auth?.token,request.data?.action,{publicAccess:livePublic.value(),purchasesEnabled:livePurchases.value()});
  const domain=accountService(db,{mode:'live',freeTopups:()=>false,liveStripeTopups:()=>liveTopups.value()&&allowed,livePurchasesEnabled:()=>livePurchases.value()&&allowed,emailOptions:emailConfig});
  const result=await guardedLifecycle(db,guardedAccount(db,domain))(uid,runtimeInput(request.data),request.auth?.token);return{...result,mode:'live'};
-});
+}
+export const ripprAccount = onCall({region:'us-central1',maxInstances:10,timeoutSeconds:30},request=>withOpeningMonitoring(activeDb(),request.auth?.uid,request.data,()=>accountRequest(request)));
 
 const museumOperate = museumService(getFirestore());
 export const ripprMuseum = onCall({ region:'us-central1', maxInstances:10, timeoutSeconds:30 }, async request => {const mode=activeMode();assertRuntime(mode,request.data);const result=await (mode==='live'?museumService(activeDb())(request.auth?.uid,runtimeInput(request.data)):museumOperate(request.auth?.uid,runtimeInput(request.data)));return mode==='live'?{...result,mode:'live'}:result});
@@ -85,7 +87,7 @@ import {stripeFailure} from './stripe-errors.js';
 import {stripeService,applyStripeEvent,requireTestKey} from './stripe-service.js';
 const stripeClient=()=>new Stripe(requireTestKey(stripeSecret.value()),{maxNetworkRetries:2,timeout:15000});
 export const ripprStripe=onCall({region:'us-central1',secrets:[stripeSecret],maxInstances:5,timeoutSeconds:60},async request=>{
- try{if(activeMode()==='live'&&request.data?.action==='checkout')throw new HttpsError('failed-precondition','Sandbox Checkout is unavailable in live mode. Reload the page.');if(request.data?.action==='checkout')await assertAccountOpen(getFirestore(),request.auth?.uid);return await guardedStripe(getFirestore(),stripeService(getFirestore(),{getStripe:stripeClient,options:stripeOptions}))(request.auth?.uid,runtimeInput(request.data),request.auth?.token)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);logStripeError('Stripe sandbox Checkout failed',detail);throw new HttpsError('unavailable',detail.message,{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})});}
+ try{if(activeMode()==='live'&&request.data?.action==='checkout')throw new HttpsError('failed-precondition','Sandbox Checkout is unavailable in live mode. Reload the page.');if(request.data?.action==='checkout')await assertAccountOpen(getFirestore(),request.auth?.uid);return await guardedStripe(getFirestore(),stripeService(getFirestore(),{getStripe:stripeClient,options:stripeOptions}))(request.auth?.uid,runtimeInput(request.data),request.auth?.token)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);if(request.data?.action==='checkout')await monitorFailure(getFirestore(),{category:'checkout',uid:request.auth?.uid,operationId:request.data?.operationId,reason:detail.reason});logStripeError('Stripe sandbox Checkout failed',detail);throw new HttpsError('unavailable',detail.message,{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})});}
 });
 export const ripprStripeWebhook=onRequest({region:'us-central1',secrets:[stripeSecret,stripeWebhookSecret],maxInstances:5,timeoutSeconds:120},async(req,res)=>{
  if(req.method!=='POST'){res.set('Allow','POST').status(405).send('POST required');return}
@@ -102,7 +104,7 @@ export const ripprLiveStripe=onCall({region:'us-central1',secrets:[liveSecret],m
  if(activeMode()!=='live')throw new HttpsError('failed-precondition','Live Checkout is not active.');assertRuntime('live',request.data);
  const db=scopedDatabase(getFirestore(),'live');
  authorizeLiveAction(request.auth?.uid,request.auth?.token,request.data?.action,{publicAccess:livePublic.value()});
- try{await ensureLiveAccount(getFirestore(),request.auth?.uid);if(request.data?.action==='checkout')await assertAccountOpen(db,request.auth?.uid);return await guardedStripe(db,stripeService(db,{getStripe:liveClient,mode:'live',options:()=>({...stripeOptions(),enabled:liveTopups.value()})}))(request.auth?.uid,runtimeInput(request.data),request.auth?.token)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);logStripeError('Stripe live Checkout failed',{...detail,message:undefined});throw new HttpsError('unavailable',detail.reason==='key'?'The live payment key needs configuration.':'Payment service unavailable. Retry the same request.',{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})})}
+ try{await ensureLiveAccount(getFirestore(),request.auth?.uid);if(request.data?.action==='checkout')await assertAccountOpen(db,request.auth?.uid);return await guardedStripe(db,stripeService(db,{getStripe:liveClient,mode:'live',options:()=>({...stripeOptions(),enabled:liveTopups.value()})}))(request.auth?.uid,runtimeInput(request.data),request.auth?.token)}catch(error){if(error instanceof HttpsError)throw error;const detail=stripeFailure(error);if(request.data?.action==='checkout')await monitorFailure(db,{category:'checkout',uid:request.auth?.uid,operationId:request.data?.operationId,reason:detail.reason});logStripeError('Stripe live Checkout failed',{...detail,message:undefined});throw new HttpsError('unavailable',detail.reason==='key'?'The live payment key needs configuration.':'Payment service unavailable. Retry the same request.',{provider:'stripe',reason:detail.reason,...(detail.reference?{reference:detail.reference}:{})})}
 });
 export const ripprLiveStripeWebhook=onRequest({region:'us-central1',secrets:[liveSecret,liveWebhookSecret],maxInstances:5,timeoutSeconds:120},async(req,res)=>{
  if(req.method!=='POST'){res.set('Allow','POST').status(405).send('POST required');return}let stripe,event;try{stripe=liveClient();event=stripe.webhooks.constructEvent(req.rawBody,req.get('stripe-signature'),liveWebhookSecret.value())}catch{res.status(400).send('Invalid webhook signature');return}try{await applyStripeEvent(scopedDatabase(getFirestore(),'live'),stripe,event,{mode:'live'});res.status(200).json({received:true})}catch{res.status(500).send('Payment processing will retry')}

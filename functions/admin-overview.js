@@ -1,3 +1,4 @@
+import {operationSummary} from './operations-monitor.js';
 import {HttpsError} from 'firebase-functions/v2/https';
 import {isAdminToken} from './catalog-model.js';
 import {promotionSummary} from './promotion-summary.js';
@@ -12,6 +13,8 @@ export async function adminOverview(db,uid,claims,atMs){
  if(!isAdminToken(claims,uid))throw new HttpsError('permission-denied','Only the verified owner may view operations.');
  const sections={
   payments:async()=>{const [holds,reviews]=await Promise.all([aggregate(db.collection('testAccounts').where('paymentHold','==',true)),count(db,'paymentReviewQueue/root/cases','open')]);return{holds,reviews}},
+  support:async()=>({unresolved:await count(db,'supportQueue/root/requests',['open','pending'])}),
+  errors:()=>operationSummary(db,atMs),
   email:async()=>{const [failed,retry,queued]=await Promise.all([count(db,'emailOutbox',['failed','expired']),count(db,'emailOutbox','retry'),count(db,'emailOutbox',['pending','processing'])]);return{failed,retry,queued}},
   shipping:async()=>({pending:await count(db,'shippingQueue/root/requests',['test-request','review','packing'])}),
   promotions:async()=>{const r=await promotionSummary(db,uid,{days:7},claims,atMs);return{estimatedCents:r.estimatedCents,startDay:r.startDay,endDay:r.endDay,recordedDays:r.recordedDays}}

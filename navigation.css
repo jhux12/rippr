@@ -122,3 +122,7 @@ html[data-brand-motion-paused] :where(.brand-loading,.brand-state--loading,butto
 .stripe-return-status{margin:16px 0;padding:16px 20px;border:1px solid #386174;border-radius:12px;background:#0a202b;color:#cce4ef;font:500 13px/1.7 Manrope,Arial,sans-serif}.stripe-return-status button{padding:4px 8px;margin-left:10px;background:transparent;border:1px solid #426d80;border-radius:5px;color:#8ee8ef;font:inherit;cursor:pointer}.stripe-return-status button:focus-visible{outline:2px solid #00d9e7;outline-offset:3px}
 
 .topup-dialog .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Live runtime hides retired testing-only content even inside styled grids. */
+html[data-site-mode="live"] [data-test-only]{display:none!important}
+.topup-limits{font-size:11px;line-height:1.5;color:#a9bfce;margin:6px 0 14px}
