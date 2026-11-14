@@ -1,3 +1,4 @@
+import {adminOverview} from './admin-overview.js';
 import {preparePromotion,promotionSummary,packEvUnits} from './promotion-summary.js';
 import {defaultSpark,readSpark,sparkBalance,SPARK_SPIN_UNITS} from './spark-model.js';
 import {postSpark} from './spark-ledger.js';
@@ -114,6 +115,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       const metadata=page=>({cursor:page.cursor,hasMore:page.hasMore});
       return {shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},freeTopups:freeTopups(),stripeTestTopups:stripeTopups()};
     }
+    if(action==='adminOverview')return adminOverview(db,uid,claims,now());
     if(action==='adminPromotionSummary')return promotionSummary(db,uid,input,claims,now());
     if(action==='sparkState')return db.runTransaction(async tx=>{const [saved,wallet]=await Promise.all([tx.get(db.doc('rewardSettings/spark')),tx.get(account)]);let config;try{config=saved.exists?readSpark(saved.data()):defaultSpark()}catch{fail('failed-precondition','Spark rewards need their configuration corrected.')}return{config,points:sparkBalance(wallet.data()),reviewRequired:wallet.data()?.sparkReviewRequired===true,spinCostUnits:SPARK_SPIN_UNITS,extras:{welcome:rewardExtras(wallet.data()||{},now()).welcome},serverTimeMs:now()}});
     if(action==='rewardState')return{config:{...defaultRewards(),enabled:false},retired:true,nextClaimAtMs:0,extras:{welcome:{eligible:false,claimed:false}}};

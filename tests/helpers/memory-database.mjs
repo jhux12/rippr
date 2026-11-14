@@ -17,15 +17,17 @@ export function memoryDatabase(initialRecords=[]){
   return typeof a==='string'&&typeof b==='string'?(a<b?-1:a>b?1:0):a-b;
  };
  const collection=path=>{
-  const query=(orders=[],count=Infinity,after)=>({
+  const query=(orders=[],count=Infinity,after,filters=[])=>({
    doc:id=>ref(path+'/'+id),
-   orderBy:(field,direction)=>query([...orders,{field:String(field),direction}],count,after),
-   limit:value=>query(orders,value,after),
-   startAfter:(...values)=>query(orders,count,values),
+   orderBy:(field,direction)=>query([...orders,{field:String(field),direction}],count,after,filters),
+   limit:value=>query(orders,value,after,filters),
+   startAfter:(...values)=>query(orders,count,values,filters),
+   where:(field,op,value)=>{if(!['==','in'].includes(op))throw Error('Unsupported fixture filter');return query(orders,count,after,[...filters,{field,op,value}])},
+   count:()=>({get:async()=>{const found=await query(orders,count,after,filters).get();return{data:()=>({count:found.size})}}}),
    get:async()=>{
     const value=(entry,field)=>field==='__name__'?entry[0].slice(path.length+1):entry[1][field];
     const sign=order=>order.direction==='desc'?-1:1;
-    const entries=[...records].filter(([key,data])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')&&orders.every(order=>order.field==='__name__'||data[order.field]!==undefined));
+    const entries=[...records].filter(([key,data])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')&&filters.every(f=>f.op==='=='?data[f.field]===f.value:f.value.includes(data[f.field]))&&orders.every(order=>order.field==='__name__'||data[order.field]!==undefined));
     entries.sort((a,b)=>{for(const order of orders){const diff=compare(value(a,order.field),value(b,order.field))*sign(order);if(diff)return diff;}return a[0].localeCompare(b[0]);});
     const filtered=after?entries.filter(entry=>{for(let i=0;i<after.length;i++){const diff=compare(value(entry,orders[i].field),after[i])*sign(orders[i]);if(diff)return diff>0;}return false;}):entries;
     const docs=filtered.slice(0,count).map(([key])=>snapshot(ref(key)));return {docs,size:docs.length};

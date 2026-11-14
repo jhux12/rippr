@@ -272,3 +272,7 @@ Current lifecycle/resource checks passed: 29 batches / 83 cards at 320/390/1440p
 ## Account and abuse review
 
 Hardened welcome/referral deposit eligibility during payment review and after newly reconciled reversals. New verified funding can restore pending eligibility; past awards are not reissued. SMS resend convenience cooldown now survives reloads/tabs without storing phone/code. Remaining gaps include multi-phone/person referral abuse and unverified Firebase project settings; no one-person guarantee is claimed. Deploy account, Stripe and webhook together. See ACCOUNT-ABUSE-REVIEW.md.
+
+## Operations overview
+
+Added Admin → Overview with full retained-record aggregation for payment holds/reviews, failed/expired/retrying email jobs, pending shipping requests and seven-day recorded promotion value. Read-only, owner-authorized, no recipients/addresses in the response. Partial failures show Unavailable, and account switching clears stale data. Deploy ripprAccount plus frontend. See ADMIN-OVERVIEW.md.
