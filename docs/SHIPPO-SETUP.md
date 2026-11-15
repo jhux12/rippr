@@ -106,3 +106,13 @@ For the current test-key-only stage, deploy ripprAccount and ripprShippoTest aft
 A Firebase callable HTTP 503 alone does not establish that Shippo returned 503: the adapter uses callable unavailable for provider errors. Updated sandbox UI reports the actual Shippo HTTP status, operation and whitelisted field names. 401 indicates rejected credentials, 403 denied account access, 429 rate limiting, and provider 5xx temporary unavailability. 400/422 require checking shipment/carrier inputs; raw response values are never returned. API keys, addresses and arbitrary provider body/detail messages are excluded. Label-server failures remain uncertain, never automatically retried.
 
 After pulling diagnostic changes, deploy functions:ripprShippoTest for the current test-only setup and refresh the frontend. Repeat the sandbox check and share only the displayed status/step/field names. Actual connectivity still requires owner-run verification.
+
+If HTTP 400 has no recognized invalid-field names, use the owner-only Cloud Shell quote diagnostic without another Functions deployment:
+
+```bash
+cd ~/rippr &&
+git pull --ff-only origin main &&
+node scripts/check-shippo.mjs rippr-2b01c
+```
+
+This reads the current live shipping setup and SHIPPO_TEST_API_KEY through the signed-in Cloud Shell account, requests one sender-to-sender test shipment quote, and prints bounded validation text with the token, OAuth access token, submitted address identity values, emails and recognizable keys removed. It never requests a transaction/label, writes Firestore, or debits site credit. API access itself is not verified by repository tests. The owner must run it to reveal their account's real rejection reason. Share only the resulting diagnostic output.
