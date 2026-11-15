@@ -66,7 +66,7 @@
     if(!owner()||window.RipprPackAdmin?.busy)return;
     target=window.RipprPackAdmin.snapshot();if(!target?.ready)return;
     if(ownerUid!==client.currentUser().uid){clearCache();ownerUid=client.currentUser().uid}
-    selected.clear();visibleCount=30;$('#pack-library-title').textContent=`Add site cards to ${target.name}`;message();
+    selected.clear();$('#pack-library-add-rarity').value='';visibleCount=30;$('#pack-library-title').textContent=`Add site cards to ${target.name}`;message();
     $('#pack-library-advanced').open=!matchMedia('(max-width:760px)').matches;
     dialog.showModal();dialog.scrollTop=0;applyFilters();void load();
   });
@@ -106,7 +106,9 @@
         for(const card of saved){cards.set(card.id,card);selected.set(card.id,card)}
         $('#pack-library-filters').reset();$('#pack-library-selected-only').checked=true;applyFilters();if(matchMedia('(max-width:760px)').matches)$('#pack-library-advanced').open=false;dialog.scrollTop=0;message('Some selected cards changed in the library. Review their updated values and rarities, then add again.',true);return;
       }
-      const result=await window.RipprPackAdmin.addCards(target.id,saved);if(!active())return;
+      const rarity=$('#pack-library-add-rarity').value;
+      if(rarity&&!catalog.RARITIES.some(r=>r.name===rarity))throw new Error('Choose a valid pack rarity.');
+      const result=await window.RipprPackAdmin.addCards(target.id,saved.map(card=>rarity?{...card,rarity}:card));if(!active())return;
       if(result)dialog.close();
     }catch(error){if(active())message(error.message||'Could not add cards to the draft. Your selection is still here.',true)}
     finally{adding=false;if(active())controls()}
@@ -115,5 +117,6 @@
   document.addEventListener('rippr:adminbusy',controls);
   document.addEventListener('rippr:authchange',()=>{clearCache();adding=false;ownerUid=null;target=null;$('#pack-library-filters').reset();if(dialog.open)dialog.close();$('#pack-library-grid').replaceChildren();$('#pack-library-count').textContent='';message()});
   window.addEventListener('beforeunload',event=>{if(owner()&&selected.size){event.preventDefault();event.returnValue=''}});
+  $('#pack-library-add-rarity').insertAdjacentHTML('beforeend',catalog.RARITIES.map(r=>`<option>${r.name}</option>`).join(''));
   $('#pack-library-rarity').insertAdjacentHTML('beforeend',catalog.RARITIES.map(r=>`<option>${r.name}</option>`).join(''));
 })();

@@ -252,8 +252,9 @@
     for(let i=0;i<ids.length;i+=4){details.push(...await Promise.all(ids.slice(i,i+4).map(id=>provider.priceDetails(id))));if(!active())return}
     const existing=await client.lookupLibraryCards(details.map(d=>d.card.id));if(!active())return;
     const known=new Set(existing.map(c=>c.id));
-    const marketRows=details.filter(d=>!known.has(d.card.id)).map(detail=>({card:{...detail.card,version:0},quotes:detail.quotes,chosenKey:model.importPriceQuote(detail.quotes)?.key || '',matchedName:detail.card.name,matched:providerIdentity(detail.card),import:true}));
-    pending={marketRows,marketWarnings:[],skipped:[...known],changes:[],errors:[],added:0,updated:0};priceChanges();renderPreview();
+    const makeCopies=$('#library-provider-copy').checked;
+    const marketRows=details.filter(d=>makeCopies||!known.has(d.card.id)).map(detail=>({card:{...detail.card,...(known.has(detail.card.id)?{id:'copy-'+crypto.randomUUID(),rarity:null}:{}),version:0},quotes:detail.quotes,chosenKey:model.importPriceQuote(detail.quotes)?.key || '',matchedName:detail.card.name,matched:providerIdentity(detail.card),import:true}));
+    pending={marketRows,marketWarnings:[],skipped:makeCopies?[]:[...known],changes:[],errors:[],added:0,updated:0};priceChanges();renderPreview();
     message('Review imported cards and their listed TCGplayer market values. Choose a finish when multiple prices are available, then save.');
     $('#library-preview').scrollIntoView({behavior:'instant',block:'nearest'});
   }));
@@ -292,7 +293,7 @@
   }));
   function reset() {
     generation++;busy=false;loaded=false;rows=[];cursor=null;pending=null;editing=null;results=[];providerQuery=null;providerPage=0;viewPage=0;providerMore=false;providerLoading=false;providerStop=false;
-    selected.clear();providerSelected.clear();$('#library-provider-sort').value='source';$('#library-provider-status').textContent='';$('#library-provider-load-all').hidden=true;$('#library-provider-stop').hidden=true;$('#library-provider-retry-prices').hidden=true;$('#library-csv-file').value='';$('#library-editor-form').reset();$('#library-search').value='';$('#library-provider-name').value='';$('#library-provider-set').value='';$('#library-provider-results').replaceChildren();$('#library-provider-prev').hidden=true;$('#library-provider-next').hidden=true;
+    selected.clear();providerSelected.clear();$('#library-provider-copy').checked=false;$('#library-provider-sort').value='source';$('#library-provider-status').textContent='';$('#library-provider-load-all').hidden=true;$('#library-provider-stop').hidden=true;$('#library-provider-retry-prices').hidden=true;$('#library-csv-file').value='';$('#library-editor-form').reset();$('#library-search').value='';$('#library-provider-name').value='';$('#library-provider-set').value='';$('#library-provider-results').replaceChildren();$('#library-provider-prev').hidden=true;$('#library-provider-next').hidden=true;
     if($('#library-editor').open)$('#library-editor').close();message();message('',true);renderRows();renderPreview();
   }
   document.addEventListener('rippr:adminview',event=>{if(event.detail.name==='library'&&!loaded)void run(active=>load(active))});
