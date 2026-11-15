@@ -430,7 +430,7 @@ export async function stripeAction(action,data={},operationId){
 
 export async function shippingAction(action,data={},operationId){
  await ready;const uid=auth.currentUser?.uid;if(!uid)throw Object.assign(Error('Log in to manage shipping.'),{code:'functions/unauthenticated'});
- try{const result=(await httpsCallable(callableFunctions(),runtimeMode()==='live'?'ripprLiveShipping':'ripprShipping',{timeout:60000})({action,...data,accountUid:uid,...runtimeEnvelope(),...(operationId?{operationId}:{})})).data;
+ try{const result=['adminShippingSettings','adminSaveShippingSettings'].includes(action)?await accountAction(action,{...data,accountUid:uid},operationId):(await httpsCallable(callableFunctions(),runtimeMode()==='live'?'ripprLiveShipping':'ripprShipping',{timeout:60000})({action,...data,accountUid:uid,...runtimeEnvelope(),...(operationId?{operationId}:{})})).data;
  if(auth.currentUser?.uid!==uid)throw Object.assign(Error('Your sign-in changed.'),{code:'functions/unauthenticated'});
  if(result.mode!==runtimeMode())throw Object.assign(Error('Shipping mode changed. Reload before continuing.'),{code:'functions/failed-precondition'});return result;
  }catch(error){return eligibilityRedirect(error)}

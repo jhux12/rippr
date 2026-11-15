@@ -103,3 +103,13 @@ test('refunded purchased shipping credit repays existing payment debt instead of
  await f.db.runTransaction(async tx=>{const saved=await tx.get(account),w=saved.data();const patch=postCredits(tx,account,w,{id:'provider-full-refund',kind:'stripe-refund-reconciliation',moves:[{bucket:'purchasedCents',cents:-1621}],atMs:Date.now()});tx.update(account,{...patch,paymentDebtCents:379,paymentReviewCount:0,paymentHold:true})});
  const result=await f.admin('adminRefundShippingFee');assert.equal(result.appliedToDebtCents,379);const w=await f.read('testAccounts/member');assert.equal(w.balanceCents,0);assert.equal(w.paymentDebtCents,0);assert.equal(w.paymentHold,false);assert.equal(w.sparkUnits,123);
 });
+
+test('account endpoint saves owner shipping setup without a provider or live Shippo key',async()=>{
+ const {accountService}=await import('../functions/service.js'),f=await fixture(),run=accountService(f.db,{mode:'live'});
+ const request={accountUid:'owner',action:'adminShippingSettings'};
+ const before=await run('owner',request,owner);assert.equal(before.mode,'live');assert.equal(before.config.version,1);
+ await assert.rejects(()=>run('member',{...request,accountUid:'member'},{sub:'member',phone_number:'+12015550123'}),e=>e.code==='permission-denied');
+ const saved=await run('owner',{accountUid:'owner',action:'adminSaveShippingSettings',expectedVersion:1,config:{...config,enabled:false,labelsEnabled:false}},owner);
+ assert.equal(saved.mode,'live');assert.equal(saved.config.enabled,false);assert.equal(saved.config.labelsEnabled,false);assert.equal(saved.config.version,2);assert.deepEqual(f.counts(),{bought:0,quoted:0,synced:0});
+ assert.equal((await f.root.runTransaction(tx=>tx.get(f.root.doc('shippingSettings/config')))).exists,false);
+});
