@@ -127,3 +127,10 @@ test('sandbox destination is required and must differ from the origin before any
  await assert.rejects(()=>testShippo(f.db,'owner',{accountUid:'owner'},owner,provider),e=>e.code==='failed-precondition'&&e.message.includes('must differ'));
  assert.equal(calls,0);
 });
+
+test('sandbox label errors return bounded redacted carrier messages instead of discarding the reason',async()=>{
+ const f=await fixture(),destination={...address,fullName:'Private Recipient',line1:'456 Private Destination St'};
+ await f.db.runTransaction(tx=>tx.set(f.db.doc('shippingSettings/config'),{...config,testDestination:destination}));
+ let buys=0;const result=await testShippo(f.db,'owner',{accountUid:'owner',createLabel:true},owner,{rates:async()=>({rates:[f.rate]}),buy:async()=>{buys++;return{test:true,status:'ERROR',object_id:'c'.repeat(32),messages:[{source:'USPS',code:'AccountError',text:'Carrier activation required for Private Recipient at 456 Private Destination St; shippo_test_privatevalue'}]}}});
+ assert.equal(result.label.status,'ERROR');assert(result.label.errorSummary.includes('Carrier activation required'));for(const secret of ['Private Recipient','456 Private Destination St','shippo_test_privatevalue'])assert(!result.label.errorSummary.includes(secret));assert.equal(result.label.labelURL,null);assert.equal(result.noWalletChanges,true);assert.equal(buys,1);assert.equal((await f.read('testAccounts/member')).balanceCents,2000);
+});

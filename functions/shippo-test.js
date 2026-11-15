@@ -1,3 +1,4 @@
+import {summarizeShippoError} from './shippo-diagnostics.js';
 import {selectShippingPackaging} from './shipping-packaging.js';
 import {HttpsError} from 'firebase-functions/v2/https';
 import {isAdminToken} from './catalog-model.js';
@@ -22,7 +23,7 @@ export async function testShippo(db,uid,input,claims,provider){
   const tx=await provider.buy({rateId:rates.rates[0].id,reference:'rippr-sandbox-check'});
   if(tx.test!==true)throw new HttpsError('failed-precondition','Shippo did not return a sandbox label.');
   let labelURL=null;if(tx.status==='SUCCESS'){try{const url=new URL(tx.label_url);if(url.protocol==='https:'&&!url.username&&!url.password)labelURL=url.href}catch{}}
-  result.label={status:String(tx.status||'UNKNOWN'),transactionId:tx.object_id||null,labelURL};
+  result.label={status:String(tx.status||'UNKNOWN'),transactionId:tx.object_id||null,labelURL,...(tx.status!=='SUCCESS'?{errorSummary:summarizeShippoError(tx.messages||tx.validation_results||[],[...Object.values(origin),...Object.values(destination)])}:{})};
  }
  return result;
 }
