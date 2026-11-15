@@ -118,7 +118,9 @@ export const ripprLiveEmailDelivery=onDocumentCreated({document:'liveEmailOutbox
 export const ripprLiveEmailRetry=onSchedule({schedule:'every 10 minutes',region:'us-central1',secrets:[emailKey],maxInstances:1,timeoutSeconds:300},async()=>{if(!emailEnabled.value())return;const db=scopedDatabase(getFirestore(),'live'),pending=await db.collection('emailOutbox').where('status','in',['pending','retry','processing']).limit(10).get();for(const doc of pending.docs)await deliverEmail(db,doc.id,emailConfig(),{apiKey:emailKey.value()})});
 
 
-const shippoTestKey=defineSecret('SHIPPO_TEST_API_KEY'),shippoLiveKey=defineSecret('SHIPPO_LIVE_API_KEY');
+// Named secret bindings preserve Secret Manager injection and endpoint validation,
+// without globally resolving optional shipping params during account-only deploys.
+const shippoTestKey='SHIPPO_TEST_API_KEY',shippoLiveKey='SHIPPO_LIVE_API_KEY';
 async function shippingRequest(request,mode,key){
  assertRuntime(mode,request.data);if(activeMode()!==mode)throw new HttpsError('failed-precondition','Shipping mode changed. Reload before continuing.');
  const db=scopedDatabase(getFirestore(),mode),uid=request.auth?.uid;
@@ -127,11 +129,11 @@ async function shippingRequest(request,mode,key){
  const result=await shippingService(db,{provider:shippoProvider({mode,key})})(uid,runtimeInput(request.data),request.auth?.token);
  return{...result,mode};
 }
-export const ripprShipping=onCall({region:'us-central1',maxInstances:5,timeoutSeconds:60,secrets:[shippoTestKey]},r=>shippingRequest(r,'test',()=>shippoTestKey.value()));
-export const ripprLiveShipping=onCall({region:'us-central1',maxInstances:5,timeoutSeconds:60,secrets:[shippoLiveKey]},r=>shippingRequest(r,'live',()=>shippoLiveKey.value()));
+export const ripprShipping=onCall({region:'us-central1',maxInstances:5,timeoutSeconds:60,secrets:[shippoTestKey]},r=>shippingRequest(r,'test',()=>process.env[shippoTestKey]));
+export const ripprLiveShipping=onCall({region:'us-central1',maxInstances:5,timeoutSeconds:60,secrets:[shippoLiveKey]},r=>shippingRequest(r,'live',()=>process.env[shippoLiveKey]));
 
 
 export const ripprShippoTest=onCall({region:'us-central1',maxInstances:1,timeoutSeconds:60,secrets:[shippoTestKey]},async request=>{
  assertRuntime(activeMode(),request.data);
- return testShippo(activeDb(),request.auth?.uid,runtimeInput(request.data),request.auth?.token,shippoProvider({mode:'test',key:()=>shippoTestKey.value()}));
+ return testShippo(activeDb(),request.auth?.uid,runtimeInput(request.data),request.auth?.token,shippoProvider({mode:'test',key:()=>process.env[shippoTestKey]}));
 });

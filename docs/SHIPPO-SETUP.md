@@ -64,3 +64,7 @@ Do not erase reservations merely to retry. Reconcile the card ownership, approve
 ## Validation
 
 Domain fixtures cover access control, stale/tampered quotes, same/different-ID payment retries, uncertain/failed/successful labels, original credit sources, refunds, cancellation, tracking and credential modes. Browser flows cover quote/payment and admin setup/label/privacy behavior at 320/390/1440px. No real payment, label or account setup was performed here.
+
+## Deploying unrelated functions before Shippo access
+
+Shippo secrets use endpoint-specific named Secret Manager bindings. They are not global defineSecret parameters, because Firebase resolves those for the entire codebase before applying a function filter. Account-only deployments therefore do not require Shippo keys. Deploying the shipping endpoints themselves still requires their real Secret Manager versions; missing runtime keys reject provider requests before any network call. Do not create dummy tokens. Keep shipping disabled until actual account verification is complete.
