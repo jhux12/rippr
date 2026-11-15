@@ -1,3 +1,4 @@
+import {grantOwnerPromo} from './admin-promo-credit.js';
 import {adminOverview} from './admin-overview.js';
 import {preparePromotion,promotionSummary,packEvUnits} from './promotion-summary.js';
 import {defaultSpark,readSpark,sparkBalance,SPARK_SPIN_UNITS} from './spark-model.js';
@@ -60,6 +61,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
     if(EMAIL_ACTIONS.includes(action))return emailVerification(db,uid,input,{...emailOptions(),now});
     if(SUPPORT_ACTIONS.includes(action))return supportService(db,uid,input,claims,now);
     if(REFERRAL_ACTIONS.includes(action))return referralService(db,uid,input,claims,initial,now());
+    if(action==='adminGrantPromoCredit')return grantOwnerPromo(db,uid,input,claims,{mode,now});
     const account = db.doc(`testAccounts/${uid}`);
     if (['adminShipments','adminShipment','updateShipment'].includes(action)) {
       if(!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage shipping.');
