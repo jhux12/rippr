@@ -1,3 +1,19 @@
+# Current checkout: markup and pay before submission
+
+The customer pays inside the shipping popup. `estimateShipment` stores one per-account checkout quote for up to 15 minutes without reserving cards or adding a queue entry. `checkoutShipment` rechecks account eligibility, holds/debt/closure, settings version, item ownership/availability and card details, exact selected rate and amount, then atomically debits the wallet and creates a **paid** shipment/fulfillment queue entry and item reservations. Idempotent operations recover lost responses without another debit; a consumed quote cannot create another shipment. A failure leaves no partial shipment/reservation/debit. Closing the popup before payment leaves cards available to ship later. Existing unpaid requests can be canceled on tracking; the screen no longer collects payment. Live legacy `ship` calls are rejected and unpaid live requests cannot advance to packing/dispatch.
+
+Admin → Shipping requests → Shipping setup → **Shippo carrier quotes** now includes **Carrier rate markup (%)** and **Handling fee ($)**. Both default to zero; no saved markup or production switch was changed. Total cents = carrier cents + rounded percentage markup + fixed handling cents. The customer sees postage, combined handling/markup, total and balance before approval; the paid snapshot keeps the carrier amount and markup separately. The original carrier rate ID remains intact for optional staff label purchases. These controls do not alter manual weight-table prices. A settings change invalidates older unpaid quotes; paid totals/refund sources remain fixed. No quote or customer payment automatically purchases a label. Admin can buy a label deliberately or buy elsewhere and enter tracking.
+
+Deploy backend before publishing the updated frontend (old live checkout will ask users to refresh/use the new popup):
+
+```bash
+cd ~/rippr &&
+git pull --ff-only origin main &&
+npx firebase deploy --only functions:ripprAccount,functions:ripprLiveShipping --project rippr-2b01c
+```
+
+Deploy `ripprShipping` too only if using the sandbox storefront. No new secrets or Rules are required. The existing `SHIPPO_LIVE_API_KEY` must be saved for live carrier rates. Frontend also needs its normal Vercel deployment. Legacy notes below describe earlier rollout phases; this section supersedes their request-page payment instructions.
+
 # Shippo shipping setup
 
 For checkout shipping without a shipping API, use [weight-based manual shipping](MANUAL-SHIPPING.md). Shippo is optional.

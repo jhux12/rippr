@@ -125,7 +125,7 @@ async function shippingRequest(request,mode,key){
  assertRuntime(mode,request.data);if(activeMode()!==mode)throw new HttpsError('failed-precondition','Shipping mode changed. Reload before continuing.');
  const db=scopedDatabase(getFirestore(),mode),uid=request.auth?.uid;
  if(!request.data?.action?.startsWith('admin'))await assertAccountOpen(db,uid);
- if(request.data?.action==='payShipment')await requireEligibility(db,uid,request.data);
+ if(['payShipment','checkoutShipment'].includes(request.data?.action))await requireEligibility(db,uid,request.data);
  const result=await shippingService(db,{provider:shippoProvider({mode,key})})(uid,runtimeInput(request.data),request.auth?.token);
  return{...result,mode};
 }

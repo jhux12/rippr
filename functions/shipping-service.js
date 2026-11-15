@@ -3,17 +3,18 @@ import {suggestedPackingConfig,cleanPackingPresets,selectShippingPackaging} from
 import {createHash,randomUUID} from 'node:crypto';
 import {FieldValue} from 'firebase-admin/firestore';
 import {HttpsError} from 'firebase-functions/v2/https';
-import {isAdminToken} from './catalog-model.js';
+import {gradingFields,isAdminToken} from './catalog-model.js';
 import {cleanShippingAddress,shipmentStage} from './account-settings-model.js';
 import {hasLegacyHold} from './payment-review-model.js';
 import {calculateCredits,postCredits,readCredits} from './wallet-ledger.js';
 const fail=(code,message)=>{throw new HttpsError(code,message)},stamp=()=>FieldValue.serverTimestamp();
 const validId=x=>typeof x==='string'&&/^[a-zA-Z0-9_-]{16,90}$/.test(x);
-const defaults=()=>({version:0,rateMode:'manual',manualRates:[],enabled:false,labelsEnabled:false,origin:null,...suggestedPackingConfig(),maxValueCents:10000,services:['usps_ground_advantage','usps_priority']});
+const defaults=()=>({version:0,rateMode:'manual',manualRates:[],markupBps:0,handlingCents:0,enabled:false,labelsEnabled:false,origin:null,...suggestedPackingConfig(),maxValueCents:10000,services:['usps_ground_advantage','usps_priority']});
 const json=d=>Object.fromEntries(Object.entries(d).map(([k,v])=>[k,v?.toMillis?v.toMillis():v]));
 export function cleanShippingConfig(value){
  if(!value||typeof value.enabled!=='boolean'||typeof value.labelsEnabled!=='boolean')fail('invalid-argument','Choose whether quotes and label purchases are enabled.');
  const rateMode=value.rateMode||'shippo';if(!['shippo','manual'].includes(rateMode))fail('invalid-argument','Choose Shippo or weight-based shipping.');let manualRates;try{manualRates=cleanManualRates(value.manualRates)}catch(e){fail('invalid-argument',e.message)}if(rateMode==='manual'&&value.enabled&&!manualRates.length)fail('invalid-argument','Set at least one shipping price before enabling rates.');
+ const markupBps=value.markupBps??0,handlingCents=value.handlingCents??0;if(!Number.isSafeInteger(markupBps)||markupBps<0||markupBps>10000||!Number.isSafeInteger(handlingCents)||handlingCents<0||handlingCents>10000)fail('invalid-argument','Set a markup from 0–100% and handling fee from $0–$100.');
  let origin=null;if(rateMode!=='manual'||value.origin?.line1){try{origin=cleanShippingAddress(value.origin,{live:true})}catch(e){fail('invalid-argument',e.message)}}
  if(value.originPhone!==undefined&&(typeof value.originPhone!=='string'||value.originPhone.trim()&&!/^\+?[0-9 ()-]{7,32}$/.test(value.originPhone.trim())))fail('invalid-argument','Enter a valid sender phone number.');
  if(value.originEmail!==undefined&&(typeof value.originEmail!=='string'||value.originEmail.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.originEmail.trim())||value.originEmail.length>254))fail('invalid-argument','Enter a valid sender email.');
@@ -22,12 +23,14 @@ export function cleanShippingConfig(value){
  if(rateMode!=='manual'&&(!Array.isArray(value.services)||!value.services.length||value.services.length>30||value.services.some(s=>typeof s!=='string'||!/^[a-z0-9_]{1,80}$/.test(s))))fail('invalid-argument','Check the allowed tracked services.');
  let testDestination;const supplied=value.testDestination;if(supplied&&['fullName','line1','line2','city','region','postalCode'].some(k=>typeof supplied[k]==='string'&&supplied[k].trim())){try{testDestination=cleanShippingAddress(supplied,{live:true})}catch(e){fail('invalid-argument','Sandbox destination: '+e.message)}}
  let packingPresets;try{packingPresets=cleanPackingPresets(value.packingPresets)}catch(e){fail('invalid-argument',e.message)}
- return{rateMode,manualRates,...(testDestination?{testDestination}:{}),...(packingPresets?{packingPresets}:{}),enabled:value.enabled,labelsEnabled:value.labelsEnabled,origin,originPhone:typeof value.originPhone==='string'?value.originPhone.trim().slice(0,32):'',originEmail:typeof value.originEmail==='string'?value.originEmail.trim().slice(0,254):'',raw:parcel(value.raw),graded:parcel(value.graded),maxValueCents:value.maxValueCents,services:rateMode==='manual'?[]:[...new Set(value.services)]};
+ return{rateMode,manualRates,markupBps,handlingCents,...(testDestination?{testDestination}:{}),...(packingPresets?{packingPresets}:{}),enabled:value.enabled,labelsEnabled:value.labelsEnabled,origin,originPhone:typeof value.originPhone==='string'?value.originPhone.trim().slice(0,32):'',originEmail:typeof value.originEmail==='string'?value.originEmail.trim().slice(0,254):'',raw:parcel(value.raw),graded:parcel(value.graded),maxValueCents:value.maxValueCents,services:rateMode==='manual'?[]:[...new Set(value.services)]};
 }
 const providerAddress=a=>({name:a.fullName,street1:a.line1,street2:a.line2||'',city:a.city,state:a.region,zip:a.postalCode,country:a.country});
 export function shippingService(db,{provider,now=Date.now}={}){
- const ratesFor=(config,request)=>{if(config.rateMode==='manual'){try{return Promise.resolve(manualShippingRate(config,request.parcel))}catch(e){fail('failed-precondition',e.message)}}if(!provider)throw new HttpsError('failed-precondition','Carrier connection required.',{reason:'shipping-provider-required'});return provider.rates(request)};
+ const ratesFor=(config,request)=>{if(config.rateMode==='manual'){try{return Promise.resolve(manualShippingRate(config,request.parcel))}catch(e){fail('failed-precondition',e.message)}}if(!provider)throw new HttpsError('failed-precondition','Carrier connection required.',{reason:'shipping-provider-required'});return provider.rates(request).then(result=>({...result,rates:result.rates.map(rate=>{const carrierAmountCents=rate.amountCents,markupCents=Math.round(carrierAmountCents*(config.markupBps||0)/10000)+(config.handlingCents||0),amountCents=carrierAmountCents+markupCents;if(!Number.isSafeInteger(amountCents)||amountCents<1||amountCents>100000)fail('failed-precondition','This shipping price needs manual review.');return{...rate,carrierAmountCents,markupCents,amountCents}})}))};
  const mode=db.mode||'test';
+ const itemSummary=s=>{const c=s.data();return{id:s.id,name:c.name||'Card',image:c.image||'assets/card-placeholder.svg',rarity:c.rarity||'Common',valueCents:c.valueCents,...gradingFields(c)}};
+ const itemFingerprint=snapshots=>createHash('sha256').update(JSON.stringify(snapshots.map(itemSummary))).digest('hex');
  return async(uid,input={},claims={})=>{
   if(!uid||input.accountUid!==uid)fail('unauthenticated','Sign in again before continuing shipping.');
   const admin=input.action?.startsWith('admin');if(admin&&!isAdminToken(claims,uid))fail('permission-denied','Only the verified owner may manage shipping.');
@@ -40,7 +43,7 @@ export function shippingService(db,{provider,now=Date.now}={}){
   if(input.action==='validateShippingAddress'){
    let entered;try{entered=cleanShippingAddress(input.address,{live:true})}catch(e){fail('invalid-argument',e.message)}if(!entered)fail('invalid-argument','Add a complete delivery address.');
    const account=db.doc('testAccounts/'+uid),limit=account.collection('meta').doc('shippoAddressRate'),started=now();
-   const manualAddress=await db.runTransaction(async tx=>{const [settings,wallet,closure,limited]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(db.doc('accountClosureState/'+uid)),tx.get(limit)]);const w=wallet.data();if(!settings.data()?.enabled)fail('failed-precondition','Address checks are temporarily unavailable. You can submit a shipping request for review.');if(!w||w.closureStatus||w.paymentHold||w.legacyPaymentHold||w.paymentDebtCents>0||w.paymentReviewCount>0||closure.data()?.status&&closure.data().status!=='canceled')fail('failed-precondition','Resolve your account review before checking an address.');const bucket=Math.floor(started/60000),count=limited.data()?.bucket===bucket?limited.data().count||0:0;if(count>=5)fail('resource-exhausted','Too many address checks. Wait a minute before trying again.');tx.set(limit,{bucket,count:count+1});return settings.data().rateMode==='manual';});
+   const manualAddress=await db.runTransaction(async tx=>{const [settings,wallet,closure,limited]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(db.doc('accountClosureState/'+uid)),tx.get(limit)]);const w=wallet.data();if(!settings.data()?.enabled)fail('failed-precondition','Address checks are temporarily unavailable. Try again or contact support.');if(!w||w.closureStatus||w.paymentHold||w.legacyPaymentHold||w.paymentDebtCents>0||w.paymentReviewCount>0||closure.data()?.status&&closure.data().status!=='canceled')fail('failed-precondition','Resolve your account review before checking an address.');const bucket=Math.floor(started/60000),count=limited.data()?.bucket===bucket?limited.data().count||0:0;if(count>=5)fail('resource-exhausted','Too many address checks. Wait a minute before trying again.');tx.set(limit,{bucket,count:count+1});return settings.data().rateMode==='manual';});
    if(manualAddress)return{valid:false,entered,suggested:null,changed:false,reason:'manual-rates'};
    if(!provider)throw new HttpsError('failed-precondition','Carrier connection required.',{reason:'shipping-provider-required'});
    const result=await provider.validateAddress({...providerAddress(entered),...(claims?.phone_number?{phone:claims.phone_number}:{})});
@@ -57,17 +60,43 @@ export function shippingService(db,{provider,now=Date.now}={}){
    const check=(wallet,closure,snapshots)=>{if(!wallet||wallet.closureStatus||wallet.paymentHold||wallet.legacyPaymentHold||wallet.paymentDebtCents>0||wallet.paymentReviewCount>0||closure&&closure.status!=='canceled')fail('failed-precondition','Resolve your account review before calculating shipping.');readCredits(wallet);if(snapshots.some(s=>!s.exists||s.data().status!=='available'))fail('failed-precondition','An item is no longer available. Refresh your collection.');};
    const prepared=await db.runTransaction(async tx=>{
     const [saved,wallet,closure,rate,...snapshots]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(closureRef),tx.get(limit),...refs.map(ref=>tx.get(ref))]);
-    if(!saved.data()?.enabled)fail('failed-precondition','Carrier estimates are not available yet. You can submit a shipping request for review.');
+    if(!saved.data()?.enabled)fail('failed-precondition','Shipping rates are not available yet. Try again or contact support.');
     check(wallet.data(),closure.data(),snapshots);const config=cleanShippingConfig(saved.data()),items=snapshots.map(s=>s.data());
-    if(items.some(i=>!Number.isSafeInteger(i.valueCents)||i.valueCents<0)||items.reduce((sum,i)=>sum+i.valueCents,0)>config.maxValueCents)fail('failed-precondition','These items need a manual insurance review. Submit a shipping request or contact support.');
+    if(items.some(i=>!Number.isSafeInteger(i.valueCents)||i.valueCents<0)||items.reduce((sum,i)=>sum+i.valueCents,0)>config.maxValueCents)fail('failed-precondition','These items need a manual insurance review. Contact support before shipping.');
     let packing;try{packing=selectShippingPackaging(config,items)}catch(e){fail('failed-precondition',e.message)}
     const bucket=Math.floor(started/60000),count=rate.data()?.bucket===bucket?rate.data().count||0:0;if(count>=5)fail('resource-exhausted','Too many shipping quote requests. Wait a minute before trying again.');
-    tx.set(limit,{bucket,count:count+1});return{config,version:saved.data().version,...packing};
+    tx.set(limit,{bucket,count:count+1});return{config,version:saved.data().version,itemFingerprint:itemFingerprint(snapshots),...packing};
    });
    const {config,parcel,packaging}=prepared;
    const quoted=await ratesFor(config,{origin:config.origin?{...providerAddress(config.origin),...(config.originPhone?{phone:config.originPhone}:{}),...(config.originEmail?{email:config.originEmail}:{})}:null,destination:{...providerAddress(address),...(claims?.phone_number?{phone:claims.phone_number}:{})},parcel,services:config.services});
-   await db.runTransaction(async tx=>{const [settings,wallet,closure,...snapshots]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(closureRef),...refs.map(ref=>tx.get(ref))]);check(wallet.data(),closure.data(),snapshots);if(!settings.data()?.enabled||settings.data().version!==prepared.version)fail('aborted','Shipping settings changed. Calculate a fresh estimate.');});
-   return{estimateOnly:true,rates:quoted.rates,parcel,packaging:packaging||null,expiresAtMs:now()+15*60000};
+   const quoteId=randomUUID(),expiresAtMs=now()+15*60000;
+   await db.runTransaction(async tx=>{const [settings,wallet,closure,...snapshots]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(closureRef),...refs.map(ref=>tx.get(ref))]);check(wallet.data(),closure.data(),snapshots);if(!settings.data()?.enabled||settings.data().version!==prepared.version||itemFingerprint(snapshots)!==prepared.itemFingerprint)fail('aborted','Shipping settings or items changed. Calculate a fresh estimate.');tx.set(account.collection('meta').doc('shippingCheckoutQuote'),{quoteId,itemIds:ids,itemFingerprint:prepared.itemFingerprint,address,rates:quoted.rates,parcel,packaging:packaging||null,expiresAtMs,configVersion:prepared.version});});
+   return{estimateOnly:true,quoteId,rates:quoted.rates,parcel,packaging:packaging||null,expiresAtMs,paymentsEnabled:config.labelsEnabled};
+  }
+  if(input.action==='checkoutShipment'){
+   if(!validId(input.operationId)||!validId(input.quoteId)||typeof input.rateId!=='string'||input.rateId.length>160||!Number.isSafeInteger(input.expectedCents))fail('invalid-argument','Review the current shipping price before paying.');
+   const account=db.doc('testAccounts/'+uid),op=account.collection('operations').doc(input.operationId),quoteRef=account.collection('meta').doc('shippingCheckoutQuote');
+   const fingerprint=JSON.stringify([input.quoteId,input.rateId,input.expectedCents]);
+   return db.runTransaction(async tx=>{
+    const [prior,quoted,wallet,settings,closure]=await Promise.all([tx.get(op),tx.get(quoteRef),tx.get(account),tx.get(configRef),tx.get(db.doc('accountClosureState/'+uid))]);
+    if(prior.exists){if(prior.data().shippingAction!=='checkoutShipment'||prior.data().fingerprint!==fingerprint)fail('already-exists','Use a new payment operation ID.');return prior.data().result}
+    const q=quoted.data(),w=wallet.data(),config=settings.data();
+    if(q?.quoteId!==input.quoteId)fail('failed-precondition','Calculate fresh shipping rates before paying.');
+    if(q.result){if(q.fingerprint!==fingerprint)fail('already-exists','This shipping quote was already paid.');return q.result}
+    if(!w||w.closureStatus||w.paymentHold||w.legacyPaymentHold||w.paymentDebtCents>0||w.paymentReviewCount>0||closure.data()?.status&&closure.data().status!=='canceled')fail('failed-precondition','Resolve your account review before paying for shipping.');
+    if(!config?.enabled||!config.labelsEnabled||config.version!==q.configVersion||q.expiresAtMs<=now())fail('failed-precondition','Shipping prices changed or expired. Calculate fresh rates.');
+    const rate=q.rates.find(r=>r.id===input.rateId);if(!rate||rate.amountCents!==input.expectedCents)fail('failed-precondition','Review the current shipping price before paying.');
+    const refs=q.itemIds.map(id=>account.collection('items').doc(id)),snapshots=await Promise.all(refs.map(ref=>tx.get(ref)));
+    if(snapshots.some(s=>!s.exists||s.data().status!=='available')||itemFingerprint(snapshots)!==q.itemFingerprint)fail('failed-precondition','An item changed or is no longer available. Refresh your collection.');
+    const movement=calculateCredits(w,[{spend:rate.amountCents}]),sources=Object.fromEntries(Object.entries(movement.delta).map(([k,v])=>[k,-v]));
+    const id=input.operationId,credit=postCredits(tx,account,w,{id,kind:'shipping-fee',moves:[{spend:rate.amountCents}],atMs:now(),reference:id});
+    tx.update(account,{...credit,updatedAt:stamp()});
+    const shipment={itemIds:q.itemIds,items:snapshots.map(itemSummary),address:q.address,status:mode==='live'?'review':'test-request',version:0,shippingMethod:'standard-tracked',quoteStatus:'ready',quoteId:q.quoteId,quoteConfigVersion:q.configVersion,quoteExpiresAtMs:q.expiresAtMs,rates:q.rates,parcel:q.parcel,packaging:q.packaging,feeStatus:'paid',paidRate:rate,shippingPaidCents:rate.amountCents,shippingCreditSources:sources,paidAtMs:now(),createdAt:stamp(),testOnly:mode!=='live'};
+    refs.forEach(ref=>tx.update(ref,{status:'shipping',shipmentId:id,requestedAt:stamp()}));
+    tx.create(account.collection('shipments').doc(id),shipment);tx.create(db.doc('shippingQueue/root/requests/'+uid+'_'+id),{...shipment,id,customerUid:uid});
+    tx.create(account.collection('activity').doc(id),{type:'shipping-fee',label:'Shipping paid · '+rate.carrier+' '+rate.service,amountCents:-rate.amountCents,createdAt:stamp(),testOnly:mode!=='live'});
+    const result={paid:true,shipmentId:id,amountCents:rate.amountCents,count:q.itemIds.length};tx.update(quoteRef,{result,fingerprint});tx.create(op,{shippingAction:'checkoutShipment',fingerprint,result,createdAt:stamp()});return result;
+   });
   }
   if(['adminBuyShippingLabel','adminRefreshShippingLabel','adminReconcileShippingVoid','syncTracking','adminSyncTracking'].includes(input.action)&&(!provider||(await read(configRef)).data()?.rateMode==='manual'))fail('failed-precondition','Buy labels manually and add the carrier and tracking number in admin.');
   const customer=admin?input.customerUid:uid,id=input.shipmentId;

@@ -92,7 +92,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         if(prior.exists){if(prior.data().fingerprint!==fingerprint)fail('already-exists','Operation ID already used.');return prior.data().result}
         if(!found.exists)fail('not-found','Shipping request not found.');const request=found.data();
         if((request.version||0)!==data.expectedVersion)fail('failed-precondition','This request changed. Reload before saving.');
-        const before=shipmentStage(request.status),after=shipmentStage(data.status);if(before<3&&after>=3&&(customerWallet.data()?.paymentHold||customerWallet.data()?.paymentDebtCents>0))fail('failed-precondition','Resolve the payment review before dispatching this request.');if(after>=3&&['purchasing','unknown','pending'].includes(request.labelStatus))fail('failed-precondition','Reconcile the pending carrier label before marking this request dispatched.');
+        const before=shipmentStage(request.status),after=shipmentStage(data.status);if(mode==='live'&&after>=2&&request.feeStatus!=='paid')fail('failed-precondition','Shipping must be paid before packing or dispatch.');if(before<3&&after>=3&&(customerWallet.data()?.paymentHold||customerWallet.data()?.paymentDebtCents>0))fail('failed-precondition','Resolve the payment review before dispatching this request.');if(after>=3&&['purchasing','unknown','pending'].includes(request.labelStatus))fail('failed-precondition','Reconcile the pending carrier label before marking this request dispatched.');
         if(before<0||after<before)fail('failed-precondition','Shipping status cannot move backward. Reload the request before updating.');
         if(data.status==='delivered'&&before<shipmentStage('shipped'))fail('failed-precondition','Mark the request shipped with tracking before marking it delivered.');
         const patch={status:data.status,carrier,trackingNumber,version:(request.version||0)+1,updatedAt:stamp(),updatedBy:uid};
@@ -236,12 +236,12 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
           result = { balanceCents:patch.balanceCents, soldCents:value, count:ids.length };
           activity = { type:'sale', label:`Sold ${ids.length} item${ids.length===1?'':'s'} to test balance`, amountCents:value };
         } else {
-          // Record a request and optional saved delivery details; never initiate dispatch or charge shipping.
+          // Legacy sandbox requests remain supported; live checkout submits only after payment.
           refs.forEach(ref=>tx.update(ref,{ status:'shipping', shipmentId:operationId, requestedAt:stamp() }));
           let address=wallet.address||null;
           if(data.address!==undefined){try{address=cleanAddress(data.address)}catch(error){fail('invalid-argument',error.message)}}
           if(data.requireAddress===true&&!address)fail('invalid-argument','Add a delivery address before submitting.');
-          if(mode==='live'){try{address=cleanShippingAddress(address,{live:true})}catch(error){fail('invalid-argument',error.message)}}
+          if(mode==='live'){try{address=cleanShippingAddress(address,{live:true})}catch(error){fail('invalid-argument',error.message)}fail('failed-precondition','Calculate shipping and pay in the shipping popup before submitting.');}
           const shipment={itemIds:ids,items:items.map(s=>{const c=s.data();return{id:s.id,name:c.name,image:c.image,rarity:c.rarity,valueCents:c.valueCents,...gradingFields(c)}}),address,status:mode==='live'?'review':'test-request',version:0,shippingMethod:'standard-tracked',estimateCents:null,quoteStatus:'unavailable',createdAt:stamp(),testOnly:mode!=='live'};
           tx.create(account.collection('shipments').doc(operationId),shipment);
           tx.create(db.doc(`shippingQueue/root/requests/${uid}_${operationId}`),{...shipment,id:operationId,customerUid:uid});
