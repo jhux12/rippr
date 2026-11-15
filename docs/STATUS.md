@@ -363,3 +363,10 @@ Implemented the approved museum mockup with rarity-colored display frames, restr
 Museum responses now whitelist known packId provenance and optional bounded setName/number/finish from authoritative owned inventory. No invented source pack: unknown/legacy origins hide the module. Existing purchase records already include packId; no migration is needed. Private wallet, price, contact and address fields remain excluded. Dialog content and links clear on sign-out/account change. Ownership, shipped-card eligibility, sold-card exclusion, publishing and likes are unchanged.
 
 Verification: 252 domain tests pass; redesigned museum browser checks pass at 320/390/768/1440px, including red Ultra rare, graded condition, unknown origins, long titles, no horizontal overflow, focus/escape and account cleanup. Existing customer journey checks pass at 320/390/1440px, including selecting shipped cards. Build/site check passes 24 pages and 1,321 references. Rendered phone and desktop gallery/inspection screenshots reviewed. Frontend deployment plus functions:ripprMuseum deployment are required for source-pack links; no Rules changes or new assets/secrets are needed. No production data changed here.
+
+
+## Shippo sandbox with only a test key
+
+Moved only owner-only shipping setup read/save actions through ripprAccount, preserving account/mode checks and versioned private configuration. Carrier/payment/label actions retain the shipping endpoints. Deploy ripprAccount and ripprShippoTest using only SHIPPO_TEST_API_KEY; keep both enable switches off and run the owner sandbox check while the storefront stays live.
+
+253 full domain tests pass, plus 16 focused shipping/deployment/client-routing tests after adding the route regression. Shipping UI checks pass at 320/390/1440px; build/site check passes. No Shippo token was provided, API called, production setting or wallet changed here. Actual API validation awaits the owner-run sandbox check. See SHIPPO-SETUP.md.

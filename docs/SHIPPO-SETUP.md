@@ -10,6 +10,19 @@ Quotes expire after 15 minutes. A customer must select a saved service and appro
 
 Only admin can buy the paid rate's label. A label means ready for packing, not dispatched. Mark shipped only after carrier handoff. Official carrier links and customer/admin refresh controls provide tracking; this release has no background tracking webhook/polling job. Delivery exceptions need staff review.
 
+## Test-key-only setup
+
+Private shipping settings now use ripprAccount, so a live Shippo key is not needed for the owner sandbox check.
+
+```bash
+cd ~/rippr &&
+git pull --ff-only origin main &&
+npx firebase functions:secrets:set SHIPPO_TEST_API_KEY --project rippr-2b01c &&
+npx firebase deploy --only functions:ripprAccount,functions:ripprShippoTest --project rippr-2b01c
+```
+
+Enter the actual shippo_test_ token only at the hidden secret-value prompt. After frontend/function deployment, refresh Admin → Shipping requests → Shippo setup. Save the actual sender address/phone and measured parcel presets. Leave both enable switches OFF. Click Create sandbox quote & TEST label. Test labels are not valid for dispatch; this sender-to-sender check changes no wallet or shipment records. Keep the storefront live. Do not create a dummy live key or deploy live shipping yet. Actual API connectivity remains pending until this owner-run check succeeds.
+
 ## 1. Create and connect Shippo
 
 Create a Shippo account and enable the carriers you intend to use. Obtain a test API token beginning shippo_test_ and a live token beginning shippo_live_. Enter values only at hidden Firebase prompts, never in source files or chat.
