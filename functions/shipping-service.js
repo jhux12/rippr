@@ -5,7 +5,7 @@ import {HttpsError} from 'firebase-functions/v2/https';
 import {isAdminToken} from './catalog-model.js';
 import {cleanShippingAddress,shipmentStage} from './account-settings-model.js';
 import {hasLegacyHold} from './payment-review-model.js';
-import {calculateCredits,postCredits} from './wallet-ledger.js';
+import {calculateCredits,postCredits,readCredits} from './wallet-ledger.js';
 const fail=(code,message)=>{throw new HttpsError(code,message)},stamp=()=>FieldValue.serverTimestamp();
 const validId=x=>typeof x==='string'&&/^[a-zA-Z0-9_-]{16,90}$/.test(x);
 const defaults=()=>({version:0,enabled:false,labelsEnabled:false,origin:null,...suggestedPackingConfig(),maxValueCents:10000,services:['usps_ground_advantage','usps_priority']});
@@ -32,6 +32,26 @@ export function shippingService(db,{provider,now=Date.now}={}){
   if(input.action==='adminSaveShippingSettings'){
    const config=cleanShippingConfig(input.config);if(!Number.isSafeInteger(input.expectedVersion)||input.expectedVersion<0)fail('invalid-argument','Reload shipping settings.');
    return db.runTransaction(async tx=>{const prior=await tx.get(configRef),version=prior.data()?.version||0;if(version!==input.expectedVersion)fail('aborted','Shipping settings changed. Reload before saving.');const result={...config,version:version+1};tx.set(configRef,{...result,updatedBy:uid,updatedAt:stamp()});return{config:result}});
+  }
+  if(input.action==='estimateShipment'){
+   const ids=input.itemIds;
+   if(!Array.isArray(ids)||!ids.length||ids.length>50||new Set(ids).size!==ids.length||ids.some(id=>!validId(id)))fail('invalid-argument','Select between 1 and 50 different items.');
+   let address;try{address=cleanShippingAddress(input.address,{live:true})}catch(e){fail('invalid-argument',e.message)}if(!address)fail('invalid-argument','Add a delivery address.');
+   const account=db.doc('testAccounts/'+uid),refs=ids.map(id=>account.collection('items').doc(id)),limit=account.collection('meta').doc('shippoQuoteRate'),closureRef=db.doc('accountClosureState/'+uid),started=now();
+   const check=(wallet,closure,snapshots)=>{if(!wallet||wallet.closureStatus||wallet.paymentHold||wallet.legacyPaymentHold||wallet.paymentDebtCents>0||wallet.paymentReviewCount>0||closure&&closure.status!=='canceled')fail('failed-precondition','Resolve your account review before calculating shipping.');readCredits(wallet);if(snapshots.some(s=>!s.exists||s.data().status!=='available'))fail('failed-precondition','An item is no longer available. Refresh your collection.');};
+   const prepared=await db.runTransaction(async tx=>{
+    const [saved,wallet,closure,rate,...snapshots]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(closureRef),tx.get(limit),...refs.map(ref=>tx.get(ref))]);
+    if(!saved.data()?.enabled)fail('failed-precondition','Carrier estimates are not available yet. You can submit a shipping request for review.');
+    check(wallet.data(),closure.data(),snapshots);const config=cleanShippingConfig(saved.data()),items=snapshots.map(s=>s.data());
+    if(items.some(i=>!Number.isSafeInteger(i.valueCents)||i.valueCents<0)||items.reduce((sum,i)=>sum+i.valueCents,0)>config.maxValueCents)fail('failed-precondition','These items need a manual insurance review. Submit a shipping request or contact support.');
+    let packing;try{packing=selectShippingPackaging(config,items)}catch(e){fail('failed-precondition',e.message)}
+    const bucket=Math.floor(started/60000),count=rate.data()?.bucket===bucket?rate.data().count||0:0;if(count>=5)fail('resource-exhausted','Too many shipping quote requests. Wait a minute before trying again.');
+    tx.set(limit,{bucket,count:count+1});return{config,version:saved.data().version,...packing};
+   });
+   const {config,parcel,packaging}=prepared;
+   const quoted=await provider.rates({origin:{...providerAddress(config.origin),...(config.originPhone?{phone:config.originPhone}:{}),...(config.originEmail?{email:config.originEmail}:{})},destination:{...providerAddress(address),...(claims?.phone_number?{phone:claims.phone_number}:{})},parcel,services:config.services});
+   await db.runTransaction(async tx=>{const [settings,wallet,closure,...snapshots]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(closureRef),...refs.map(ref=>tx.get(ref))]);check(wallet.data(),closure.data(),snapshots);if(!settings.data()?.enabled||settings.data().version!==prepared.version)fail('aborted','Shipping settings changed. Calculate a fresh estimate.');});
+   return{estimateOnly:true,rates:quoted.rates,parcel,packaging:packaging||null,expiresAtMs:now()+15*60000};
   }
   const customer=admin?input.customerUid:uid,id=input.shipmentId;
   if(typeof customer!=='string'||!customer||customer.includes('/')||customer.length>128||!validId(id))fail('invalid-argument','Choose a shipping request.');

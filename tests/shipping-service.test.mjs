@@ -134,3 +134,22 @@ test('sandbox label errors return bounded redacted carrier messages instead of d
  let buys=0;const result=await testShippo(f.db,'owner',{accountUid:'owner',createLabel:true},owner,{rates:async()=>({rates:[f.rate]}),buy:async()=>{buys++;return{test:true,status:'ERROR',object_id:'c'.repeat(32),messages:[{source:'USPS',code:'AccountError',text:'Carrier activation required for Private Recipient at 456 Private Destination St; shippo_test_privatevalue'}]}}});
  assert.equal(result.label.status,'ERROR');assert(result.label.errorSummary.includes('Carrier activation required'));for(const secret of ['Private Recipient','456 Private Destination St','shippo_test_privatevalue'])assert(!result.label.errorSummary.includes(secret));assert.equal(result.label.labelURL,null);assert.equal(result.noWalletChanges,true);assert.equal(buys,1);assert.equal((await f.read('testAccounts/member')).balanceCents,2000);
 });
+
+async function estimateFixture(){const f=await fixture(),{suggestedPackingConfig}=await import('../functions/shipping-packaging.js'),ids=[randomUUID(),randomUUID(),randomUUID()];await f.db.runTransaction(tx=>{tx.set(f.db.doc('shippingSettings/config'),{...config,...suggestedPackingConfig()});ids.forEach((id,i)=>tx.set(f.db.doc('testAccounts/member/items/'+id),{status:'available',name:'Card '+i,valueCents:100,...(i===2?{grading:{company:'PSA',grade:'10'}}:{})}))});return{...f,ids,estimate:(data={})=>f.service('member',{action:'estimateShipment',accountUid:'member',itemIds:ids,address,...data},{sub:'member',phone_number:'+12025550123'})}}
+test('pre-request estimates use owned inventory and server packaging without reserving items or debiting credit',async()=>{
+ const f=await estimateFixture(),before=await f.read('testAccounts/member');const result=await f.estimate({amountCents:1,grading:null,valueCents:0,parcel:{weight:'0'}});
+ assert.equal(result.estimateOnly,true);assert.equal(result.parcel.weight,'8');assert.equal(result.packaging.id,'small-box');assert.equal(result.rates[0].amountCents,379);assert(result.expiresAtMs>0);assert.equal(result.origin,undefined);assert.equal(result.testDestination,undefined);assert.deepEqual(await f.read('testAccounts/member'),before);for(const id of f.ids)assert.equal((await f.read('testAccounts/member/items/'+id)).status,'available');assert.equal((await f.db.doc('testAccounts/member').collection('shipments').get()).size,1);
+ await assert.rejects(()=>f.call('payShipment',{quoteId:'estimate',rateId:f.rate.id,expectedCents:379}),e=>e.code==='failed-precondition');
+});
+test('estimates reject missing/nonowned/unavailable items, invalid addresses, manual-review value and disabled shipping before provider calls',async()=>{
+ const f=await estimateFixture();for(const patch of [{itemIds:[]},{itemIds:[f.ids[0],f.ids[0]]},{itemIds:[randomUUID()]},{itemIds:[f.item]},{address:null},{address:{...address,country:'CA'}}])await assert.rejects(()=>f.estimate(patch));
+ await f.db.runTransaction(tx=>tx.update(f.db.doc('testAccounts/member/items/'+f.ids[0]),{valueCents:10001}));await assert.rejects(()=>f.estimate(),e=>e.code==='failed-precondition'&&e.message.includes('insurance'));
+ await f.db.runTransaction(tx=>tx.update(f.db.doc('shippingSettings/config'),{enabled:false}));await assert.rejects(()=>f.estimate(),e=>e.code==='failed-precondition');assert.equal(f.counts().quoted,0);
+});
+test('estimates honor review/closure holds, share the quote throttle, and discard ownership changes during provider lookup',async()=>{
+ const f=await estimateFixture();await f.db.runTransaction(tx=>tx.update(f.db.doc('testAccounts/member'),{paymentHold:true}));await assert.rejects(()=>f.estimate(),e=>e.code==='failed-precondition');await f.db.runTransaction(tx=>tx.update(f.db.doc('testAccounts/member'),{paymentHold:false}));
+ for(let i=0;i<5;i++)await f.estimate();await assert.rejects(()=>f.estimate(),e=>e.code==='resource-exhausted');assert.equal(f.counts().quoted,5);
+ const g=await estimateFixture(),run=shippingService(g.db,{provider:{rates:async()=>{await g.db.runTransaction(tx=>tx.update(g.db.doc('testAccounts/member/items/'+g.ids[0]),{status:'sold'}));return{rates:[g.rate]}}}});
+ await assert.rejects(()=>run('member',{action:'estimateShipment',accountUid:'member',itemIds:g.ids,address}),e=>e.code==='failed-precondition');assert.equal((await g.read('testAccounts/member')).balanceCents,2000);
+ await g.db.runTransaction(tx=>tx.set(g.db.doc('accountClosureState/member'),{status:'requested'}));await assert.rejects(()=>g.estimate(),e=>e.code==='failed-precondition');
+});
