@@ -21,7 +21,7 @@ npx firebase functions:secrets:set SHIPPO_TEST_API_KEY --project rippr-2b01c &&
 npx firebase deploy --only functions:ripprAccount,functions:ripprShippoTest --project rippr-2b01c
 ```
 
-Enter the actual shippo_test_ token only at the hidden secret-value prompt. After frontend/function deployment, refresh Admin → Shipping requests → Shippo setup. Save the actual sender address/phone and measured parcel presets. Leave both enable switches OFF. Click Create sandbox quote & TEST label. Test labels are not valid for dispatch; this sender-to-sender check changes no wallet or shipment records. Keep the storefront live. Do not create a dummy live key or deploy live shipping yet. Actual API connectivity remains pending until this owner-run check succeeds.
+Enter the actual shippo_test_ token only at the hidden secret-value prompt. After frontend/function deployment, refresh Admin → Shipping requests → Shippo setup. Save the actual sender address/phone and measured parcel presets. Leave both enable switches OFF. Click Create sandbox quote & TEST label. Test labels are not valid for dispatch; this sender-to-distinct-destination check changes no wallet or shipment records. Keep the storefront live. Do not create a dummy live key or deploy live shipping yet. Actual API connectivity remains pending until this owner-run check succeeds.
 
 ## 1. Create and connect Shippo
 
@@ -115,4 +115,11 @@ git pull --ff-only origin main &&
 node scripts/check-shippo.mjs rippr-2b01c
 ```
 
-This reads the current live shipping setup and SHIPPO_TEST_API_KEY through the signed-in Cloud Shell account, requests one sender-to-sender test shipment quote, and prints bounded validation text with the token, OAuth access token, submitted address identity values, emails and recognizable keys removed. It never requests a transaction/label, writes Firestore, or debits site credit. API access itself is not verified by repository tests. The owner must run it to reveal their account's real rejection reason. Share only the resulting diagnostic output.
+This reads the current live shipping setup and SHIPPO_TEST_API_KEY through the signed-in Cloud Shell account, requests one sender-to-distinct-destination test shipment quote, and prints bounded validation text with the token, OAuth access token, submitted address identity values, emails and recognizable keys removed. It never requests a transaction/label, writes Firestore, or debits site credit. API access itself is not verified by repository tests. The owner must run it to reveal their account's real rejection reason. Share only the resulting diagnostic output.
+
+
+## Sandbox destination requirement
+
+Shippo rejects identical origin/destination addresses. Enter a different valid contiguous-US destination in the private **Sandbox destination** fields in Admin → Shipping requests → Shippo setup, then save. This address is used only for owner sandbox quotes/test labels, not customer shipments or live dispatch. Keep the real ship-from address unchanged and both shipping enable switches off during testing. Changing only the recipient name is not sufficient; the test blocks an identical normalized street/unit/city/state/ZIP before any API request.
+
+Deploy both ripprAccount (to save the new optional private fields) and ripprShippoTest (to use them). Refresh the deployed frontend, enter/save the separate test recipient/address and run the sandbox test. The Cloud Shell diagnostic now uses that same saved destination and redacts both addresses from provider validation text. Existing setup without a test destination remains valid for live customer shipments, but the owner sandbox test requires one. No API key change is needed for the identical-address error.

@@ -60,9 +60,9 @@ test('Shippo adapter uses trusted endpoints, filters unsupported services/curren
 
 import {testShippo} from '../functions/shippo-test.js';
 test('owner sandbox check uses only test labels and never changes wallet or shipment records',async()=>{
- const f=await fixture(),before=await f.read('testAccounts/member');
+ const f=await fixture(),before=await f.read('testAccounts/member');await f.db.runTransaction(tx=>tx.set(f.db.doc('shippingSettings/config'),{...config,testDestination:{...address,line1:'456 Test Destination St'}}));
  await assert.rejects(()=>testShippo(f.db,'member',{accountUid:'member',createLabel:true},{sub:'member'},{}),e=>e.code==='permission-denied');
- const provider={rates:async()=>({rates:[f.rate]}),buy:async()=>({test:true,status:'SUCCESS',object_id:'c'.repeat(32),label_url:'https://shippo-delivery.s3.amazonaws.com/test-only.pdf'})};
+ const provider={rates:async({origin,destination})=>{assert.notEqual(destination.street1,origin.street1);assert.equal(destination.street1,'456 Test Destination St');return{rates:[f.rate]}},buy:async()=>({test:true,status:'SUCCESS',object_id:'c'.repeat(32),label_url:'https://shippo-delivery.s3.amazonaws.com/test-only.pdf'})};
  const result=await testShippo(f.db,'owner',{accountUid:'owner',createLabel:true},owner,provider);
  assert.equal(result.testOnly,true);assert.equal(result.noWalletChanges,true);assert(result.label.labelURL.endsWith('test-only.pdf'));assert.deepEqual(await f.read('testAccounts/member'),before);
  await assert.rejects(()=>testShippo(f.db,'owner',{accountUid:'owner',createLabel:true},owner,{...provider,buy:async()=>({test:false,status:'SUCCESS'})}),e=>e.code==='failed-precondition');
@@ -118,4 +118,12 @@ test('carrier quotes store the automatically selected mixed package and calculat
  const f=await fixture(),{suggestedPackingConfig}=await import('../functions/shipping-packaging.js');
  await f.db.runTransaction(tx=>{tx.set(f.db.doc('shippingSettings/config'),{...config,...suggestedPackingConfig()});tx.update(f.db.doc('testAccounts/member/shipments/'+f.id),{items:[{name:'Card',valueCents:1000},{name:'Card',valueCents:1000},{name:'Slab',valueCents:1000,grading:{company:'PSA',grade:'10'}}]})});
  const quoted=await f.quote();assert.equal(quoted.shipment.packaging.id,'small-box');assert.equal(quoted.shipment.parcel.weight,'8');assert.equal(quoted.shipment.parcel.height,'3');assert.equal(quoted.shipment.packaging.rawCount,2);assert.equal(quoted.shipment.packaging.slabCount,1);assert.equal((await f.read('testAccounts/member')).balanceCents,2000);
+});
+
+test('sandbox destination is required and must differ from the origin before any API call',async()=>{
+ const f=await fixture();let calls=0;const provider={rates:async()=>{calls++;throw Error('Unexpected request')}};
+ await assert.rejects(()=>testShippo(f.db,'owner',{accountUid:'owner'},owner,provider),e=>e.code==='failed-precondition'&&e.message.includes('different sandbox destination'));
+ await f.db.runTransaction(tx=>tx.set(f.db.doc('shippingSettings/config'),{...config,testDestination:{...address,fullName:'Different recipient',line1:' 123 EXAMPLE ST ',postalCode:'46204-1234'}}));
+ await assert.rejects(()=>testShippo(f.db,'owner',{accountUid:'owner'},owner,provider),e=>e.code==='failed-precondition'&&e.message.includes('must differ'));
+ assert.equal(calls,0);
 });

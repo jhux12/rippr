@@ -384,3 +384,10 @@ Owner's generic Shippo failure with [503] could not distinguish the Firebase cal
 ## Owner quote-only Shippo diagnostic
 
 Owner reports actual Shippo HTTP 400 during quote creation, with no recognized field-name errors. Added scripts/check-shippo.mjs to read private setup/test token using Cloud Shell credentials and request one test quote, without labels/payments/database writes. A bounded redacting summary reveals provider validation text while excluding submitted address identity, API/OAuth tokens and email strings. Three focused tests pass, including an end-to-end mocked gcloud/Firestore/Shippo rejection that permits only the shipments endpoint. No actual API request or owner secret accessed in this workspace; underlying account rejection remains pending the owner's diagnostic output. No function deployment required for this diagnostic.
+
+
+## Shippo identical-address sandbox correction
+
+Owner diagnostic revealed Shippo's actual HTTP 400: From and To Addresses are identical. The original sender-to-sender sandbox harness was incorrect. Added optional private testDestination setup fields, validation and owner-admin save; sandbox quotes/labels and the Cloud Shell diagnostic now use that separate destination. Missing/identical normalized addresses fail before provider calls, ignoring mere recipient-name differences and ZIP+4 suffix changes. Customer shipments/real sender remain unchanged, and diagnostic redaction covers both addresses. No production fields or provider tokens changed here.
+
+All 266 domain tests pass, including different-address carrier request assertions, missing/identical rejection with zero API calls, and quote-only diagnostic redaction. Mobile/desktop shipping admin checks pass at 320/390/1440px, saving the new destination while preserving origin and clearing both on sign-out. Build/site checks pass. Deploy ripprAccount and ripprShippoTest, refresh frontend, save a distinct test destination, then rerun the owner sandbox check; actual API success remains pending that run.
