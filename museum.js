@@ -2,13 +2,27 @@
  'use strict';
  const $=selector=>document.querySelector(selector),targetUid=new URLSearchParams(location.search).get('user')||null;
  const room=$('#museum-room'),editor=$('#museum-editor'),preview=$('#museum-card-dialog'),share=$('#museum-share-dialog');
- const mobileCaption=document.createElement('p'),captionText=document.createElement('span');mobileCaption.id='museum-active-name';mobileCaption.className='museum-mobile-caption';captionText.className='museum-caption-text';mobileCaption.append(captionText);mobileCaption.hidden=true;$('#museum-displays').after(mobileCaption);room.dataset.hasCards='false';room.dataset.loading='false';
+ const mobileCaption=document.createElement('div'),captionText=document.createElement('span');mobileCaption.id='museum-active-name';mobileCaption.className='museum-mobile-caption';captionText.className='museum-caption-text';mobileCaption.append(captionText);mobileCaption.hidden=true;$('#museum-displays').after(mobileCaption);room.dataset.hasCards='false';room.dataset.loading='false';
  const displays=$('#museum-displays'),featureTrack=$('#museum-featured-track'),displayNodes=new Map(),featureNodes=new Map(),preloaded=new Map(),motion=matchMedia('(prefers-reduced-motion: reduce)'),narrow=matchMedia('(max-width:1000px)');
  const positions=['is-center','slot-left','slot-right','slot-back-left','slot-back-middle','slot-back-right'];
  let addDisplayNode=null,selectionAnimation=null,suppressClickUntil=0,swipe=null;
  const client=window.RipprFirebase,actor=()=>window.RIPPR_ACCOUNT?.user?.uid||null;
  let museum=null,canEdit=false,selectedIndex=0,request=0,saving=false,liking=false,returnFocus=null,draftIds=[],inventorySignature='';
  const cards=()=>museum?.cards||[];
+ function details(card){
+  const parts=card.name.split(' · '),name=parts[0],rest=parts.slice(1).join(' · '),number=card.number||rest.match(/#([a-zA-Z0-9/.-]+)/)?.[1]||'';
+  const set=card.setName||parts[1]?.replace(/\s*#[a-zA-Z0-9/.-]+/,'').trim()||'';
+  const finish=card.finish||(parts.length>2?parts.at(-1):'');
+  return{name,subtitle:[set,number&&'#'+number,finish].filter(Boolean).join(' · ')};
+ }
+ function rarity(card){return window.RipprCatalog.RARITIES.find(r=>r.name===card.rarity)||window.RipprCatalog.RARITIES[0]}
+ function setRarity(node,card){node.style.setProperty('--museum-rarity',rarity(card).color)}
+ function badge(node,card){
+  const value=rarity(card);setRarity(node,card);
+  const shapes={Common:'<circle cx="12" cy="12" r="4"/>',Uncommon:'<circle cx="7" cy="12" r="3"/><circle cx="17" cy="12" r="3"/>',Rare:'<path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/>','Ultra rare':'<path d="m7 3 2 6 5 3-5 2-2 7-2-7-5-2 5-3Zm12 2 1 4 4 2-4 2-1 4-1-4-4-2 4-2Z"/>','Special rare':'<path d="m12 1 2 7 7-3-4 6 6 3-7 1 1 7-5-5-5 5 1-7-7-1 6-3-4-6 7 3Z"/>',Epic:'<path d="m3 8 4-5h10l4 5-9 13Zm0 0h18M7 3l5 18 5-18"/>',Legendary:'<path d="m12 1 3 7 7 4-7 3-3 8-3-8-7-3 7-4Zm0 5v12M6 12h12"/>'};
+  node.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+shapes[value.name]+'</svg>';node.append(document.createTextNode(value.name));
+ }
+
  const safeURL=url=>window.RipprCatalog?.safeImageURL(url)===true;
  const asset=url=>safeURL(url)?window.RIPPR_ASSET_URLS?.[url]||url:'assets/card-placeholder.svg';
  const picture=(url,alt,cls='')=>{const img=document.createElement('img');img.src=asset(url);img.alt=alt;img.className=cls;img.draggable=false;img.decoding='async';img.addEventListener('error',()=>{img.src='assets/card-placeholder.svg'},{once:true});return img};
@@ -29,7 +43,7 @@
  }
  function stopSelectionMotion(){selectionAnimation?.cancel();selectionAnimation=null}
  function clearGallery(){stopSelectionMotion();displayNodes.clear();featureNodes.clear();preloaded.clear();addDisplayNode=null;displays.replaceChildren();featureTrack.replaceChildren();swipe=null;suppressClickUntil=0}
- function clearView(){captionText.textContent='';mobileCaption.hidden=true;room.dataset.hasCards='false';room.dataset.loading='false';museum=null;canEdit=false;selectedIndex=0;clearGallery();$('#museum-featured').hidden=true;$('#museum-owner').hidden=true;for(const id of ['museum-edit','museum-like','museum-share','museum-inspect','museum-room-nav'])$('#'+id).hidden=true;$('#museum-title').textContent='My museum';$('#museum-description').textContent='A collection worth sharing.';$('#museum-description').dataset.default='true'}
+ function clearView(){if(preview.open)preview.close();$('#museum-card-image').removeAttribute('src');$('#museum-card-image').alt='';for(const id of ['museum-card-name','museum-card-subtitle','museum-card-rarity','museum-card-condition','museum-card-pack-name'])$('#'+id).textContent='';$('#museum-card-pack').hidden=true;$('#museum-card-pack').removeAttribute('href');$('#museum-card-pack-image').removeAttribute('src');captionText.textContent='';mobileCaption.hidden=true;room.dataset.hasCards='false';room.dataset.loading='false';museum=null;canEdit=false;selectedIndex=0;clearGallery();$('#museum-featured').hidden=true;$('#museum-owner').hidden=true;for(const id of ['museum-edit','museum-like','museum-share','museum-inspect','museum-room-nav'])$('#'+id).hidden=true;$('#museum-title').textContent='My museum';$('#museum-description').textContent='A collection worth sharing.';$('#museum-description').dataset.default='true'}
  function updateLike(){
   if(!museum)return;
   const owner=canEdit&&museum.uid===actor();
@@ -60,11 +74,11 @@
    if(!display){
     display=document.createElement('button');display.type='button';display.className='museum-display';display.dataset.cardId=card.id;
     const glass=document.createElement('span');glass.className='museum-case museum-image-pending';const image=picture(card.image,card.name);image.addEventListener('load',()=>readyArtwork(image,glass));glass.append(image);
-    const plaque=document.createElement('span');plaque.className='museum-plaque';display.append(glass,plaque);
+    const plaque=document.createElement('span');plaque.className='museum-plaque';const rarityBadge=document.createElement('span');rarityBadge.className='museum-rarity-badge museum-display-rarity';display.append(glass,plaque,rarityBadge);
     display.addEventListener('click',()=>{const current=cards().findIndex(item=>item.id===display.dataset.cardId);if(current<0)return;if(current===selectedIndex)inspect();else feature(current)});
     displayNodes.set(card.id,display);displays.append(display);
    }
-   display.dataset.cardIndex=String(index);display.querySelector('img').alt=card.name;display.querySelector('.museum-plaque').textContent=card.name;
+   setRarity(display,card);badge(display.querySelector('.museum-display-rarity'),card);display.dataset.cardIndex=String(index);display.querySelector('img').alt=card.name;display.querySelector('.museum-plaque').textContent=card.name;
    updateArtwork(display.querySelector('img'),display.querySelector('.museum-case'),card.image);
   }
  }
@@ -95,7 +109,7 @@
    display.className='museum-display '+positions[slot];display.setAttribute('aria-label',(slot?'Feature ':'Inspect ')+card.name);display.setAttribute('aria-pressed',String(slot===0));display.querySelector('img').fetchPriority=slot?'auto':'high';
    featureNodes.get(card.id)?.setAttribute('aria-pressed',String(index===selectedIndex));
   }
-  captionText.textContent=items[selectedIndex].name;mobileCaption.hidden=false;$('#museum-position').textContent=`Display ${selectedIndex+1} of ${items.length}`;
+  const activeCard=items[selectedIndex],meta=details(activeCard);setRarity(room,activeCard);captionText.textContent=meta.name;const subtitle=document.createElement('span');subtitle.className='museum-caption-subtitle';subtitle.textContent=meta.subtitle;const condition=document.createElement('span');condition.className='condition-badge';condition.textContent=window.RipprCatalog.conditionLabel(activeCard);mobileCaption.replaceChildren(captionText,subtitle,condition);mobileCaption.hidden=false;$('#museum-position').textContent=`Display ${selectedIndex+1} of ${items.length}`;
   stopSelectionMotion();
   if(animate&&narrow.matches&&!motion.matches){const current=displayNodes.get(items[selectedIndex].id);selectionAnimation=current.animate([{opacity:.18,translate:`${direction*10}px 0`},{opacity:1,translate:'0 0'}],{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'});selectionAnimation.finished.then(()=>{selectionAnimation=null},()=>{})}
   preloadAdjacent();
@@ -124,7 +138,7 @@
  displays.addEventListener('pointercancel',()=>{swipe=null});displays.addEventListener('lostpointercapture',()=>{swipe=null});
  for(const area of [displays,featureTrack])area.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key)||event.target.closest('.museum-add'))return;event.preventDefault();const focused=event.target.closest('[data-feature-index],[data-card-index]'),base=focused?Number(focused.dataset.featureIndex??focused.dataset.cardIndex):selectedIndex;feature(base+(event.key==='ArrowRight'?1:-1),event.key==='ArrowRight'?1:-1)});
  motion.addEventListener('change',()=>{if(motion.matches)stopSelectionMotion()});narrow.addEventListener('change',stopSelectionMotion);
- function inspect(){const card=cards()[selectedIndex];if(!card)return;$('#museum-card-image').src=asset(card.image);$('#museum-card-image').alt=card.name;$('#museum-card-name').textContent=card.name;$('#museum-card-rarity').textContent=card.rarity||'';$('#museum-card-condition').textContent=window.RipprCatalog.conditionLabel(card);openDialog(preview,$('#museum-inspect'))}
+ function inspect(){const card=cards()[selectedIndex];if(!card)return;const meta=details(card);setRarity(preview,card);$('#museum-card-image').src=asset(card.image);$('#museum-card-image').alt=card.name;$('#museum-card-name').textContent=meta.name;$('#museum-card-subtitle').textContent=meta.subtitle;$('#museum-card-subtitle').hidden=!meta.subtitle;badge($('#museum-card-rarity'),card);$('#museum-card-condition').textContent=window.RipprCatalog.conditionLabel(card);const pack=window.RIPPR_PACKS?.find(p=>p.id===card.packId),source=$('#museum-card-pack');source.hidden=!pack;source.removeAttribute('href');$('#museum-card-pack-image').removeAttribute('src');$('#museum-card-pack-name').textContent='';if(pack){source.href='opening.html?pack='+encodeURIComponent(pack.id);source.setAttribute('aria-label','View '+pack.name+' pack');$('#museum-card-pack-image').src=asset(pack.image);$('#museum-card-pack-name').textContent=pack.name+' pack'}openDialog(preview,$('#museum-inspect'))}
  $('#museum-card-image').addEventListener('error',event=>{if(!event.target.src.endsWith('card-placeholder.svg'))event.target.src='assets/card-placeholder.svg'});
  $('#museum-inspect').addEventListener('click',inspect);$('#museum-prev').addEventListener('click',()=>feature(selectedIndex-1));$('#museum-next').addEventListener('click',()=>feature(selectedIndex+1));
  function inventory(){const found=new Map(cards().map(card=>[card.id,card]));for(const item of window.RIPPR_ACCOUNT?.items||[]){if(['available','shipping','shipped','delivered'].includes(item.status))found.set(item.id,item);else found.delete(item.id)}return [...found.values()]}

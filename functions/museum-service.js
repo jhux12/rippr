@@ -1,5 +1,5 @@
 import {HttpsError} from 'firebase-functions/v2/https';
-import {safeImageURL, RARITIES, gradingFields} from './catalog-model.js';
+import {safeImageURL, RARITIES, gradingFields, PACK_IDS} from './catalog-model.js';
 import {MUSEUM_LIMITS, museumId, cleanMuseumDraft} from './museum-model.js';
 const fail=(code,message)=>{throw new HttpsError(code,message)};
 const safeText=(value,max,fallback='')=>typeof value==='string'&&value.trim()?value.trim().slice(0,max):fallback;
@@ -12,7 +12,7 @@ const cardJSON=(snap)=>{
  if(!snap.exists)return null;
  const card=snap.data();
  if(!['available','shipping','shipped','delivered'].includes(card.status)||!safeImageURL(card.image)||typeof card.name!=='string'||!card.name.trim())return null;
- return {...gradingFields(card),id:snap.id,name:card.name.trim().slice(0,160),image:card.image,rarity:RARITIES.some(r=>r.name===card.rarity)?card.rarity:'Common'};
+ return {...gradingFields(card),id:snap.id,name:card.name.trim().slice(0,160),image:card.image,rarity:RARITIES.some(r=>r.name===card.rarity)?card.rarity:'Common',...(PACK_IDS.includes(card.packId)?{packId:card.packId}:{}),...Object.fromEntries([['setName',120],['number',30],['finish',60]].filter(([key])=>typeof card[key]==='string'&&card[key].trim()).map(([key,max])=>[key,card[key].trim().slice(0,max)]))};
 };
 export function museumService(db,{now=()=>Date.now()}={}){
  const account=uid=>db.doc(`testAccounts/${uid}`),config=uid=>account(uid).collection('museum').doc('config');

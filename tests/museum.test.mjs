@@ -31,7 +31,7 @@ test('museums are private until explicitly published and public payloads contain
  const published=await f.save('alice',{expectedVersion:1,published:true,displayName:'forged',photoURL:'https://forged.example/photo',likeCount:99999});
  assert.equal(published.museum.likeCount,0);assert.equal(published.museum.displayName,'Collector alice');
  const publicView=await f.call(null,'get',{uid:'alice'});assert.equal(publicView.museum.cards.length,2);assert.equal(publicView.canEdit,false);
- for(const forbidden of ['balanceCents','phoneNumber','email','address','valueCents','packId'])assert(!JSON.stringify(publicView).includes(forbidden));
+ for(const forbidden of ['balanceCents','phoneNumber','email','address','valueCents'])assert(!JSON.stringify(publicView).includes(forbidden));
  const browse=await f.call(null,'browse');assert.equal(browse.museums.length,1);assert.equal(browse.museums[0].cardCount,2);assert.equal(browse.museums[0].coverImage,'assets/grail-moonstone.svg');
 });
 test('saving rejects missing, sold, other-account and forged cards, and stale versions',async()=>{
@@ -96,3 +96,8 @@ test('browse sorts and paginates with stable unique scalar keys, without composi
  await assert.rejects(()=>f.save('alice',{cardIds:['card-0'],expectedVersion:own.museum.version}),code('failed-precondition'));
  assert.deepEqual((await f.call(null,'get',{uid:'alice'})).museum.cards,[]);
  });
+
+test('public card provenance allows only known source packs and bounded display metadata',async()=>{
+ const f=fixture();await f.seed();await f.db.runTransaction(tx=>{tx.set(f.db.doc('testAccounts/alice/items/card-0'),{name:'Card title',image:'assets/grail-moonstone.svg',status:'shipped',rarity:'Epic',packId:'plus',setName:'Test set',number:'216',finish:'Holofoil',email:'private@example.com',valueCents:5000});tx.set(f.db.doc('testAccounts/alice/items/card-1'),{name:'Legacy card',image:'assets/grail-moonstone.svg',status:'available',rarity:'Rare',packId:'../../private'})});await f.save();
+ const {museum}=await f.call(null,'get',{uid:'alice'});assert.equal(museum.cards[0].packId,'plus');assert.equal(museum.cards[0].setName,'Test set');assert.equal(museum.cards[0].number,'216');assert.equal(museum.cards[0].finish,'Holofoil');assert.equal(museum.cards[1].packId,undefined);assert.equal(museum.cards[0].email,undefined);assert.equal(museum.cards[0].valueCents,undefined);
+});
