@@ -81,3 +81,22 @@ Domain fixtures cover access control, stale/tampered quotes, same/different-ID p
 ## Deploying unrelated functions before Shippo access
 
 Shippo secrets use endpoint-specific named Secret Manager bindings. They are not global defineSecret parameters, because Firebase resolves those for the entire codebase before applying a function filter. Account-only deployments therefore do not require Shippo keys. Deploying the shipping endpoints themselves still requires their real Secret Manager versions; missing runtime keys reject provider requests before any network call. Do not create dummy tokens. Keep shipping disabled until actual account verification is complete.
+
+## Suggested automatic packaging
+
+New unsaved setups prefill raw-item weight at the owner's planning value of 1 oz and slab weight at 3 oz. Existing saved setups retain their measurements until the owner clicks **Use suggested packaging · cards 1 oz / slabs 3 oz** and saves. The button leaves the sender address and shipping enable switches unchanged.
+
+| Preset | Suggested external size (in) | Estimated empty packaging (oz) | Raw-only capacity | Slab-only capacity |
+| --- | --- | --- | --- | --- |
+| Rigid padded mailer | 8 × 6 × 1 | 1.5 | 3 | 0 |
+| Small protective box | 8 × 6 × 3 | 3 | 10 | 2 |
+| Medium protective box | 10 × 8 × 4 | 5 | 25 | 5 |
+| Large protective box | 12 × 10 × 4 | 8 | 50 | 10 |
+
+These are editable supply suggestions, not measured or carrier-verified specifications. Sleeve/top-load/team-bag raw cards with rigid cardboard protection; sleeve/cushion slabs in a snug box. Separate raw cards from slabs and fill empty space. Check the actual packed dimensions and weight before dispatch and adjust presets to the supplies used.
+
+With automatic sizing on, choose the smallest configured volume that accommodates the load. Mixed loads share capacity: rawCount/rawCapacity + slabCount/slabCapacity must be at most 1; zero capacity excludes that item kind. Thus two raw cards plus one slab fit the small box and quote at 8 oz (2 + 3 + 3 packaging). Six raw cards plus one slab move to the medium box at 14 oz. Nothing is silently split into multiple labels; over-capacity loads require split requests or manual review. Existing insurance/value checks remain in force.
+
+Quote records store the chosen package name/counts and exact parcel sent to Shippo. Shippo still determines the carrier rate using destination/origin and those measurements. A setup change invalidates unpaid old quotes through configuration versioning; paid requests retain their already-approved rate/parcel. Legacy raw/graded profiles continue working when automatic sizing is off. Sandbox labels use the same selection helper for one sample raw card.
+
+For the current test-key-only stage, deploy ripprAccount and ripprShippoTest after pulling. When live shipping is connected later, deploy ripprLiveShipping (and ripprShipping only if using the test storefront) to apply the automatic quote logic there as well. No secret or Rules change is needed for packaging presets.

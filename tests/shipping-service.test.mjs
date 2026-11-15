@@ -113,3 +113,9 @@ test('account endpoint saves owner shipping setup without a provider or live Shi
  assert.equal(saved.mode,'live');assert.equal(saved.config.enabled,false);assert.equal(saved.config.labelsEnabled,false);assert.equal(saved.config.version,2);assert.deepEqual(f.counts(),{bought:0,quoted:0,synced:0});
  assert.equal((await f.root.runTransaction(tx=>tx.get(f.root.doc('shippingSettings/config')))).exists,false);
 });
+
+test('carrier quotes store the automatically selected mixed package and calculated weight',async()=>{
+ const f=await fixture(),{suggestedPackingConfig}=await import('../functions/shipping-packaging.js');
+ await f.db.runTransaction(tx=>{tx.set(f.db.doc('shippingSettings/config'),{...config,...suggestedPackingConfig()});tx.update(f.db.doc('testAccounts/member/shipments/'+f.id),{items:[{name:'Card',valueCents:1000},{name:'Card',valueCents:1000},{name:'Slab',valueCents:1000,grading:{company:'PSA',grade:'10'}}]})});
+ const quoted=await f.quote();assert.equal(quoted.shipment.packaging.id,'small-box');assert.equal(quoted.shipment.parcel.weight,'8');assert.equal(quoted.shipment.parcel.height,'3');assert.equal(quoted.shipment.packaging.rawCount,2);assert.equal(quoted.shipment.packaging.slabCount,1);assert.equal((await f.read('testAccounts/member')).balanceCents,2000);
+});
