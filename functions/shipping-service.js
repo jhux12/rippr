@@ -33,6 +33,16 @@ export function shippingService(db,{provider,now=Date.now}={}){
    const config=cleanShippingConfig(input.config);if(!Number.isSafeInteger(input.expectedVersion)||input.expectedVersion<0)fail('invalid-argument','Reload shipping settings.');
    return db.runTransaction(async tx=>{const prior=await tx.get(configRef),version=prior.data()?.version||0;if(version!==input.expectedVersion)fail('aborted','Shipping settings changed. Reload before saving.');const result={...config,version:version+1};tx.set(configRef,{...result,updatedBy:uid,updatedAt:stamp()});return{config:result}});
   }
+  if(input.action==='validateShippingAddress'){
+   let entered;try{entered=cleanShippingAddress(input.address,{live:true})}catch(e){fail('invalid-argument',e.message)}if(!entered)fail('invalid-argument','Add a complete delivery address.');
+   const account=db.doc('testAccounts/'+uid),limit=account.collection('meta').doc('shippoAddressRate'),started=now();
+   await db.runTransaction(async tx=>{const [settings,wallet,closure,limited]=await Promise.all([tx.get(configRef),tx.get(account),tx.get(db.doc('accountClosureState/'+uid)),tx.get(limit)]);const w=wallet.data();if(!settings.data()?.enabled)fail('failed-precondition','Address checks are temporarily unavailable. You can submit a shipping request for review.');if(!w||w.closureStatus||w.paymentHold||w.legacyPaymentHold||w.paymentDebtCents>0||w.paymentReviewCount>0||closure.data()?.status&&closure.data().status!=='canceled')fail('failed-precondition','Resolve your account review before checking an address.');const bucket=Math.floor(started/60000),count=limited.data()?.bucket===bucket?limited.data().count||0:0;if(count>=5)fail('resource-exhausted','Too many address checks. Wait a minute before trying again.');tx.set(limit,{bucket,count:count+1});});
+   const result=await provider.validateAddress({...providerAddress(entered),...(claims?.phone_number?{phone:claims.phone_number}:{})});
+   let suggested=null;if(result.valid===true){try{suggested=cleanShippingAddress({...result.suggested,fullName:entered.fullName},{live:true})}catch{}}
+   if(!suggested)return{valid:false,entered,suggested:null,changed:false,reason:result.reason==='unit-review'?'unit-review':'unconfirmed'};
+   if(entered.line2&&!suggested.line2)return{valid:false,entered,suggested:null,changed:false,reason:'unit-review'};
+   return{valid:true,entered,suggested,changed:['line1','line2','city','region','postalCode','country'].some(key=>entered[key]!==suggested[key])};
+  }
   if(input.action==='estimateShipment'){
    const ids=input.itemIds;
    if(!Array.isArray(ids)||!ids.length||ids.length>50||new Set(ids).size!==ids.length||ids.some(id=>!validId(id)))fail('invalid-argument','Select between 1 and 50 different items.');

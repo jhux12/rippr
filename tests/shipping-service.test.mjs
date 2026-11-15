@@ -153,3 +153,23 @@ test('estimates honor review/closure holds, share the quote throttle, and discar
  await assert.rejects(()=>run('member',{action:'estimateShipment',accountUid:'member',itemIds:g.ids,address}),e=>e.code==='failed-precondition');assert.equal((await g.read('testAccounts/member')).balanceCents,2000);
  await g.db.runTransaction(tx=>tx.set(g.db.doc('accountClosureState/member'),{status:'requested'}));await assert.rejects(()=>g.estimate(),e=>e.code==='failed-precondition');
 });
+
+test('address validation returns corrections without changing wallet/default address or accepting client verification claims',async()=>{
+ const f=await fixture(),entered={...address,line1:'456 Maple Street',line2:'Apt 4'},before=await f.read('testAccounts/member');let calls=0;
+ const run=shippingService(f.db,{provider:{validateAddress:async a=>{calls++;assert.equal(a.street1,entered.line1);return{valid:true,suggested:{...entered,fullName:'Provider replacement',line1:'456 MAPLE ST',postalCode:'46204-1234'}}}}});
+ const result=await run('member',{action:'validateShippingAddress',accountUid:'member',address:entered,verified:true},{sub:'member'});assert.equal(result.valid,true);assert.equal(result.changed,true);assert.equal(result.entered.line1,entered.line1);assert.equal(result.suggested.line1,'456 MAPLE ST');assert.equal(result.suggested.fullName,entered.fullName);assert.equal(result.suggested.line2,'Apt 4');assert.deepEqual(await f.read('testAccounts/member'),before);assert.equal(calls,1);
+ await assert.rejects(()=>run('other',{action:'validateShippingAddress',accountUid:'member',address:entered}),e=>e.code==='unauthenticated');
+});
+test('unconfirmed/dropped-unit validation never becomes a checked address and checks are throttled/gated',async()=>{
+ const f=await fixture(),entered={...address,line2:'Apt 4'};let calls=0;
+ const run=shippingService(f.db,{provider:{validateAddress:async()=>{calls++;return{valid:true,suggested:{...entered,line2:''}}}}});
+ for(let i=0;i<5;i++){const result=await run('member',{action:'validateShippingAddress',accountUid:'member',address:entered});assert.equal(result.valid,false);assert.equal(result.reason,'unit-review');assert.equal(result.suggested,null)}
+ await assert.rejects(()=>run('member',{action:'validateShippingAddress',accountUid:'member',address:entered}),e=>e.code==='resource-exhausted');assert.equal(calls,5);
+ await f.db.runTransaction(tx=>tx.update(f.db.doc('shippingSettings/config'),{enabled:false}));await assert.rejects(()=>run('member',{action:'validateShippingAddress',accountUid:'member',address:entered}),e=>e.code==='failed-precondition');assert.equal(calls,5);
+});
+test('Shippo address adapter requests validation, normalizes safe fields and refuses missing verification or lost units',async()=>{
+ const entered={name:'Collector',street1:'456 Maple Street',street2:'Apt 4',city:'Indianapolis',state:'IN',zip:'46204',country:'US'};let response={validation_results:{is_valid:true},street1:'456 MAPLE ST',street2:'APT 4',city:'INDIANAPOLIS',state:'IN',zip:'46204-1234',country:'US'};let calls=0;
+ const provider=shippoProvider({mode:'test',key:()=> 'shippo_test_fixture',fetchImpl:async(url,options)=>{calls++;assert.equal(url,'https://api.goshippo.com/addresses/');assert.equal(options.method,'POST');assert.equal(JSON.parse(options.body).validate,true);return Response.json(response)}});
+ const result=await provider.validateAddress(entered);assert.equal(result.valid,true);assert.equal(result.suggested.line1,'456 MAPLE ST');assert.equal(result.suggested.fullName,'Collector');
+ response={...response,street2:''};assert.equal((await provider.validateAddress(entered)).reason,'unit-review');response={...response,street2:'APT 4',validation_results:{is_valid:false}};assert.equal((await provider.validateAddress(entered)).valid,false);delete response.validation_results;assert.equal((await provider.validateAddress(entered)).valid,false);assert.equal(calls,4);
+});

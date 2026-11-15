@@ -1,9 +1,10 @@
+import {cleanShippingAddress} from './account-settings-model.js';
 import {HttpsError} from 'firebase-functions/v2/https';
 const fail=(message,details)=>{throw new HttpsError('unavailable',message,details)};
 export const moneyCents=value=>typeof value==='string'&&/^\d+(\.\d{1,2})?$/.test(value)&&Number.isSafeInteger(Math.round(Number(value)*100))?Math.round(Number(value)*100):null;
 export function shippoProvider({key,mode='test',fetchImpl=fetch}){
  const request=async(path,body)=>{
-  const operation=path==='/shipments/'?'rates':path==='/transactions/'?'label':path.startsWith('/transactions/')?'label-status':path.startsWith('/refunds/')?'refund-status':'tracking';
+  const operation=path==='/addresses/'?'address-validation':path==='/shipments/'?'rates':path==='/transactions/'?'label':path.startsWith('/transactions/')?'label-status':path.startsWith('/refunds/')?'refund-status':'tracking';
   const token=key();if(typeof token!=='string'||!token.startsWith(mode==='live'?'shippo_live_':'shippo_test_')||token!==token.trim())fail('Shipping needs its '+mode+' Shippo API key configured.',{provider:'shippo',rejected:true});
   let response;try{response=await fetchImpl('https://api.goshippo.com'+path,{method:body?'POST':'GET',headers:{Authorization:'ShippoToken '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(20000)})}catch{fail('Shippo did not confirm the request. Check its saved status before retrying a label purchase.')}
   if(!response.ok){
@@ -16,6 +17,12 @@ export function shippoProvider({key,mode='test',fetchImpl=fetch}){
   return data;
  };
  return{
+  validateAddress:address=>request('/addresses/',{...address,validate:true}).then(data=>{
+   if(data.validation_results?.is_valid!==true)return{valid:false,suggested:null};
+   if(address.street2?.trim()&&!String(data.street2||'').trim())return{valid:false,suggested:null,reason:'unit-review'};
+   let suggested;try{suggested=cleanShippingAddress({fullName:address.name,line1:data.street1,line2:data.street2||'',city:data.city,region:data.state,postalCode:data.zip,country:data.country},{live:true})}catch{return{valid:false,suggested:null}}
+   return suggested?{valid:true,suggested}:{valid:false,suggested:null};
+  }),
   rates:({origin,destination,parcel,services})=>request('/shipments/',{address_from:origin,address_to:destination,parcels:[parcel],async:false}).then(data=>{
    if(data.test!==(mode==='test'))fail('Shippo shipment mode does not match this account.');
    const rates=(Array.isArray(data.rates)?data.rates:[]).filter(r=>r.currency==='USD'&&services.includes(r.servicelevel?.token)&&moneyCents(r.amount)>0&&moneyCents(r.amount)<=100000&&/^[a-zA-Z0-9_-]{16,80}$/.test(r.object_id||'')).map(r=>({id:r.object_id,amountCents:moneyCents(r.amount),carrier:String(r.provider||'Carrier').slice(0,80),service:String(r.servicelevel?.name||'Tracked shipping').slice(0,100),serviceToken:r.servicelevel.token,estimatedDays:Number.isInteger(r.estimated_days)&&r.estimated_days>0&&r.estimated_days<=60?r.estimated_days:null})).sort((a,b)=>a.amountCents-b.amountCents).slice(0,10);
