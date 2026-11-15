@@ -100,3 +100,9 @@ With automatic sizing on, choose the smallest configured volume that accommodate
 Quote records store the chosen package name/counts and exact parcel sent to Shippo. Shippo still determines the carrier rate using destination/origin and those measurements. A setup change invalidates unpaid old quotes through configuration versioning; paid requests retain their already-approved rate/parcel. Legacy raw/graded profiles continue working when automatic sizing is off. Sandbox labels use the same selection helper for one sample raw card.
 
 For the current test-key-only stage, deploy ripprAccount and ripprShippoTest after pulling. When live shipping is connected later, deploy ripprLiveShipping (and ripprShipping only if using the test storefront) to apply the automatic quote logic there as well. No secret or Rules change is needed for packaging presets.
+
+## Diagnosing sandbox errors
+
+A Firebase callable HTTP 503 alone does not establish that Shippo returned 503: the adapter uses callable unavailable for provider errors. Updated sandbox UI reports the actual Shippo HTTP status, operation and whitelisted field names. 401 indicates rejected credentials, 403 denied account access, 429 rate limiting, and provider 5xx temporary unavailability. 400/422 require checking shipment/carrier inputs; raw response values are never returned. API keys, addresses and arbitrary provider body/detail messages are excluded. Label-server failures remain uncertain, never automatically retried.
+
+After pulling diagnostic changes, deploy functions:ripprShippoTest for the current test-only setup and refresh the frontend. Repeat the sandbox check and share only the displayed status/step/field names. Actual connectivity still requires owner-run verification.

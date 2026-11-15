@@ -3,9 +3,15 @@ const fail=(message,details)=>{throw new HttpsError('unavailable',message,detail
 export const moneyCents=value=>typeof value==='string'&&/^\d+(\.\d{1,2})?$/.test(value)&&Number.isSafeInteger(Math.round(Number(value)*100))?Math.round(Number(value)*100):null;
 export function shippoProvider({key,mode='test',fetchImpl=fetch}){
  const request=async(path,body)=>{
+  const operation=path==='/shipments/'?'rates':path==='/transactions/'?'label':path.startsWith('/transactions/')?'label-status':path.startsWith('/refunds/')?'refund-status':'tracking';
   const token=key();if(typeof token!=='string'||!token.startsWith(mode==='live'?'shippo_live_':'shippo_test_')||token!==token.trim())fail('Shipping needs its '+mode+' Shippo API key configured.',{provider:'shippo',rejected:true});
   let response;try{response=await fetchImpl('https://api.goshippo.com'+path,{method:body?'POST':'GET',headers:{Authorization:'ShippoToken '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(20000)})}catch{fail('Shippo did not confirm the request. Check its saved status before retrying a label purchase.')}
-  if(!response.ok)fail('Shippo could not complete this request. Check the Shippo account and shipping configuration.',{provider:'shippo',rejected:[400,401,402,403,404,422].includes(response.status)});
+  if(!response.ok){
+   const status=response.status,reason=status===401?'authentication':status===403?'account-access':status===429?'rate-limit':status>=500?'provider-unavailable':'request-rejected';
+   const message=status===401?'Shippo rejected the API key. Check the saved test or live token.':status===403?'Shippo denied access. Check API access and carrier setup in your Shippo account.':status===429?'Shippo is receiving too many requests. Wait before trying again.':status>=500?'Shippo is temporarily unavailable. Check the saved label status before retrying a label purchase.':'Shippo rejected the shipping request. Check the sender, destination, parcel measurements and carrier setup.';
+   let fields=[];try{const error=await response.json();fields=['address_from','address_to','parcels','rate','carrier_accounts','label_file_type','non_field_errors'].filter(field=>Object.hasOwn(error||{},field))}catch{}
+   fail(message,{provider:'shippo',status,operation,reason,fields,rejected:[400,401,402,403,404,422].includes(status)});
+  }
   let data;try{data=await response.json()}catch{fail('Shippo returned an unreadable response. Check its saved status.')}
   return data;
  };
