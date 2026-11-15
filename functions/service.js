@@ -1,3 +1,4 @@
+import {MANUAL_SHIPPING_ACTIONS} from './manual-shipping.js';
 import {shippingService} from './shipping-service.js';
 import {grantOwnerPromo} from './admin-promo-credit.js';
 import {adminOverview} from './admin-overview.js';
@@ -63,6 +64,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
     if(SUPPORT_ACTIONS.includes(action))return supportService(db,uid,input,claims,now);
     if(REFERRAL_ACTIONS.includes(action))return referralService(db,uid,input,claims,initial,now());
     if(['adminShippingSettings','adminSaveShippingSettings'].includes(action))return {...await shippingService(db,{now})(uid,input,claims),mode};
+    if(MANUAL_SHIPPING_ACTIONS.includes(action)){const settings=await db.runTransaction(tx=>tx.get(db.doc('shippingSettings/config')));if(settings.data()?.rateMode!=='manual')throw new HttpsError('failed-precondition','Carrier connection required.',{reason:'shipping-provider-required'});return{...await shippingService(db,{now})(uid,input,claims),mode};}
     if(action==='adminGrantPromoCredit')return grantOwnerPromo(db,uid,input,claims,{mode,now});
     const account = db.doc(`testAccounts/${uid}`);
     if (['adminShipments','adminShipment','updateShipment'].includes(action)) {

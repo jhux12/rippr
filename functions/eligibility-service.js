@@ -40,7 +40,7 @@ export async function requireEligibility(db,uid,input={}){
 // refunds/reconciliation and already-paid webhook settlement remain accessible.
 export function guardedAccount(db,operate,options={}){const eligibility=eligibilityService(db,options);return async(uid,input={},claims={})=>{
  if(['eligibilityState','acceptEligibility'].includes(input?.action))return eligibility(uid,input,claims);
- if(['purchase','openInventoryPack','topup','redeemSpark'].includes(input?.action))await requireEligibility(db,uid,input);
+ if(['purchase','openInventoryPack','topup','redeemSpark','payShipment'].includes(input?.action))await requireEligibility(db,uid,input);
  return operate(uid,input,claims);
 }}
 export function guardedStripe(db,operate){return async(uid,input={},claims={})=>{if(input?.action==='checkout')await requireEligibility(db,uid,input);return operate(uid,input,claims)}}

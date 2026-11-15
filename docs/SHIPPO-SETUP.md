@@ -1,5 +1,7 @@
 # Shippo shipping setup
 
+For checkout shipping without a shipping API, use [weight-based manual shipping](MANUAL-SHIPPING.md). Shippo is optional.
+
 The implementation is prepared. This workspace has not accessed your Shippo account, purchased postage, or changed production shipping settings. Quotes and customer shipping payments/label purchases default off. No origin or parcel size is guessed from the business mailing address.
 
 ## Pricing and customer flow
