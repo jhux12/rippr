@@ -1,3 +1,6 @@
+import {recordEngagement,recordCustomerMilestones} from './conversion-service.js';
+import {createHash} from 'node:crypto';
+import {promotionDay} from './promotion-summary.js';
 import {testShippo} from './shippo-test.js';
 import {shippingService} from './shipping-service.js';
 import {shippoProvider} from './shippo-provider.js';
@@ -136,4 +139,38 @@ export const ripprLiveShipping=onCall({region:'us-central1',maxInstances:5,timeo
 export const ripprShippoTest=onCall({region:'us-central1',maxInstances:1,timeoutSeconds:60,secrets:[shippoTestKey]},async request=>{
  assertRuntime(activeMode(),request.data);
  return testShippo(activeDb(),request.auth?.uid,runtimeInput(request.data),request.auth?.token,shippoProvider({mode:'test',key:()=>process.env[shippoTestKey]}));
+});
+
+// Public first-party engagement is explicitly separate from trusted conversions.
+export const ripprConversion=onCall({region:'us-central1',maxInstances:2,timeoutSeconds:15,cors:['https://www.rippr.gg','https://rippr.gg','https://rippr-dun.vercel.app']},async request=>{
+ if(activeMode()!=='live'||!livePublic.value()||isAdminToken(request.auth?.token,request.auth?.uid))return{recorded:false};
+ const atMs=Date.now(),ip=request.rawRequest?.ip;
+ if(typeof ip!=='string'||!ip)return{recorded:false};
+ const networkKey=createHash('sha256').update(promotionDay(atMs)+':'+ip).digest('hex');
+ return recordEngagement(scopedDatabase(getFirestore(),'live'),request.data,{networkKey,atMs});
+});
+const conversionTime=event=>{const n=Date.parse(event.time);if(!Number.isSafeInteger(n))throw Error('Missing conversion event time.');return n};
+export const ripprLiveConversionAccount=onDocumentWritten({document:'liveAccounts/{uid}',region:'us-central1',retry:true,maxInstances:2},async event=>{
+ if(!event.data?.after.exists)return;
+ const before=event.data.before.exists?event.data.before.data():null,after=event.data.after.data();
+ if(after.closureStatus)return;
+ const registered=!before,funded=after.firstVerifiedDepositMode==='stripe-live'&&Number.isSafeInteger(after.firstVerifiedDepositAtMs)&&after.firstVerifiedDepositAtMs>0&&!(before?.firstVerifiedDepositAtMs>0);
+ if(registered||funded)await recordCustomerMilestones(scopedDatabase(getFirestore(),'live'),event.params.uid,{registered,funded},conversionTime(event));
+});
+export const ripprLiveConversionOpening=onDocumentCreated({document:'liveAccounts/{uid}/activity/{activityId}',region:'us-central1',retry:true,maxInstances:2},async event=>{
+ const data=event.data?.data();
+ if(data?.type!=='purchase'||data.testOnly!==false||!Number.isSafeInteger(data.amountCents)||data.amountCents>=0)return;
+ await recordCustomerMilestones(scopedDatabase(getFirestore(),'live'),event.params.uid,{opened:true,openingEventId:event.params.activityId},conversionTime(event));
+});
+// Bounded cleanup of measurement records, independent of financial retention.
+export const ripprConversionCleanup=onSchedule({schedule:'every 60 minutes',region:'us-central1',maxInstances:1,timeoutSeconds:120},async()=>{
+ const db=scopedDatabase(getFirestore(),'live'),atMs=Date.now();
+ for(const root of ['conversionSessions','conversionAccounts','conversionLimits','conversionDays']){
+  const field=root==='conversionSessions'?'deleteAtMs':'expiresAtMs';
+  for(let batch=0;batch<10;batch++){
+   const rows=await db.collection(root).where(field,'<=',atMs).limit(200).get();if(!rows.docs.length)break;
+   await db.runTransaction(async tx=>{const refs=rows.docs.map(doc=>db.doc(root+'/'+doc.id)),found=await Promise.all(refs.map(ref=>tx.get(ref)));found.forEach((doc,i)=>{if(doc.exists&&doc.data()[field]<=atMs)tx.delete(refs[i])})});
+   if(rows.docs.length<200)break;
+  }
+ }
 });

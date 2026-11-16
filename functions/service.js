@@ -1,3 +1,4 @@
+import {bindAcquisition,adminConversionSummary} from './conversion-service.js';
 import {MANUAL_SHIPPING_ACTIONS} from './manual-shipping.js';
 import {shippingService} from './shipping-service.js';
 import {grantOwnerPromo} from './admin-promo-credit.js';
@@ -125,6 +126,8 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
       const metadata=page=>({cursor:page.cursor,hasMore:page.hasMore});
       return {livePurchasesEnabled:mode==='live'&&livePurchasesEnabled(),shipments:shipments.records,packs:packs.records,account:timestampJSON(snapshot),items:items.records,activity:activity.docs.map(s=>({...timestampJSON(s.data()),id:s.id})),hasMore:items.hasMore,pageInfo:{items:metadata(items),packs:metadata(packs),shipments:metadata(shipments)},mode,freeTopups:mode==='test'&&freeTopups(),stripeLiveTopups:mode==='live'&&liveStripeTopups(),stripeTestTopups:mode==='test'&&stripeTopups()};
     }
+    if(action==='bindAcquisition')return bindAcquisition(db,uid,input,claims,now());
+    if(action==='adminConversions')return adminConversionSummary(db,uid,input,claims,now());
     if(action==='adminOverview')return adminOverview(db,uid,claims,now());
     if(action==='adminPromotionSummary')return promotionSummary(db,uid,input,claims,now());
     if(action==='sparkState')return db.runTransaction(async tx=>{const [saved,wallet]=await Promise.all([tx.get(db.doc('rewardSettings/spark')),tx.get(account)]);let config;try{config=saved.exists?readSpark(saved.data()):defaultSpark()}catch{fail('failed-precondition','Spark rewards need their configuration corrected.')}return{config,points:sparkBalance(wallet.data()),reviewRequired:wallet.data()?.sparkReviewRequired===true,spinCostUnits:SPARK_SPIN_UNITS,extras:{welcome:rewardExtras(wallet.data()||{},now()).welcome},serverTimeMs:now()}});

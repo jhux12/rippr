@@ -148,6 +148,23 @@
   const actions = header?.querySelector('.nav-actions');
   if (!actions) return;
 
+  // Restore only a known pack after hosted Checkout; never store arbitrary return URLs.
+  const packReturnKey='rippr:topup-pack-return:v1',packReturnAge=2*60*60*1000;
+  const packReturnNames={basic:'Basic',plus:'Plus',premium:'Premium',elite:'Elite',ultimate:'Ultimate',mythic:'Mythic','icy-rush':'Icy Rush'};
+  function clearPackReturn(){try{sessionStorage.removeItem(packReturnKey)}catch{}}
+  function cleanPackReturn(){
+    let saved;try{const raw=sessionStorage.getItem(packReturnKey);if(!raw)return;saved=JSON.parse(raw)}catch{clearPackReturn();return}
+    const account=window.RIPPR_ACCOUNT,mode=window.RIPPR_RUNTIME?.mode||account?.mode;
+    if(!saved||!Object.hasOwn(packReturnNames,saved.packId)||!Number.isSafeInteger(saved.createdAtMs)||saved.createdAtMs>Date.now()+5000||Date.now()-saved.createdAtMs>packReturnAge){clearPackReturn();return}
+    if(account?.ready&&(saved.accountUid!==account.user?.uid||saved.mode!==mode))clearPackReturn();
+  }
+  function savePackReturn(uid){
+    const current=new URL(location.href),packId=current.searchParams.get('pack')||'basic';
+    if(!/^\/opening(?:\.html)?\/?$/i.test(current.pathname)||!Object.hasOwn(packReturnNames,packId)){clearPackReturn();return}
+    try{sessionStorage.setItem(packReturnKey,JSON.stringify({packId,accountUid:uid,mode:window.RIPPR_ACCOUNT?.mode==='live'?'live':'test',createdAtMs:Date.now()}))}catch{}
+  }
+  document.addEventListener('rippr:authchange',cleanPackReturn);document.addEventListener('rippr:runtimechange',cleanPackReturn);cleanPackReturn();
+
   const initialBalanceCents = window.RIPPR_ACCOUNT?.wallet?.balanceCents || 0;
   const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const balance = currency.format(initialBalanceCents / 100);
@@ -274,8 +291,9 @@
         let result;try{result=await window.RipprFirebase.stripeAction('checkout',{amountCents:cents},operationId)}catch(error){if(['functions/failed-precondition','functions/invalid-argument','functions/already-exists'].includes(error.code))try{sessionStorage.removeItem(key)}catch{}throw error}
         const url=new URL(result.url);
         if(result.topupId!==operationId||url.protocol!=='https:'||url.hostname!=='checkout.stripe.com'||url.username||url.password)throw new Error('Invalid Checkout redirect');
+        document.dispatchEvent(new Event('rippr:checkoutstarted'));await Promise.race([window.RipprConversion?.track('checkout'),new Promise(resolve=>setTimeout(resolve,350))]);
         if(window.RIPPR_ACCOUNT.user?.uid!==uid)throw new Error('Account changed');
-        location.assign(url.href);
+        savePackReturn(uid);location.assign(url.href);
       }else{await window.RipprAccount.act('topup',{amountCents:amount()});notice.textContent='Test credit added. You’re ready to open packs.';}
     }
     catch(error){

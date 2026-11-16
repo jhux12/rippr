@@ -171,7 +171,7 @@ export async function loadPackContents(packId, { forEditor = false } = {}) {
   const snapshot = await getDoc(doc(getDatabase(), 'packContents', packId));
   if(!snapshot.exists()&&!forEditor)throw Object.assign(new Error('This pack needs its saved catalog restored before it can open.'),{code:'catalog/unconfigured'});
   const pack = snapshot.exists() ? readStoredPack(snapshot.data()) : {...defaultPack(packId),enabled:false,source:'missing'};
-  return { ...pack, priceCents:pack.priceCents ?? DEFAULT_PRICES[packId] };
+  return { ...pack, savedPriceCents:pack.priceCents??null, priceCents:pack.priceCents ?? DEFAULT_PRICES[packId] };
 }
 
 // Separate reusable records: library edits never mutate a published pack.
@@ -442,4 +442,11 @@ export async function testShippo(createLabel=false){
  const result=(await httpsCallable(callableFunctions(),'ripprShippoTest',{timeout:60000})({accountUid:owner.uid,createLabel,...runtimeEnvelope()})).data;
  if(auth.currentUser?.uid!==owner.uid||result.testOnly!==true)throw Object.assign(Error('Shippo test could not be verified.'),{code:'functions/failed-precondition'});
  return result;
+}
+
+// Optional, first-party landing measurement. Never carries contact/payment data.
+export async function trackConversion(data){
+ await ready;
+ if(runtimeMode()!=='live'||window.RIPPR_RUNTIME?.privatePreview||isAdminUser(auth.currentUser))return{recorded:false};
+ return (await httpsCallable(callableFunctions(),'ripprConversion',{timeout:10000})(data)).data;
 }

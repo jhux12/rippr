@@ -4,12 +4,22 @@
  const asset=path=>window.RIPPR_ASSET_URLS?.[path]||path,money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
  const arrow='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16 16 4M4 4h12v12"/></svg>';
  const packs=(window.RIPPR_PACKS||[]).filter(pack=>!pack.limited);
- for(const pack of packs){
-  const card=document.createElement('article');card.className='landing-tier';card.style.setProperty('--tier-accent',pack.accent);
+ function renderPack(pack,saved){
+  const card=document.createElement('article');card.className='landing-tier';card.dataset.packId=pack.id;card.style.setProperty('--tier-accent',pack.accent);
   const art=document.createElement('a');art.className='landing-tier-art';art.href='opening.html?pack='+encodeURIComponent(pack.id);art.setAttribute('aria-label','View '+pack.name+' pack');
   const img=document.createElement('img');img.src=asset(pack.image);img.alt=pack.name+' Pokémon pack';img.loading='lazy';img.width=250;img.height=390;art.append(img);
   const tier=document.createElement('p');tier.className='landing-tier-number';tier.textContent='TIER '+String(pack.tier).padStart(2,'0');
-  const name=document.createElement('h3');name.textContent=pack.name;const link=document.createElement('a');link.className='landing-outline';link.href=art.href;link.innerHTML='View pack '+arrow;link.setAttribute('aria-label','View '+pack.name+' pack');card.append(art,tier,name,link);$('#landing-packs').append(card);
+  const name=document.createElement('h3');name.textContent=pack.name;
+  const price=document.createElement('p');price.className='landing-tier-price';price.textContent=money.format(saved.savedPriceCents/100)+' / pack';
+  const link=document.createElement('a');link.className='landing-outline';link.href=art.href;link.innerHTML='View pack '+arrow;link.setAttribute('aria-label','View '+pack.name+' pack');card.append(art,tier,name,price,link);return card;
+ }
+ async function loadPacks(){
+  const track=$('#landing-packs'),notice=$('#landing-pack-status');track.replaceChildren();track.setAttribute('aria-busy','true');notice.textContent='Loading current packs…';
+  if(window.RIPPR_AUTH_OFFLINE||typeof window.RipprFirebase?.loadPackContents!=='function'){track.setAttribute('aria-busy','false');notice.textContent='Current packs are unavailable. Please try again on the hosted site.';return}
+  const results=await Promise.allSettled(packs.map(async pack=>{let timeout;try{const saved=await Promise.race([window.RipprFirebase.loadPackContents(pack.id),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Pack timeout')),6000)})]);if(saved.source!=='firebase'||!Number.isInteger(saved.version)||saved.version<1||window.RipprCatalog.validateItems(saved.items).length)throw Error('Saved pack unavailable');if(!saved.enabled)return null;if(!Number.isSafeInteger(saved.savedPriceCents)||saved.savedPriceCents<0)throw Error('Pack price unavailable');return renderPack(pack,saved)}finally{clearTimeout(timeout)}}));
+  for(const result of results)if(result.status==='fulfilled'&&result.value)track.append(result.value);
+  const failed=results.some(result=>result.status==='rejected');track.setAttribute('aria-busy','false');notice.textContent=track.children.length?(failed?'Some packs could not load. Showing the currently available packs.':'One card per pack. View a pack to review its contents and odds.'):(failed?'Packs could not load right now. Your balance is unchanged.':'No packs are available right now. Please check back soon.');
+  if(failed){const retry=document.createElement('button');retry.type='button';retry.className='landing-outline landing-pack-retry';retry.textContent='Retry packs';retry.addEventListener('click',loadPacks);notice.append(document.createTextNode(' '),retry)}requestAnimationFrame(refresh);
  }
  document.querySelectorAll('[data-pack-art]').forEach(img=>{const pack=packs.find(p=>p.id===img.dataset.packArt);if(pack)img.src=asset(pack.image)});
  function carousel(section){
@@ -40,5 +50,5 @@
  $('#landing-preview-image').addEventListener('error',e=>{if(!e.target.src.endsWith('/assets/card-placeholder.svg'))e.target.src='assets/card-placeholder.svg'});
  $('.landing-preview-close').addEventListener('click',()=>modal.close());modal.addEventListener('close',()=>{returnFocus?.focus({preventScroll:true});document.dispatchEvent(new CustomEvent('rippr:navigationchange',{detail:{menuOpen:false,dialogOpen:false}}));refresh()});modal.addEventListener('click',e=>{if(e.target!==modal)return;const r=modal.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)modal.close()});
  function accountLinks(){const link=$('[data-landing-join]'),signedIn=Boolean(window.RIPPR_ACCOUNT?.user);link.href=signedIn?'profile.html':'auth.html?mode=signup';link.replaceChildren(document.createTextNode(signedIn?'View my items':'Join rippr'));link.insertAdjacentHTML('beforeend','<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>');$('#landing-join-copy').textContent=signedIn?'Your collection is ready for its next favorite.':'Create your account and start exploring.'}
- document.addEventListener('rippr:authchange',accountLinks);accountLinks();loadGrails();
+ document.addEventListener('rippr:authchange',accountLinks);accountLinks();loadPacks();loadGrails();
 })();

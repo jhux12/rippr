@@ -3,7 +3,7 @@ import {FieldValue} from 'firebase-admin/firestore';
 import {OWNER_PHONE} from './catalog-model.js';
 import {initialLiveWallet} from './wallet-ledger.js';
 export const LIVE_POLICY_VERSION='live-2026-11-14-v1';
-const roots=['testAccounts','referralCodes','museumDirectory','accountEligibility','accountClosureRequests','accountClosureState','shippingQueue','supportQueue','paymentReviewQueue','paymentReviewAudit','paymentAuditByAccount','stripeTestWebhookEvents','emailOutbox','promotionDays','operationalDays','shippingSettings','shippingProviderJobs'];
+const roots=['testAccounts','referralCodes','museumDirectory','accountEligibility','accountClosureRequests','accountClosureState','shippingQueue','supportQueue','paymentReviewQueue','paymentReviewAudit','paymentAuditByAccount','stripeTestWebhookEvents','emailOutbox','promotionDays','operationalDays','shippingSettings','shippingProviderJobs','conversionSessions','conversionAccounts','conversionDays','conversionLimits'];
 export function validateMode(mode){if(!['test','live'].includes(mode))throw new HttpsError('failed-precondition','Invalid site mode.');return mode}
 export function scopedDatabase(db,mode='test'){
  validateMode(mode);if(mode==='test')return db;

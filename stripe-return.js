@@ -1,3 +1,23 @@
+/* Returning to a pack is a navigation choice; it never opens or purchases one. */
+(()=>{
+ const link=document.querySelector('.payment-result-actions .payment-primary');if(!link)return;
+ const key='rippr:topup-pack-return:v1',maxAge=2*60*60*1000;
+ const names={basic:'Basic',plus:'Plus',premium:'Premium',elite:'Elite',ultimate:'Ultimate',mythic:'Mythic','icy-rush':'Icy Rush'};
+ const clear=()=>{try{sessionStorage.removeItem(key)}catch{}};
+ function sync(){
+  link.href='index.html#packs';link.textContent='Explore packs';
+  let saved;try{const raw=sessionStorage.getItem(key);if(!raw)return;saved=JSON.parse(raw)}catch{clear();return}
+  if(!saved||!Object.hasOwn(names,saved.packId)||!Number.isSafeInteger(saved.createdAtMs)||saved.createdAtMs>Date.now()+5000||Date.now()-saved.createdAtMs>maxAge){clear();return}
+  const account=window.RIPPR_ACCOUNT,mode=window.RIPPR_RUNTIME?.mode||account?.mode;
+  if(!account?.ready)return;
+  if(!account.user||saved.accountUid!==account.user.uid||saved.mode!==mode){clear();return}
+  link.href='opening.html?pack='+encodeURIComponent(saved.packId);link.textContent=(document.body.dataset.paymentResult==='canceled'?'Back to ':'Continue to ')+names[saved.packId];
+ }
+ link.addEventListener('click',clear);
+ for(const event of ['rippr:authchange','rippr:walletchange','rippr:runtimechange'])document.addEventListener(event,sync);
+ sync();
+})();
+
 /* A Checkout redirect never grants credit. Poll the authenticated server record. */
 (()=>{
  const live=()=>window.RIPPR_ACCOUNT?.mode==='live'||window.RIPPR_RUNTIME?.mode==='live';

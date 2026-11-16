@@ -406,7 +406,7 @@ ripButton.addEventListener('click',event=>{if(event.detail===0)completeRip()});
 ripButton.addEventListener('keydown',event=>{if(state!=='ripping')return;if(event.key==='ArrowRight'){event.preventDefault();setRip(progress+.25);if(progress>=1)completeRip()}else if(event.key==='ArrowLeft'){event.preventDefault();setRip(progress-.25)}});
 openButton.addEventListener('click',async()=>{
  if(state!=='idle'||!contentsReady||!canOpenCatalog())return;
- if(!window.RIPPR_AUTH_OFFLINE&&!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=login&next='+encodeURIComponent(location.pathname+location.search+location.hash);return}
+ if(!window.RIPPR_AUTH_OFFLINE&&!window.RIPPR_ACCOUNT?.user){location.href='auth.html?mode=signup&next='+encodeURIComponent(location.pathname+location.search+location.hash);return}
  sound.play('click');
  const uid=window.RIPPR_ACCOUNT?.user?.uid;
  const session=++openingSession;

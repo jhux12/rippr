@@ -30,6 +30,9 @@ async function routeLocal(page) {
 }
 async function newPage(browser, init, seed) {
   const page = await browser.newPage({viewport:{width:390,height:844}});
+  // Local image-heavy fixtures can take longer under parallel Chromium load.
+  // Product readiness and transaction assertions retain their own stricter waits.
+  page.setDefaultNavigationTimeout(60000);
   const errors=[];page.on('pageerror', error=>errors.push(error.message));
   await routeLocal(page);await page.addInitScript(init, seed);
   return {page,errors};
@@ -98,6 +101,7 @@ async function accountFixture(browser, uid, fixture) {
       if(!result.ok)throw Object.assign(new Error(result.error.message),{code:'functions/'+result.error.code});return result.data;
     };
     window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>current,observe:fn=>{observers.push(fn);setTimeout(()=>fn(current),0)},accountAction:rpc,
+      shippingAction:(action,data={},operationId)=>rpc(action,{...data,accountUid:current?.uid},operationId||crypto.randomUUID()),
       loadPackContents:async id=>{const result=await window.__catalog(id);return result},
       loadInventoryPack:async id=>(await rpc('inventoryPack',{inventoryPackId:id})).pack,
       loadShipment:async id=>window.__readRecord({uid:current?.uid,collection:'shipments',id}),
@@ -132,16 +136,19 @@ async function profileJourney(browser, fixture, width) {
   await waitFor(page,()=>document.querySelectorAll('.item-card').length===1);
   const sold=await fixture.act(uid,'snapshot');assert.equal(sold.account.balanceCents,before.account.balanceCents+value);assert.equal(sold.items.filter(i=>i.status==='sold').length,2);
   await page.locator('[data-ship]').click();await page.locator('#shipping-dialog[open]').waitFor();
-  assert(await page.locator('.shipping-choice input[value="saved"]').isChecked());
+  await page.locator('.shipping-estimate-choice').waitFor();
+  assert((await page.locator('#shipping-address-options').textContent()).includes(address.line1));
+  assert.equal(await page.locator('#shipping-estimate-total').textContent(),'$4.99');
+  const quoted=await fixture.act(uid,'snapshot');assert.equal(quoted.shipments.length,0);assert.equal(quoted.account.balanceCents,sold.account.balanceCents);assert.equal(quoted.items.find(i=>i.id===opened.cards[2].id).status,'available');assert.equal((await fixture.db.collection('shippingQueue/root/requests').get()).size,0);
   await page.locator('#shipping-form [type="submit"]').click();await page.waitForURL(/order-tracking\.html\?request=/);
-  const shipped=await fixture.act(uid,'snapshot');assert.equal(shipped.shipments.length,1);assert.equal(shipped.items.find(i=>i.id===opened.cards[2].id).status,'shipping');assert.equal(shipped.shipments[0].address.line1,address.line1);
+  const shipped=await fixture.act(uid,'snapshot');assert.equal(shipped.shipments.length,1);assert.equal(shipped.shipments[0].feeStatus,'paid');assert.equal(shipped.shipments[0].shippingPaidCents,499);assert.equal(shipped.account.balanceCents,sold.account.balanceCents-499);assert.equal(shipped.items.find(i=>i.id===opened.cards[2].id).status,'shipping');assert.equal(shipped.shipments[0].address.line1,address.line1);const queue=(await fixture.db.collection('shippingQueue/root/requests').get()).docs;assert.equal(queue.length,1);assert.equal(queue[0].data().feeStatus,'paid');assert.equal(queue[0].data().customerUid,uid);
   // Sign-out / account switch closes in-progress dialogs and removes prior inventory.
   const fresh=await fixture.act(uid,'purchase',{packId:'basic',quantity:1,expectedVersion:1,expectedPriceCents:199});
   await page.goto(origin+'/profile.html');await waitFor(page,()=>document.querySelectorAll('[data-ship]').length===1);await page.locator('[data-ship]').click();await page.locator('#shipping-dialog[open]').waitFor();
   await page.evaluate(next=>window.__switchUser(next),other);await waitFor(page,()=>window.RIPPR_ACCOUNT?.user?.uid==='journey-other'&&window.RIPPR_ACCOUNT?.wallet);
   assert(await page.locator('#shipping-dialog').evaluate(d=>!d.open));assert.equal(await page.locator('.item-card').count(),0);assert.equal(await page.locator('#bulk-actions').isHidden(),true);
   assert.equal((await fixture.act(uid,'snapshot')).items.find(i=>i.id===fresh.cards[0].id).status,'available');
-  assertClean(errors);await page.close();console.log('PASS profile/service: bulk sale credits saved values, shipping saves address and ownership, account switching clears dialogs and inventory');
+  assertClean(errors);await page.close();console.log('PASS profile/service: bulk sale credits saved values, preview leaves items free, popup payment creates only paid shipping with saved address, account switching clears dialogs and inventory');
 }
 async function inventoryJourney(browser, fixture, width) {
   const uid='journey-large';await fixture.act(uid,'snapshot');const oldIds=[];
@@ -235,9 +242,10 @@ async function openingJourney(browser, fixture, width) {
   const {accountService}=await import(pathToFileURL(path.join(root,'functions/service.js')));
   const {museumService}=await import(pathToFileURL(path.join(root,'functions/museum-service.js')));
   const {catalogDatabase:memoryDatabase}=await import(pathToFileURL(path.join(root,'tests/helpers/catalog-database.mjs')));
+  const {suggestedPackingConfig}=await import(pathToFileURL(path.join(root,'functions/shipping-packaging.js')));
   const {defaultPack,DEFAULT_PRICES}=await import(pathToFileURL(path.join(root,'functions/catalog-model.js')));
-  const createFixture=()=>{const db=memoryDatabase(),run=accountService(db);return {db,run,museumRun:museumService(db),act:(uid,action,data={})=>run(uid,{action,...data,operationId:randomUUID()}),catalog:async id=>{const found=await db.runTransaction(tx=>tx.get(db.doc('packContents/'+id)));const c=found.exists?found.data():defaultPack(id);return {...c,priceCents:c.priceCents??DEFAULT_PRICES[id]}}}};
+  const createFixture=async()=>{const db=memoryDatabase(),run=accountService(db);await db.runTransaction(tx=>tx.set(db.doc('shippingSettings/config'),{rateMode:'manual',manualRates:[{maxOz:64,amountCents:499}],...suggestedPackingConfig(),version:1,enabled:true,labelsEnabled:true,maxValueCents:10000000}));return {db,run,museumRun:museumService(db),act:(uid,action,data={})=>run(uid,{action,...data,operationId:randomUUID()}),catalog:async id=>{const found=await db.runTransaction(tx=>tx.get(db.doc('packContents/'+id)));const c=found.exists?found.data():defaultPack(id);return {...c,priceCents:c.priceCents??DEFAULT_PRICES[id]}}}};
   const executablePath=process.env.CHROMIUM_PATH||undefined;
   const browser=await chromium.launch({...(executablePath?{executablePath}:{}),args:['--no-sandbox']});
-  try{for(const width of [320,390,1440]){console.log(`Viewport ${width}px`);const fixture=createFixture();await authJourney(browser,width);await profileJourney(browser,fixture,width);await inventoryJourney(browser,fixture,width);await museumJourney(browser,fixture,width);await trackingJourney(browser,fixture,width);await seasonalJourney(browser,fixture,width);await openingJourney(browser,fixture,width)}}finally{await browser.close()}
+  try{for(const width of [320,390,1440]){console.log(`Viewport ${width}px`);const fixture=await createFixture();await authJourney(browser,width);await profileJourney(browser,fixture,width);await inventoryJourney(browser,fixture,width);await museumJourney(browser,fixture,width);await trackingJourney(browser,fixture,width);await seasonalJourney(browser,fixture,width);await openingJourney(browser,fixture,width)}}finally{await browser.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});
