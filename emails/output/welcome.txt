@@ -1,18 +1,36 @@
 rippr — Collect the unexpected.
 
-Your collection starts here.
+Your first moves on rippr.
 
 Hey Alex, welcome to rippr. Discover Pokémon packs, check the odds, and keep your favorite pulls in one place.
 
-Choose a pack: Review the price and odds
-Make your pull: One card per pack
-Make it yours: Keep it or sell for site credit
 
+
+[✓] Create your account
+You’re in. Your collection has a new home.
+
+[ ] Meet your next favorite pack
+Explore the packs, see the possible pulls, and review prices and odds before opening.
 Explore packs: https://rippr.example/index.html#packs
 
-Selling a card adds site credit to your rippr balance. Site credit cannot be withdrawn as cash.
+[ ] Make it yours
+Keep your favorites, request shipping, or sell them back for site credit.
+Visit My items: https://rippr.example/profile.html
+
+[ ] Explore your rewards
+Get familiar with Spark Points and see which rewards are available to your account.
+Discover rewards: https://rippr.example/rewards.html
+
+[ ] Find your collector crowd
+Browse Community and get inspired by other collectors’ museums.
+Explore Community: https://rippr.example/community.html
+
+Take a look around. Your next favorite card could be waiting. Site credit stays on rippr and cannot be withdrawn as cash.
 
 Get help: https://rippr.example/contact-support.html
 Account settings: https://rippr.example/account-settings.html
 
 This email relates to your rippr account or activity.
+
+Operated by pullz.gg LLC
+320 N Meridian St, Ste 823 #122 · Indianapolis, IN 46204
