@@ -31,6 +31,10 @@ for asset in sorted((ROOT / 'assets').glob('*.svg')):
     recipes['assets/' + asset.name] = text
 
 catalog = json.loads((ROOT / 'packs.js').read_text().split('=', 1)[1].strip().rstrip(';'))
+# Include every current foil wrapper while retaining old paths for saved records.
+pack_urls = {pack['image']: uri(ROOT / pack['image'], 'image/webp') for pack in catalog if pack['image'].startswith('assets/packs/')}
+pack_urls.update({str(asset.relative_to(ROOT)):uri(asset,'image/webp') for asset in (ROOT/'assets/vending').glob('*.webp')})
+pack_urls.update({'assets/seasonal/pack-icy-rush.png':uri(ROOT/'assets/seasonal/pack-icy-rush.png','image/png'),'assets/pack-mythic.webp':uri(ROOT/'assets/pack-mythic.webp','image/webp')})
 bootstrap = '''(() => {
   const rasters = RASTERS;
   const recipes = RECIPES;
@@ -42,7 +46,7 @@ bootstrap = '''(() => {
   window.RIPPR_ASSET_URLS = urls;
   window.RIPPR_PACKS = CATALOG.map(pack => ({...pack, image:urls[pack.image]}));
   document.querySelectorAll('[data-asset]').forEach(img => { img.src = urls[img.dataset.asset]; });
-})();'''.replace('RASTERS', json.dumps(rasters)).replace('RECIPES', json.dumps(recipes)).replace('CATALOG', json.dumps(catalog)).replace('SEASONAL', json.dumps({'assets/seasonal/pack-icy-rush.png':uri(ROOT/'assets/seasonal/pack-icy-rush.png','image/png'),'assets/pack-mythic.webp':uri(ROOT/'assets/pack-mythic.webp','image/webp')}))
+})();'''.replace('RASTERS', json.dumps(rasters)).replace('RECIPES', json.dumps(recipes)).replace('CATALOG', json.dumps(catalog)).replace('SEASONAL', json.dumps(pack_urls))
 
 
 def common(text):
@@ -50,7 +54,7 @@ def common(text):
     text=text.replace('<link rel="stylesheet" href="identity-polish.css">','<style>'+(ROOT/'identity-polish.css').read_text()+'</style>')
     text=text.replace('<link rel="stylesheet" href="brand-states.css">','<style>'+(ROOT/'brand-states.css').read_text()+'</style>')
     # Offline design previews deliberately do not contact production Firebase.
-    for filename in ['firebase-config.js', 'firebase-client.js', 'account-state.js']:
+    for filename in ['firebase-config.js', 'firebase-client.js', 'account-state.js', 'conversion.js']:
         text = text.replace('<script src="' + filename + '" defer></script>', '')
     offline_auth = """window.RIPPR_AUTH_OFFLINE=true;window.RIPPR_ACCOUNT={user:null,ready:true,error:null};
 window.RipprFirebase={ready:Promise.resolve(),currentUser:()=>null,observe:cb=>{queueMicrotask(()=>cb(null));return()=>{}},
@@ -92,20 +96,23 @@ signOut:()=>Promise.resolve(),refreshUser:()=>Promise.resolve(null),resendVerifi
     # Rewrite complete relative filenames once, including query/hash links. Do not
     # rewrite an already exported filename such as rippr-opening.html again.
     text = re.sub(r'(?<![\w-])(?:museum|community|index|opening|auth|profile|rewards|how-it-works|shipping|order-tracking|account-settings|help-center|about|contact-support)\.html(?![\w.-])', lambda match: filenames[match[0]], text)
+    text = re.sub(r'src="(assets/packs/[^"]+\.webp|assets/hero/pip-hover\.webp)"', lambda m: 'src="' + uri(ROOT / m[1], 'image/webp') + '"', text)
     return text
 
 
 home = (ROOT / 'index.html').read_text()
 css = (ROOT / 'style.css').read_text().replace('assets/fonts/manrope-latin-variable.woff2', uri(ROOT / 'assets/fonts/manrope-latin-variable.woff2', 'font/woff2'))
 home = home.replace('<link rel="stylesheet" href="style.css">', '<style>' + css + '</style>')
-home = re.sub(r'\s*<script src="(?:packs|app)\.js" defer></script>', '', home)
+home = re.sub(r'\s*<script src="(?:packs|app|vending-machine)\.js" defer></script>', '', home)
+home = home.replace('<link rel="stylesheet" href="vending-machine.css">', '<style>' + (ROOT / 'vending-machine.css').read_text().replace('assets/vending/powder-coat.webp',uri(ROOT/'assets/vending/powder-coat.webp','image/webp')) + '</style>')
 home = re.sub(r'src="(assets/(?:pack|grail)-[^"]+\.svg)"', lambda m: 'data-asset="' + m[1] + '"', home)
 home = re.sub(r'src="(assets/hero/[^"]+\.png)"', lambda m: 'src="' + uri(ROOT / m[1], 'image/png') + '"', home)
 home = re.sub(r'href="(assets/(?:hero/grail-gallery|rewards/pip-daily-case)\.png)"', lambda m: 'href="' + uri(ROOT / m[1], 'image/png') + '"', home)
 home = re.sub(r'src="(assets/fulfillment/[^\"]+\.png)"', lambda m: 'src="' + uri(ROOT / m[1], 'image/png') + '"', home)
 app = (ROOT / 'app.js').read_text()
 app = re.sub(r"image: '(assets/grail-[^']+\.svg)'", lambda m: "image: window.RIPPR_ASSET_URLS['" + m[1] + "']", app)
-home = home.replace('</body>', '<script>' + bootstrap + '</script><script>' + app + '</script></body>')
+# The offline station intentionally has no live catalog; its empty/retry state is honest.
+home = home.replace('</body>', '<script>' + bootstrap + '</script><script>' + app + '</script><script>' + (ROOT / 'vending-machine.js').read_text() + '</script></body>')
 (OUT / 'rippr-homepage.html').write_text(common(home))
 
 opening = (ROOT / 'opening.html').read_text()
@@ -192,7 +199,7 @@ with zipfile.ZipFile(OUT / 'rippr-site.zip', 'w', zipfile.ZIP_DEFLATED) as archi
     archive.write(ROOT / 'THIRD_PARTY_NOTICES.md', 'rippr/THIRD_PARTY_NOTICES.md')
     archive.write(ROOT / 'docs/CARD-LIBRARY.md', 'rippr/docs/CARD-LIBRARY.md')
     source_files = ['museum.html','museum.css','museum.js','community.html','community.css','community.js','landing.html','landing.css','landing.js','README.md', '.gitignore', '.gitattributes', '.firebaserc', 'firebase.json', 'vercel.json', 'package.json', 'package-lock.json',
-                    'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'stripe-return.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
+                    'help-center.html','help-center.js','about.html','contact-support.html','contact-support.js','info-pages.css','shipping-request.js','shipping.html','order-tracking.html','account-settings.html','service-pages.css','order-tracking.js','account-settings.js','settings-model.js','index.html', 'how-it-works.html', 'how-it-works.css', 'opening.html', 'auth.html', 'profile.html', 'profile.css', 'profile.js', 'stripe-return.js', 'rewards.html', 'rewards.css', 'rewards.js', 'reward-model.js', 'style.css', 'vending-machine.css', 'vending-machine.js', 'conversion.js', 'auth.css', 'phone-auth.js', 'app.js', 'auth.js', 'packs.js',
                     'footer.css', 'footer-config.js', 'footer.js', 'navigation.css', 'navigation.js', 'firebase-config.js', 'firebase-client.js', 'account-state.js',
                     'condition-badges.css','identity-polish.css','brand-states.css','reveal-polish.css','referral-model.js','referrals.js','referrals.css','catalog.js', 'artwork-loader.js', 'artwork.css', 'opening-audio.js', 'opening-foil.js', 'opening-foil.css', 'opening-theater.css', 'opening.js', 'opening.css', 'opening-stage.css', 'mascot.css', 'firestore.rules', 'storage.rules']
     for name in source_files:

@@ -49,7 +49,7 @@ export function assertPackId(id) {
   if (!PACK_IDS.includes(id)) throw Object.assign(new Error('Unknown pack tier.'), { code: 'catalog/invalid-pack' });
 }
 export function packName(id) { return id === 'icy-rush' ? 'Icy Rush' : id[0].toUpperCase() + id.slice(1); }
-export function packImage(id) { return id === 'mythic' ? 'assets/pack-mythic.webp' : id === 'icy-rush' ? 'assets/seasonal/pack-icy-rush.png' : `assets/pack-${id}.svg`; }
+export function packImage(id) { return `assets/packs/${id}.webp`; }
 export function defaultPack(id) {
   assertPackId(id);
   return { items: seeds.map(item => ({ ...item })), enabled: !['icy-rush','mythic'].includes(id), priceCents: DEFAULT_PRICES[id], version: 0, source: 'default' };

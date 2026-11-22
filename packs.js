@@ -3,65 +3,65 @@ window.RIPPR_PACKS = [
   {
     "id": "basic",
     "name": "Basic",
-    "image": "assets/pack-basic.svg",
+    "image": "assets/packs/basic.webp",
     "accent": "#b8c8d8",
     "tier": 1,
-    "width": 341,
-    "height": 605
+    "width": 971,
+    "height": 1619
   },
   {
     "id": "plus",
     "name": "Plus",
-    "image": "assets/pack-plus.svg",
+    "image": "assets/packs/plus.webp",
     "accent": "#55d9ff",
     "tier": 2,
-    "width": 339,
-    "height": 605
+    "width": 971,
+    "height": 1620
   },
   {
     "id": "premium",
     "name": "Premium",
-    "image": "assets/pack-premium.svg",
+    "image": "assets/packs/premium.webp",
     "accent": "#b798ef",
     "tier": 3,
-    "width": 337,
-    "height": 605
+    "width": 971,
+    "height": 1620
   },
   {
     "id": "elite",
     "name": "Elite",
-    "image": "assets/pack-elite.svg",
+    "image": "assets/packs/elite.webp",
     "accent": "#ff9e88",
     "tier": 4,
-    "width": 340,
-    "height": 605
+    "width": 971,
+    "height": 1620
   },
   {
     "id": "ultimate",
     "name": "Ultimate",
-    "image": "assets/pack-ultimate.svg",
+    "image": "assets/packs/ultimate.webp",
     "accent": "#ffcf70",
     "tier": 5,
-    "width": 340,
-    "height": 605
+    "width": 971,
+    "height": 1620
   },
   {
     "id": "mythic",
     "name": "Mythic",
-    "image": "assets/pack-mythic.webp",
+    "image": "assets/packs/mythic.webp",
     "accent": "#d8e5ff",
     "tier": 6,
-    "width": 1024,
-    "height": 1536
+    "width": 971,
+    "height": 1620
   },
   {
     "id": "icy-rush",
     "name": "Icy Rush",
-    "image": "assets/seasonal/pack-icy-rush.png",
+    "image": "assets/packs/icy-rush.webp",
     "accent": "#8feaff",
     "tier": 3,
     "limited": true,
-    "width": 938,
-    "height": 1677
+    "width": 971,
+    "height": 1620
   }
 ];

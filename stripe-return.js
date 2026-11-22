@@ -11,7 +11,7 @@
   const account=window.RIPPR_ACCOUNT,mode=window.RIPPR_RUNTIME?.mode||account?.mode;
   if(!account?.ready)return;
   if(!account.user||saved.accountUid!==account.user.uid||saved.mode!==mode){clear();return}
-  link.href='opening.html?pack='+encodeURIComponent(saved.packId);link.textContent=(document.body.dataset.paymentResult==='canceled'?'Back to ':'Continue to ')+names[saved.packId];
+  link.href='opening.html?pack='+encodeURIComponent(saved.packId)+(Number.isInteger(saved.quantity)&&saved.quantity>=2&&saved.quantity<=5?'&quantity='+saved.quantity:'');link.textContent=(document.body.dataset.paymentResult==='canceled'?'Back to ':'Continue to ')+names[saved.packId];
  }
  link.addEventListener('click',clear);
  for(const event of ['rippr:authchange','rippr:walletchange','rippr:runtimechange'])document.addEventListener(event,sync);

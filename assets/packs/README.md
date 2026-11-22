@@ -1,0 +1,3 @@
+# rippr foil pack artwork
+
+Generated from the owner-approved vending-machine concept. Each tier shares the same front-facing navy foil design, with silver/cyan/violet/coral/gold/platinum/icy accents. WebP encoding preserves the generated dimensions and alpha channel; no original source image was deleted. Product artwork is decoration and does not set prices, odds, enabled status or inventory. Old wrapper assets remain for historical records and cached clients. Shared packImage() determines future reward-wrapper metadata; current inventory renders known pack IDs with the current wrapper without rewriting historical records.

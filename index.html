@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shipping-content.css">
   <script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="conversion.js" defer></script><script src="account-state.js" defer></script><script src="packs.js" defer></script>
   <script src="catalog.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="app.js" defer></script><link rel="stylesheet" href="vending-machine.css"><script src="vending-machine.js" defer></script>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="navigation.css?v=2"><script src="navigation.js" defer></script><link rel="stylesheet" href="mascot.css"><link rel="stylesheet" href="footer.css"><script src="footer-config.js" defer></script><script src="footer.js" defer></script><link rel="stylesheet" href="brand-states.css"><link rel="stylesheet" href="condition-badges.css"><script src="/runtime-ui.js" defer></script></head>
 <body class="has-site-footer" id="top">
   <a href="#main" class="skip-link">Skip to content</a>
@@ -35,7 +35,7 @@
       </div>
       <div class="hero-art hero-scenes" aria-hidden="true">
         <div class="hero-scene scene-signature" data-scene="signature">
-          <div class="hero-pack-fan"><img class="scene-pack fan-left" src="assets/pack-plus.svg" alt="" width="340" height="605" fetchpriority="high" draggable="false"><img class="scene-pack fan-right" src="assets/pack-ultimate.svg" alt="" width="340" height="605" draggable="false"><img class="scene-pack fan-center" src="assets/pack-premium.svg" alt="" width="340" height="605" draggable="false"></div>
+          <div class="hero-pack-fan"><img class="scene-pack fan-left" src="assets/packs/plus.webp" alt="" width="971" height="1620" fetchpriority="high" draggable="false"><img class="scene-pack fan-right" src="assets/packs/ultimate.webp" alt="" width="971" height="1620" draggable="false"><img class="scene-pack fan-center" src="assets/packs/premium.webp" alt="" width="971" height="1620" draggable="false"></div>
           <img class="scene-pip" src="assets/hero/pip-hover.webp" alt="" width="400" height="400" draggable="false">
         </div>
         <div class="hero-scene scene-daily" data-scene="daily-discovery" hidden><img class="daily-art" src="assets/hero/daily-case.webp" alt="" width="800" height="410" loading="lazy" draggable="false"></div>
@@ -44,7 +44,7 @@
           <div class="hero-museum"><div class="museum-mini-case case-left"><img src="assets/reveal/rippr-card-back.webp" alt="" width="400" height="560" loading="lazy" draggable="false"></div><div class="museum-mini-case case-center"><img src="assets/hero/charizard-slab.webp" alt="" width="360" height="480" loading="lazy" draggable="false"></div><div class="museum-mini-case case-right"><img src="assets/reveal/rippr-card-back.webp" alt="" width="400" height="560" loading="lazy" draggable="false"></div></div>
           <img class="scene-pip" src="assets/hero/pip-hover.webp" alt="" width="400" height="400" loading="lazy" draggable="false">
         </div>
-        <div class="hero-scene scene-winter" data-scene="icy-rush" hidden><span class="winter-sparkles">✦ · ❄ · ✧</span><img class="winter-pack" src="assets/hero/icy-rush.webp" alt="" width="400" height="600" loading="lazy" draggable="false"><img class="scene-pip" src="assets/hero/pip-hover.webp" alt="" width="400" height="400" loading="lazy" draggable="false"><span class="winter-edition">Limited edition</span></div>
+        <div class="hero-scene scene-winter" data-scene="icy-rush" hidden><span class="winter-sparkles">✦ · ❄ · ✧</span><img class="winter-pack" src="assets/packs/icy-rush.webp" alt="" width="971" height="1620" loading="lazy" draggable="false"><img class="scene-pip" src="assets/hero/pip-hover.webp" alt="" width="400" height="400" loading="lazy" draggable="false"><span class="winter-edition">Limited edition</span></div>
       </div>
       <div class="hero-controls" role="group" aria-label="Hero banners">
         <button id="hero-previous" type="button" aria-label="Previous banner"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></button>
@@ -55,13 +55,19 @@
       <p id="hero-status" class="sr-only" role="status" aria-live="off"></p>
     </section>
 
-    <section id="packs" class="catalog" aria-labelledby="packs-title">
-      <div class="catalog-toolbar"><h2 id="packs-title">Find your level.</h2><div class="pack-collections" role="group" aria-label="Pack collection"><button type="button" data-collection="core" aria-pressed="true">Core packs</button><button type="button" data-collection="limited" aria-pressed="false"><span aria-hidden="true">❄</span> Limited time</button></div><div class="carousel-controls"><button id="previous-pack" type="button" aria-label="Previous pack">←</button><button id="next-pack" type="button" aria-label="Next pack">→</button><button id="rotation-toggle" type="button" aria-label="Pause rotation">Pause</button></div></div>
-      <div id="pack-carousel" class="pack-carousel" role="region" aria-roledescription="carousel" aria-label="Six core pack tiers">
-        <div id="pack-grid" class="carousel-stage"></div>
-        <div id="tier-selectors" class="tier-selectors" role="group" aria-label="Choose pack tier"></div>
-        <p id="catalog-status" class="sr-only" role="status" aria-live="off"></p>
+    <section id="packs" class="catalog vending-catalog" aria-labelledby="packs-title">
+      <div class="vending-heading"><h2 id="packs-title">Pick your next pull.</h2><p>Choose your pack. Find your next favorite.</p></div>
+      <div id="pack-carousel" class="vending-machine" role="region" aria-label="rippr pack vending machine" aria-busy="true">
+        <span class="vending-screw screw-tl" aria-hidden="true"></span><span class="vending-screw screw-tr" aria-hidden="true"></span><span class="vending-screw screw-bl" aria-hidden="true"></span><span class="vending-screw screw-br" aria-hidden="true"></span>
+        <div class="vending-sign"><span class="vending-vent" aria-hidden="true"></span><div><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg><strong>rippr</strong><span>PACK STATION</span></div><span class="vending-vent" aria-hidden="true"></span></div>
+        <div class="vending-body">
+          <div class="vending-window"><div class="vending-window-lights" aria-hidden="true"><i></i><i></i><i></i></div><div id="pack-grid" class="vending-slots" aria-label="Available packs"></div><div class="vending-empty" id="vending-empty"><span aria-hidden="true">✦</span><p>Loading the pack station…</p></div></div>
+          <aside class="vending-controls" aria-label="Your selected pack"><div class="vending-screen"><p class="vending-screen-label">YOUR SELECTION</p><div class="vending-selection"><img id="vending-selected-art" alt="" width="250" height="390" hidden><div class="vending-selected-copy"><h3 id="vending-selected-name">Choose a pack</h3><p id="vending-selected-price">—</p><p id="vending-unit-price" class="vending-unit-price" hidden></p></div></div><div class="vending-quantity-control" role="group" aria-label="Pack quantity"><button id="vending-minus" type="button" aria-label="One fewer pack" disabled>−</button><output id="vending-quantity" aria-live="polite" aria-label="Selected quantity">1</output><button id="vending-plus" type="button" aria-label="One more pack" disabled>+</button></div><a id="vending-view-pack" class="vending-view-pack view-pack" aria-disabled="true" tabindex="-1"><span>View pack</span><span aria-hidden="true">→</span></a><a id="vending-odds" class="vending-odds" aria-disabled="true" tabindex="-1">Contents &amp; odds</a></div><div id="tier-selectors" class="vending-keys" role="group" aria-label="Select a pack slot"></div></aside>
+        </div>
+        <div class="vending-lower"><img class="vending-pip" src="assets/hero/pip-hover.webp" alt="" width="400" height="400" loading="lazy"><div class="vending-hatch"><span class="vending-flap" aria-hidden="true"></span><span>YOUR NEXT FAVORITE</span></div><svg class="vending-chassis-spark" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C13 9 15 12 24 14C15 16 13 19 12 28C11 19 9 16 0 14C9 12 11 9 12 0Z"/></svg></div>
       </div>
+      <div class="vending-toolbar"><div class="pack-collections" role="group" aria-label="Pack collection"><button type="button" data-collection="core" aria-pressed="true">Core packs</button><button type="button" data-collection="limited" aria-pressed="false">Limited time</button></div><div class="vending-bank-controls" hidden><button id="previous-pack" type="button" aria-label="Previous pack slots">‹</button><span id="vending-bank-label"></span><button id="next-pack" type="button" aria-label="Next pack slots">›</button></div></div>
+      <p id="catalog-status" class="vending-status" role="status" aria-live="polite">Loading current packs…</p><button id="catalog-retry" class="vending-retry" type="button" hidden>Retry packs</button>
       <noscript><p><a href="opening.html?pack=basic">View the Basic pack</a></p></noscript>
     </section>
 

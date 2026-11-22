@@ -112,7 +112,7 @@ test('Icy Rush is recognized but unavailable until the owner configures it', () 
 test('Mythic uses its artwork and remains unavailable until configured', async () => {
   const {packImage}=await import('../src/catalog-model.js');
   assert.ok(PACK_IDS.includes('mythic'));
-  assert.equal(packImage('mythic'),'assets/pack-mythic.webp');
+  assert.equal(packImage('mythic'),'assets/packs/mythic.webp');
   const pack=defaultPack('mythic');
   assert.equal(pack.enabled,false);
   assert.equal(pack.priceCents,null);

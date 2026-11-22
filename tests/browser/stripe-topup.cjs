@@ -17,7 +17,7 @@ const root=path.resolve(__dirname,'../..'),origin='http://localhost:3000';
   assert.equal(calls.filter(c=>c.action==='checkout').length,0,'Under-minimum amounts must not reach Checkout');
   await page.locator('[data-amount="25"]').click();
  }
- assert.equal(await page.locator('.topup-presets button').count(),4);assert(await page.locator('.topup-welcome').isVisible());assert.equal(await page.locator('.topup-welcome img').getAttribute('src'),'assets/pack-basic.svg');assert(await page.locator('.topup-spark').isVisible());assert.equal(await page.locator('.topup-continue').textContent(),'Continue to checkout →');
+ assert.equal(await page.locator('.topup-presets button').count(),4);assert(await page.locator('.topup-welcome').isVisible());assert.equal(await page.locator('.topup-welcome img').getAttribute('src'),'assets/packs/basic.webp');assert(await page.locator('.topup-spark').isVisible());assert.equal(await page.locator('.topup-continue').textContent(),'Continue to checkout →');
  await page.locator('[data-amount="50"]').click();assert.equal(await page.locator('#topup-total').textContent(),'$50.00');await page.locator('[data-amount="25"]').click();
  await page.evaluate(()=>{RIPPR_ACCOUNT.wallet.firstVerifiedDepositAtMs=Date.now()-1000;document.dispatchEvent(new Event('rippr:walletchange'))});assert(await page.locator('.topup-bonus-link').isVisible());assert((await page.locator('#topup-welcome-title').textContent()).includes('ready'));
  await page.evaluate(()=>{RIPPR_ACCOUNT.wallet.paymentHold=true;document.dispatchEvent(new Event('rippr:walletchange'))});assert((await page.locator('#topup-welcome-title').textContent()).includes('payment review'));assert(await page.locator('.topup-bonus-link').isHidden());

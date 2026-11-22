@@ -1,0 +1,43 @@
+const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..'),origin='http://localhost:3000',core=['basic','plus','premium','elite','ultimate','mythic'];
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined,args:['--no-sandbox']});try{for(const width of [320,390,768,1440]){
+ const p=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'}),errors=[];p.on('pageerror',e=>errors.push(e.message));
+ await p.route('**/*',r=>{const u=new URL(r.request().url());assert.equal(u.origin,origin,'Vending tests must not contact live services');const name=u.pathname.slice(1),allowed=['packs.js','catalog.js','app.js','vending-machine.js'];if(name.endsWith('.js')&&!allowed.includes(name))return r.fulfill({body:'',contentType:'application/javascript'});const f=path.resolve(root,name);assert(f.startsWith(root+'/'));if(!fs.existsSync(f))return r.abort();return r.fulfill({body:fs.readFileSync(f),contentType:({'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2'})[path.extname(f)]||'application/octet-stream'})});
+ await p.addInitScript(()=>{
+  window.fixtureMode=new URLSearchParams(location.search).get('fixture')||'normal';window.packReads=[];window.purchaseCalls=0;window.RIPPR_RUNTIME={mode:'live'};
+  window.RipprAccount={act:async()=>{purchaseCalls++;throw Error('Selection must never purchase a pack')}};
+  window.RipprFirebase={loadHomepageGrails:async()=>({version:1,source:'firebase',items:[]}),loadPackContents:async id=>{
+   const mode=fixtureMode;packReads.push({id,mode});
+   if(mode==='held'){await new Promise(resolve=>{window.releaseCatalogs=window.releaseCatalogs||[];releaseCatalogs.push(resolve)})}
+   if(mode==='failed')throw Error('Fixture catalog unavailable');
+   const prices={basic:100,plus:500,premium:1000,elite:2500,ultimate:5000,mythic:10000,'icy-rush':1500};
+   const enabled=mode==='all'||mode==='held'||['basic','plus','premium','icy-rush'].includes(id);
+   const saved={...RipprCatalog.defaultPack(id),enabled,source:'firebase',version:3,priceCents:prices[id],savedPriceCents:prices[id]};
+   if(mode==='limited-disabled'&&id==='icy-rush')return{...saved,enabled:false};
+   if(mode==='invalid'){
+    if(id==='basic')return{...saved,savedPriceCents:123};
+    if(id==='plus')return{...saved,savedPriceCents:null};
+    if(id==='premium')return RipprCatalog.defaultPack(id);
+    if(id==='elite')return{...saved,enabled:true,items:[]};
+    if(id==='ultimate')throw{code:'catalog/unconfigured'};
+    return{...saved,enabled:false};
+   }
+   return saved;
+  }};
+ });
+ const slots=()=>p.locator('.vending-slot[data-vending-pack]');
+ async function ready(){await p.waitForFunction(()=>document.querySelector('#pack-carousel').getAttribute('aria-busy')==='false')}
+ async function mode(name){await p.goto(origin+'/index.html?fixture='+name);await ready()}
+ await mode('normal');assert.equal(await slots().count(),3);assert.deepEqual(await slots().evaluateAll(nodes=>nodes.map(n=>n.dataset.vendingPack)),['basic','plus','premium']);assert.equal(await p.locator('#tier-selectors button').count(),3);assert.equal(await p.locator('#vending-selected-name').textContent(),'Basic pack');assert.equal(await p.locator('#vending-selected-price').textContent(),'$1.00');assert(await p.locator('#vending-minus').isDisabled());
+ await p.locator('#tier-selectors [data-vending-pack=plus]').click();assert.equal(await p.locator('#vending-selected-name').textContent(),'Plus pack');assert.equal(await p.locator('#vending-selected-price').textContent(),'$5.00');assert.equal(await p.locator('.vending-slot[data-vending-pack=plus]').getAttribute('aria-pressed'),'true');
+ for(let n=0;n<4;n++)await p.locator('#vending-plus').click();assert.equal(await p.locator('#vending-quantity').textContent(),'5');assert.equal(await p.locator('#vending-selected-price').textContent(),'$25.00');assert(await p.locator('#vending-plus').isDisabled());let link=new URL(await p.locator('#vending-view-pack').getAttribute('href'),origin);assert.equal(link.searchParams.get('pack'),'plus');assert.equal(link.searchParams.get('quantity'),'5');assert.equal(await p.evaluate(()=>purchaseCalls),0);
+ for(let n=0;n<4;n++)await p.locator('#vending-minus').click();assert.equal(await p.locator('#vending-quantity').textContent(),'1');assert(await p.locator('#vending-minus').isDisabled());await p.locator('.vending-slot[data-vending-pack=basic]').click();await p.locator('.vending-slot[data-vending-pack=basic]').focus();await p.keyboard.press('ArrowRight');assert.equal(await p.locator('#vending-selected-name').textContent(),'Plus pack');assert.equal(await p.locator('.vending-slot[data-vending-pack=plus]').evaluate(el=>document.activeElement===el),true);
+ for(const selector of ['#vending-minus','#vending-plus','#vending-view-pack','#vending-odds','#tier-selectors button','button[data-collection]'])for(const el of await p.locator(selector).all()){const box=await el.boundingBox();assert(box&&box.height>=44-0.5&&box.width>=44-0.5,'Touch target is at least 44px: '+selector)}assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert(await p.locator('#pack-carousel').evaluate(el=>el.scrollWidth<=el.clientWidth));await p.locator('#packs').screenshot({path:'/tmp/rippr-vending-'+width+'.png'});
+ await p.locator('button[data-collection=limited]').click();assert.equal(await slots().count(),1);assert.equal(await slots().first().getAttribute('data-vending-pack'),'icy-rush');assert.equal(await p.locator('#vending-selected-price').textContent(),'$15.00');await p.locator('button[data-collection=core]').click();assert.equal(await p.locator('#vending-selected-name').textContent(),'Plus pack');
+ await mode('limited-disabled');await p.locator('button[data-collection=limited]').click();assert.equal(await slots().count(),0);assert.equal(await p.locator('#vending-view-pack').getAttribute('href'),null);assert(await p.locator('#vending-plus').isDisabled());assert(await p.locator('#vending-empty').isVisible());
+ await mode('all');assert.deepEqual(await slots().evaluateAll(nodes=>nodes.map(n=>n.dataset.vendingPack)),core.slice(0,3));await p.locator('#next-pack').click();assert.deepEqual(await slots().evaluateAll(nodes=>nodes.map(n=>n.dataset.vendingPack)),core.slice(3));await p.locator('#tier-selectors [data-vending-pack=mythic]').click();assert.equal(await p.locator('#vending-selected-name').textContent(),'Mythic pack');assert.equal(await p.locator('#vending-selected-price').textContent(),'$100.00');await p.locator('#previous-pack').click();assert.deepEqual(await slots().evaluateAll(nodes=>nodes.map(n=>n.dataset.vendingPack)),core.slice(0,3));
+ await mode('invalid');assert.deepEqual(await slots().evaluateAll(nodes=>nodes.map(n=>n.dataset.vendingPack)),['basic']);assert.equal(await p.locator('#vending-selected-price').textContent(),'$1.23');assert(await p.locator('#catalog-retry').isVisible());
+ await mode('failed');assert.equal(await slots().count(),0);assert.equal(await p.locator('#vending-view-pack').getAttribute('href'),null);assert(await p.locator('#catalog-retry').isVisible());await p.evaluate(()=>fixtureMode='normal');await p.locator('#catalog-retry').click();await ready();assert.equal(await slots().count(),3);assert.equal(await p.locator('#vending-selected-price').textContent(),'$1.00');
+ // A collection change while saved catalogs are in flight must remain the user's choice.
+ await p.goto(origin+'/index.html?fixture=held');await p.waitForFunction(()=>window.releaseCatalogs?.length===7);await p.locator('button[data-collection=limited]').click();await p.evaluate(()=>releaseCatalogs.forEach(resolve=>resolve()));await ready();assert.equal(await p.locator('button[data-collection=limited]').getAttribute('aria-pressed'),'true');assert.deepEqual(await slots().evaluateAll(nodes=>nodes.map(n=>n.dataset.vendingPack)),['icy-rush']);assert.equal(await p.locator('#vending-selected-name').textContent(),'Icy Rush pack');assert.equal(await p.evaluate(()=>purchaseCalls),0);assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);await p.close();console.log('PASS vending machine '+width+'px: saved live prices/availability, tactile and keyboard selection, quantity bounds, safe links, banks, limited mode, errors/retry, late loads, reduced motion and no purchase');
+ }}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

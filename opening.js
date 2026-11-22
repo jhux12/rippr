@@ -18,7 +18,8 @@ if(selectedPack){
 }
 
 const quantityButtons=[...document.querySelectorAll('[data-qty]')],openButton=$('#open'),display=$('#display'),arena=$('.arena'),stage=$('#reveal-stage'),controls=$('.controls'),results=$('#results'),cards=$('#cards'),announcement=$('#announcement'),phase=$('#phase'),skipOpening=$('#skip-opening');
-let quantity=1,state='idle',deck=[],cursor=0,openingTimer=null,openingSession=0,selling=false,pendingSale=null,skipBatchAnimations=false;
+const requestedQuantity=new URLSearchParams(location.search).get('quantity');
+let quantity=!inventoryPackId&&/^[1-5]$/.test(requestedQuantity||'')?Number(requestedQuantity):1,state='idle',deck=[],cursor=0,openingTimer=null,openingSession=0,selling=false,pendingSale=null,skipBatchAnimations=false;
 // One phase deadline belongs to one opening session. Hidden tabs retain the
 // remaining delay instead of letting timers outrun paused visual effects.
 let phaseTask=null,pageSuspended=false;
@@ -169,6 +170,7 @@ function label(){
  openButton.textContent=(window.RIPPR_AUTH_OFFLINE?'Preview':window.RIPPR_ACCOUNT?.user?'Open':'Log in to open')+' '+packs+' · '+money.format(contents.priceCents*quantity/100);
 }
 document.addEventListener('rippr:authchange',()=>{inventoryStatus=inventoryPackId?'checking':'none';if(state!=='idle')resetOpening();verifyInventoryPack();updateOpen()});
+quantityButtons.forEach(button=>{const active=Number(button.dataset.qty)===quantity;button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active))});
 if(inventoryPackId){$('.quantities').hidden=true;$('#quantity-control').hidden=true;$('.back').href='profile.html';$('.back').textContent='← Back to my items';$('#again').textContent='Back to my items';}
 quantityButtons.forEach(button=>button.addEventListener('click',()=>{if(state!=='idle')return;sound.play('click');quantity=Number(button.dataset.qty);quantityButtons.forEach(b=>{b.classList.toggle('selected',b===button);b.setAttribute('aria-pressed',String(b===button))});label()}));
 function randomUnit(){const v=new Uint32Array(1);crypto.getRandomValues(v);return v[0]/4294967296}

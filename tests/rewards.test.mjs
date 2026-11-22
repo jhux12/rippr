@@ -70,7 +70,7 @@ test('Icy Rush rewards retain seasonal art and open exactly once after catalog s
  await f.config([seasonalPrize]);
  const reward=await f.call('member','redeemSpark',{expectedVersion:1});
  let saved=await f.call('member','snapshot');
- assert.equal(saved.packs[0].image,'assets/seasonal/pack-icy-rush.png');
+ assert.equal(saved.packs[0].image,'assets/packs/icy-rush.webp');
  assert.equal(saved.packs[0].name,'Icy Rush pack');
  const data={packId:'icy-rush',inventoryPackId:reward.inventoryPackId,quantity:1,expectedVersion:1};
  const result=await f.call('member','openInventoryPack',{...data,expectedVersion:1});
