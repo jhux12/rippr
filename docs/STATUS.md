@@ -1,4 +1,8 @@
-# Latest: approved pack vending machine and foil wrappers
+# Latest: all packs visible with compact selection controls
+
+The homepage machine now displays all six core tiers together in two rows, keeping the Core/Limited switch. Unconfigured or unavailable tiers remain visible, clearly labeled and disabled; only valid enabled saved catalogs with explicit saved prices are selectable. Replaced the large selection screen, preview artwork, duplicate slot keys, odds shortcut and bank pagination with one compact bar for pack name, total, quantity and View pack. Existing opening/checkout flow and saved catalog data are unchanged. Browser checks passed at 320/390/768/1440px for all-visible layout, disabled packs, keyboard selection, quantities, retry/late-load states and responsive geometry; Mythic opening passed at 320/390/1440px. Frontend only; no Firebase deployment needed.
+
+# Previous: approved pack vending machine and foil wrappers
 
 Replaced the homepage pack carousel with the approved realistic pack-station layout: metal/glass chassis, photographic chrome spirals, foil stacks, tactile selectors, selection screen, 1–5 quantity and Core/Limited banks. Uses enabled valid saved catalogs and explicit saved prices; selection leads to the existing opening page without a charge. Added matching transparent foil wrapper artwork for all 7 tiers and updated visible wrappers across hero/auth/landing/rewards/inventory/guides. Accurate intrinsic dimensions keep cold-load opening art centered. Multi-pack quantity follows the pack link and supported checkout return. No saved prices, odds, availability, financial records or inventory were changed. See [PACK-VENDING.md](PACK-VENDING.md) for assets, deployment and verification. Domain tests: 294 passed; machine, opening and checkout browser checks passed on mobile/desktop; build/site checks passed.
 

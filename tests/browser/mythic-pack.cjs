@@ -24,7 +24,7 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   });
   // An unavailable tier must not be selectable in the vending machine.
   await page.goto(origin+'/index.html');await page.waitForFunction(()=>document.querySelector('.vending-machine').getAttribute('aria-busy')==='false');
-  assert.equal(await page.locator('[data-vending-pack="mythic"]').count(),0);
+  assert.equal(await page.locator('.vending-slot[data-vending-pack="mythic"]').count(),1);assert(await page.locator('.vending-slot[data-vending-pack="mythic"]').isDisabled());assert((await page.locator('.vending-slot[data-vending-pack="mythic"]').textContent()).includes('Unavailable'));
   // Existing owned/direct links retain the disabled-catalog guard and centered artwork.
   await page.goto(origin+'/opening.html?pack=mythic',{waitUntil:'domcontentloaded'});
   const packAspect=await page.evaluate(()=>{const p=RIPPR_PACKS.find(p=>p.id==='mythic');return p.width/p.height});
@@ -39,11 +39,11 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   await page.screenshot({path:'/tmp/mythic-stage-'+width+'.png',fullPage:true});
   await page.evaluate(()=>sessionStorage.setItem('configured','yes'));
   await page.goto(origin+'/index.html');await page.waitForFunction(()=>document.querySelector('.vending-machine').getAttribute('aria-busy')==='false');
-  await page.locator('#next-pack').click();await page.locator('.vending-slot[data-vending-pack="mythic"]').click();
+  assert.equal(await page.locator('.vending-slot').count(),6);await page.locator('.vending-slot[data-vending-pack="mythic"]').click();
   assert.equal(await page.locator('#vending-selected-name').textContent(),'Mythic pack');assert.equal(await page.locator('#vending-selected-price').textContent(),'$25.00');
   assert.equal(new URL(await page.locator('#vending-view-pack').getAttribute('href'),origin).searchParams.get('pack'),'mythic');
-  assert.equal(await page.locator('#tier-selectors button').count(),3);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  const bounds=await page.locator('#tier-selectors').boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width);
+  assert.equal(await page.locator('#tier-selectors').count(),0);assert.equal(await page.locator('#vending-selected-art').count(),0);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const bounds=await page.locator('.vending-slot[data-vending-pack="mythic"]').boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width);
   await page.screenshot({path:'/tmp/mythic-home-'+width+'.png',fullPage:true});
   await page.locator('#vending-plus').click();await page.locator('#vending-plus').click();await page.locator('#vending-view-pack').click();await page.waitForURL('**/opening.html?pack=mythic&quantity=3',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!document.querySelector('#open').disabled);
   assert.equal(await page.locator('[data-qty="3"]').getAttribute('aria-pressed'),'true');assert.equal(await page.evaluate(()=>quantity),3);await page.locator('#open').click();await page.locator('#skip-opening:not([hidden])').click();

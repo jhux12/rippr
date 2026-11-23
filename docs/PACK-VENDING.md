@@ -1,10 +1,10 @@
 # Pack station
 
-The homepage pack display now follows the approved desktop/mobile vending-machine mockup: navy powder-coated chassis, metal edges, lit glass, stocked foil packs, chrome dispensing spirals, a selection screen, tactile slot buttons and a recessed pickup hatch.
+The homepage pack display follows the approved desktop/mobile vending-machine mockup: navy powder-coated chassis, metal edges, lit glass, stocked foil packs, chrome dispensing spirals and a recessed pickup hatch. All six core tiers appear together in two rows. The Core/Limited switch remains; a single limited pack is centered in the glass.
 
-The machine is interactive HTML/CSS with optimized photographic assets. It does not vend or charge directly. Select a slot, adjust 1–5 packs and choose View pack or Contents & odds to continue to the existing pack page. The quantity is validated on that page, forces 1 for an owned inventory pack, and remains selected through the same-site auth return and supported hosted-checkout return. The screen shows the selected total and per-pack breakdown for multiple packs.
+The machine is interactive HTML/CSS with optimized photographic assets. It does not vend or charge directly. Select a pack, adjust 1–5 packs and choose View pack to continue to the existing pack page. A compact bar below the glass contains the selected name, total, quantity and button, with an each-price breakdown for multiple packs. The large preview screen, duplicate slot keys, separate odds link and bank pagination have been removed. Quantity is validated on the opening page, forces 1 for an owned inventory pack, and remains selected through the same-site auth return and supported hosted-checkout return.
 
-Only enabled, valid, saved catalogs with explicit saved prices are offered. Missing, unconfigured, disabled, default/demo or unpriced packs cannot be selected in the machine. No catalog, price, odds or enable switch was changed. Core/limited choices persist separately and additional tiers appear in banks of three. Empty/retry states, keyboard controls, reduced motion and 44px touch targets are supported. There is no automatic pack rotation or automatic purchase.
+Only enabled, valid, saved catalogs with explicit saved prices can be selected. Missing, unconfigured, disabled, default/demo or unpriced tiers remain visible with an Unavailable label and disabled controls; they never use fallback prices or open a purchase link. No catalog, price, odds or enable switch was changed. Core/limited choices persist separately. Loading/retry states, keyboard controls that skip disabled packs, reduced motion and 44px touch targets are supported. There is no automatic pack rotation or automatic purchase.
 
 ## Artwork
 
@@ -27,10 +27,10 @@ Existing inventory displays current known wrapper artwork without this metadata 
 ## Verification
 
 - 294 domain tests passed.
-- Machine behavior at 320/390/768/1440px: saved prices/availability, tactile/keyboard selection, quantity bounds/totals and links, no automatic purchase, multiple banks, limited/empty states, late catalog reads, retry and responsive geometry.
+- Updated machine behavior at 320/390/768/1440px: all six tiers visible, unavailable tiers disabled, saved prices, click/keyboard selection across rows, quantity bounds/totals and links, no automatic purchase, limited states, late catalog reads, retry and responsive geometry.
 - Opening at 320/390/1440px: new intrinsic artwork remains centered, configured Mythic selection, disabled direct-link guard, quantity 3 carried from the machine and batch skip.
 - Hosted checkout returns preserve known pack/quantity and reject stale/account/mode/unsafe contexts, with no automatic purchase.
 - Existing Stripe top-up flow passed test/live fixtures at 320/390/1440px.
 - Offline export retains local artwork/materials and shows an honest unavailable catalog rather than fabricated live stock.
 
-Screenshots in `/tmp/rippr-vending-{width}.png` use isolated fixture prices/catalogs, not a read of production settings.
+Current screenshots in `/tmp/rippr-vending-minimal-{width}.png` show six enabled fixture tiers; `/tmp/rippr-vending-minimal-normal-{width}.png` shows three enabled and three unavailable tiers. They use isolated fixture prices/catalogs, not a read of production settings.
