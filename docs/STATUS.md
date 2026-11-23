@@ -1,4 +1,10 @@
-# Latest: all packs visible with compact selection controls
+# Latest: selected-lane lighting and cosmetic vending transition
+
+Added pack-accent spotlights, shelf-edge lighting, selected badges and a single foil reflection on selection. Ordinary View pack clicks now play a brief chrome-coil/drop/pickup-tray sequence before navigating to the frozen pack/quantity URL. Offscreen source/tray fallbacks preserve feedback without forced scrolling. No purchase, wallet, inventory or catalog mutation occurs. Modified/new-tab clicks and reduced-motion/missing-art cases retain direct native links; temporary controls and owned effects are cleaned up on page exit/return. Verification and frontend deployment notes are in [PACK-VENDING.md](PACK-VENDING.md).
+
+Validation: existing selection/regression and new motion browser checks passed at 320/390/768/1440px, including rapid repeat clicks, exact quantity links, keyboard activation, native modifiers, unavailable packs, broken art, absent/throwing animation APIs and reduced motion. Return/preference-change cleanup has dedicated coverage. Build/site checks passed 24 pages and 1,338 references. Frontend only; no Firebase deployment required.
+
+# Previous: all packs visible with compact selection controls
 
 The homepage machine now displays all six core tiers together in two rows, keeping the Core/Limited switch. Unconfigured or unavailable tiers remain visible, clearly labeled and disabled; only valid enabled saved catalogs with explicit saved prices are selectable. Replaced the large selection screen, preview artwork, duplicate slot keys, odds shortcut and bank pagination with one compact bar for pack name, total, quantity and View pack. Existing opening/checkout flow and saved catalog data are unchanged. Browser checks passed at 320/390/768/1440px for all-visible layout, disabled packs, keyboard selection, quantities, retry/late-load states and responsive geometry; Mythic opening passed at 320/390/1440px. Frontend only; no Firebase deployment needed.
 

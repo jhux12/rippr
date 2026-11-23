@@ -6,6 +6,14 @@ The machine is interactive HTML/CSS with optimized photographic assets. It does 
 
 Only enabled, valid, saved catalogs with explicit saved prices can be selected. Missing, unconfigured, disabled, default/demo or unpriced tiers remain visible with an Unavailable label and disabled controls; they never use fallback prices or open a purchase link. No catalog, price, odds or enable switch was changed. Core/limited choices persist separately. Loading/retry states, keyboard controls that skip disabled packs, reduced motion and 44px touch targets are supported. There is no automatic pack rotation or automatic purchase.
 
+## Lighting and dispensing
+
+The selected lane uses its pack's accent color for the overhead light, shelf edge and selected badge. A single restrained reflection crosses the foil when selection changes; no idle animation runs continuously.
+
+An ordinary same-tab View pack activation triggers a cosmetic 560–740 ms transition: chrome-coil highlights rotate, the visible front wrapper drops inside the glass, and a wrapper lands behind the pickup-tray lip. An offscreen source uses the tray reveal without scrolling the page; if the tray is also below the viewport, a small wrapper pass appears inside the button. The selected pack/quantity URL is frozen before controls are temporarily disabled. This action only navigates to the pack page; payment and opening remain there.
+
+Ctrl/Cmd/Shift/Alt clicks, middle-clicks and new-tab links keep native browser behavior. Reduced motion, missing artwork or missing animation support navigate directly. An animation error also proceeds to the pack page. Owned effects, props and timers are cleaned up on page exit/return so Back cannot restore a locked machine or cause stale navigation. Only transform/opacity are animated during dispensing, with a fixed navigation deadline.
+
 ## Artwork
 
 `assets/packs/{packId}.webp` contains new transparent navy foil artwork for Basic, Plus, Premium, Elite, Ultimate, Mythic and Icy Rush. The shared pack map includes exact intrinsic dimensions so the opening artwork stays centered on a cold visit. Hero, auth, landing, rewards, inventory and guide illustrations use the updated wrappers. Historical records and old assets remain intact. Known reward pack IDs resolve to the current artwork at display time, without rewriting records.
@@ -28,6 +36,7 @@ Existing inventory displays current known wrapper artwork without this metadata 
 
 - 294 domain tests passed.
 - Updated machine behavior at 320/390/768/1440px: all six tiers visible, unavailable tiers disabled, saved prices, click/keyboard selection across rows, quantity bounds/totals and links, no automatic purchase, limited states, late catalog reads, retry and responsive geometry.
+- Motion checks passed at 320/390/768/1440px for exact one-time navigation/quantity, keyboard use, native modifiers, broken artwork, missing/throwing animation APIs, unavailable packs, reduced motion and return cleanup. Coverage is in `tests/browser/vending-dispense.cjs`; run both vending suites with `npm run test:vending`. Its destination and catalogs are isolated fixtures and cannot purchase or call live services.
 - Opening at 320/390/1440px: new intrinsic artwork remains centered, configured Mythic selection, disabled direct-link guard, quantity 3 carried from the machine and batch skip.
 - Hosted checkout returns preserve known pack/quantity and reject stale/account/mode/unsafe contexts, with no automatic purchase.
 - Existing Stripe top-up flow passed test/live fixtures at 320/390/1440px.
