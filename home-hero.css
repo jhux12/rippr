@@ -1,0 +1,23 @@
+/* The homepage banner spans the viewport; the catalog keeps its established width. */
+.home-main{width:100%;min-width:0}
+.home-content.page-shell{width:100%;padding-top:0;padding-bottom:28px}
+.home-hero.hero{width:100%;height:clamp(280px,24vw,340px);margin:0;border:0;border-bottom:1px solid #294354;border-radius:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 44px;background:radial-gradient(ellipse at 76% 75%,#15435b73,transparent 62%),linear-gradient(110deg,#0a1520,#0b1b29 65%,#091722);box-shadow:none}
+.home-hero-inner{width:min(var(--max),calc(100% - 64px));height:100%;min-height:0;min-width:0;margin:0 auto;display:grid;grid-template-columns:46% 54%;grid-column:1;grid-row:1;position:relative;z-index:1}
+.home-hero .hero-copy{grid-column:1;grid-row:1;min-height:0;padding:25px 24px 25px 0}
+.home-hero h1{font-size:clamp(32px,3.3vw,47px);line-height:1.12;letter-spacing:-1.45px;max-width:510px}
+.home-hero .primary-button{min-height:44px;padding:12px 21px;font-size:14px;margin-top:23px}
+.home-hero .hero-scenes{grid-column:2;grid-row:1;position:relative;inset:auto;width:100%;height:100%;min-height:0}
+.home-hero .scene-signature{inset:12px 4px 8px}
+.home-hero .hero-pack-fan{width:100%;height:auto;aspect-ratio:1.75;max-height:100%;flex:none}
+.home-hero .scene-gallery{inset:0 0 0 -5px}
+.home-hero .grail-art{mask-image:none;object-fit:contain}
+.home-hero .hero-controls{grid-column:1;grid-row:2;height:44px;gap:4px;background:#07121b88;border-top:1px solid #8fb8cb12}
+.home-hero .hero-controls button{height:44px;min-height:44px;min-width:44px;border-radius:6px}
+.home-hero .hero-controls #hero-dots button{width:28px;min-width:28px;padding:0}
+.home-hero .hero-controls #hero-rotation{min-width:58px;font-size:11px;margin-left:6px}
+.home-hero .hero-controls svg{width:14px;height:14px}
+.home-hero.hero[data-hero="community"]{background:radial-gradient(ellipse at 80% 65%,#31576c40,transparent 70%),#09151f}
+.home-hero.hero[data-hero="icy-rush"]{background:radial-gradient(ellipse at 78% 70%,#37677e66,transparent 64%),linear-gradient(110deg,#0a1520,#102434)}
+@media(min-width:701px) and (max-width:1000px){.home-hero h1{font-size:34px}.home-hero .hero-copy{padding-right:18px}.home-hero .primary-button{font-size:13px;padding:11px 17px}}
+@media(max-width:700px){.home-hero.hero{height:238px}.home-hero-inner{width:calc(100% - 36px);grid-template-columns:49% 51%}.home-hero .hero-copy{padding:12px 4px 12px 0}.home-hero h1{font-size:clamp(22px,5.8vw,29px);line-height:1.14;letter-spacing:-.65px}.home-hero .primary-button{font-size:11px;padding:10px 12px;margin-top:15px;border-radius:7px}.home-hero .hero-scenes{grid-column:2;grid-row:1;width:100%;height:100%}.home-hero .scene-signature{inset:6px 0}.home-hero .hero-controls{gap:3px}.home-hero .hero-controls #hero-dots button{width:27px;min-width:27px}.home-hero .hero-controls #hero-rotation{min-width:52px;margin-left:4px}}
+@media(max-width:370px){.home-hero.hero{height:232px}.home-hero h1{font-size:22px}.home-hero .primary-button{font-size:10px;padding:10px 11px}.home-hero .hero-controls{gap:2px}.home-hero .hero-controls #hero-dots button{width:24px;min-width:24px}.home-hero .hero-controls #hero-rotation{min-width:50px;margin-left:2px}}

@@ -1,4 +1,8 @@
-# Latest: real anonymous recent pulls on the homepage
+# Latest: full-width homepage hero carousel
+
+The homepage hero now spans the viewport directly below navigation, with its copy and artwork aligned to the centered site content. A dedicated inner grid preserves all five scenes, swipe/keyboard navigation, pause/play and existing destinations. The vending machine, recent pulls, grails and footer spacing retain their bounded layout. Hero height stays fixed across slides; mobile uses a compact 232–238px banner with 44px-high controls and readable separate text/art areas. CSS is scoped to the homepage. All-slide checks passed at 320/390/768/1440/1920px for geometry, text/CTA separation, controls, navigation and zero purchases; existing vending regression passed at four widths. Build/site checks passed 24 pages and 1,343 references. Dedicated checks are in `tests/browser/home-hero.cjs`. No additional Firebase deployment is required.
+
+# Previous: real anonymous recent pulls on the homepage
 
 Added “Fresh from the machine” below vending and above grails: up to 12 card awards from seven days, with rarity colors, Near Mint/slab grades and source-pack links. Paid and owned/reward openings publish whitelisted card-only snapshots atomically with their awards. Opaque IDs and strict fields exclude customer identity, private inventory IDs and operations; invalid/demo/private artwork is skipped. Live/test collections and reads are isolated, with explicitly labeled test results. No historical backfill, invented activity, museum spotlight or welcome panel was added.
 

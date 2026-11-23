@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#080e17">
   <meta name="description" content="One pack. One card. Something unexpected. Explore rippr’s collectible packs and discover your next great pull.">
   <title>rippr — Your next great pull.</title>
-  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shipping-content.css">
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="home-hero.css"><link rel="stylesheet" href="shipping-content.css">
   <script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="conversion.js" defer></script><script src="account-state.js" defer></script><script src="packs.js" defer></script>
   <script src="catalog.js" defer></script>
   <script src="app.js" defer></script><link rel="stylesheet" href="vending-machine.css"><script src="vending-machine.js" defer></script><link rel="stylesheet" href="recent-pulls.css"><script src="artwork-loader.js" defer></script><script src="recent-pulls.js" defer></script>
@@ -27,8 +27,9 @@
     <dialog id="nav-dialog" class="nav-dialog" aria-labelledby="nav-dialog-title"><button class="nav-dialog-close" type="button" aria-label="Close dialog">×</button><div id="nav-dialog-content"></div></dialog>
   </header>
 
-  <main id="main" class="page-shell">
-    <section class="hero" data-hero="signature" aria-labelledby="hero-title" aria-roledescription="carousel">
+  <main id="main" class="home-main">
+    <section class="hero home-hero" data-hero="signature" aria-labelledby="hero-title" aria-roledescription="carousel">
+      <div class="home-hero-inner">
       <div class="hero-copy">
         <h1 id="hero-title">Your next great pull.</h1>
         <a id="hero-cta" class="primary-button" href="#packs">Explore packs</a>
@@ -46,6 +47,7 @@
         </div>
         <div class="hero-scene scene-winter" data-scene="icy-rush" hidden><span class="winter-sparkles">✦ · ❄ · ✧</span><img class="winter-pack" src="assets/packs/icy-rush.webp" alt="" width="971" height="1620" loading="lazy" draggable="false"><img class="scene-pip" src="assets/hero/pip-hover.webp" alt="" width="400" height="400" loading="lazy" draggable="false"><span class="winter-edition">Limited edition</span></div>
       </div>
+      </div>
       <div class="hero-controls" role="group" aria-label="Hero banners">
         <button id="hero-previous" type="button" aria-label="Previous banner"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></button>
         <div id="hero-dots"></div>
@@ -55,6 +57,7 @@
       <p id="hero-status" class="sr-only" role="status" aria-live="off"></p>
     </section>
 
+    <div class="page-shell home-content">
     <section id="packs" class="catalog vending-catalog" aria-labelledby="packs-title">
       <div class="vending-heading"><h2 id="packs-title">Pick your next pull.</h2><p>Choose your pack. Find your next favorite.</p></div>
       <div id="pack-carousel" class="vending-machine" role="region" aria-label="rippr pack vending machine" aria-busy="true">
@@ -97,6 +100,7 @@
         </li>
       </ul>
     </section>
+    </div>
   </main>
   <!-- rippr-footer:start -->
 <footer class="rippr-footer" aria-label="Site footer">
