@@ -51,6 +51,22 @@ service cloud.firestore {
       // ripprAccount saveHomepageGrails action, outside the Rules expression cap.
       allow list, write: if false;
     }
+    // Anonymous award summaries contain only server-whitelisted card details.
+    // Require a bounded recent query, never expose a record by arbitrary ID,
+    // and never let a browser (including the owner) manufacture activity.
+    function recentPullQuery() {
+      return request.query.limit != null && request.query.limit > 0
+        && request.query.limit <= 12
+        && resource.data.pulledAtMs >= request.time.toMillis() - 1209600000;
+    }
+    match /testRecentPulls/{pullId} {
+      allow list: if recentPullQuery();
+      allow get, write: if false;
+    }
+    match /liveRecentPulls/{pullId} {
+      allow list: if recentPullQuery();
+      allow get, write: if false;
+    }
     // Server-only delivery records may contain private account details and links.
     match /emailOutbox/{id} { allow read, write: if false; }
     match /stripeTestWebhookEvents/{id} { allow read, write: if false; }

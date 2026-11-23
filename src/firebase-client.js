@@ -15,6 +15,7 @@ import { defaultRewards, readRewards } from './reward-model.js';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 import { DEFAULT_PRICES, isAdminUser, isAdminToken, assertPackId, defaultPack, validPackPrice, validateItems, readStoredPack, defaultHomepageGrails, validateHomepageGrails, cleanHomepageGrailsItems, readHomepageGrails } from './catalog-model.js';
 import { normalizePhoneNumber, validVerificationCode } from './phone-auth.js';
+import { readRecentPull, RECENT_PULL_LIMIT, RECENT_PULL_WINDOW_MS } from './recent-pulls-model.js';
 
 const app = initializeApp(window.RIPPR_FIREBASE_CONFIG);
 const auth = initializeAuth(app, {
@@ -302,6 +303,41 @@ export async function saveRewardSettings(config,expectedVersion,operationId){
 export async function loadHomepageGrails() {
   const snapshot = await getDoc(doc(getDatabase(), 'settings', 'homepageGrails'));
   return snapshot.exists() ? readHomepageGrails(snapshot.data()) : defaultHomepageGrails();
+}
+const recentPullCache=new Map(),recentPullRequests=new Map();
+function recentPullCopy(result,nowMs=Date.now()){
+ return{source:'firebase',mode:result.mode,items:result.items.flatMap(item=>{
+  const clean=readRecentPull(item,{mode:result.mode,nowMs});
+  return clean?[{id:item.id,...clean}]:[];
+ })};
+}
+export async function loadRecentPulls({force=false}={}){
+ // Public reads need the verified storefront mode, not a signed-in account.
+ await modeReady;const mode=runtimeMode(),nowMs=Date.now();
+ if(!['test','live'].includes(mode))throw phoneError('recent-pulls/mode-changed','Reload to see the current recent pulls.');
+ const cached=recentPullCache.get(mode);
+ if(!force&&cached&&cached.until>nowMs)return recentPullCopy(cached.result,nowMs);
+ if(!force&&recentPullRequests.has(mode))return recentPullCopy(await recentPullRequests.get(mode).promise);
+ const request={promise:null};
+ request.promise=(async()=>{
+  const name=mode==='live'?'liveRecentPulls':'testRecentPulls';
+  // One indexed range/order query: no listener, polling or private account read.
+  const snapshot=await getDocs(query(collection(getDatabase(),name),where('pulledAtMs','>=',nowMs-RECENT_PULL_WINDOW_MS),orderBy('pulledAtMs','desc'),limit(RECENT_PULL_LIMIT)));
+  if(runtimeMode()!==mode)throw phoneError('recent-pulls/mode-changed','The storefront changed. Reload recent pulls.');
+  const checkedAt=Date.now(),items=[];
+  for(const record of snapshot.docs){
+   if(!/^[a-f0-9]{64}$/.test(record.id))continue;
+   const item=readRecentPull(record.data(),{mode,nowMs:checkedAt});
+   if(item)items.push({id:record.id,...item});
+  }
+  const result={source:'firebase',mode,items};
+  // A slower earlier request cannot overwrite an explicit refresh's cache.
+  if(recentPullRequests.get(mode)===request)recentPullCache.set(mode,{result,until:checkedAt+60000});
+  return result;
+ })();
+ recentPullRequests.set(mode,request);
+ try{return recentPullCopy(await request.promise)}
+ finally{if(recentPullRequests.get(mode)===request)recentPullRequests.delete(mode)}
 }
 export async function saveHomepageGrails(config, expectedVersion) {
   const owner = await requireAdmin();

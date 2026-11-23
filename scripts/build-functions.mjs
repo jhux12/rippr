@@ -14,3 +14,4 @@ await copyFile(new URL('../emails/templates.mjs',import.meta.url),new URL('../fu
 await copyFile(new URL('../src/sms-consent-model.js',import.meta.url),new URL('../functions/sms-consent-model.js',import.meta.url));
 
 await copyFile(new URL('../src/spark-model.js',import.meta.url),new URL('../functions/spark-model.js',import.meta.url));
+await copyFile(new URL('../src/recent-pulls-model.js',import.meta.url),new URL('../functions/recent-pulls-model.js',import.meta.url));

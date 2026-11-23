@@ -1,4 +1,5 @@
 import {bindAcquisition,adminConversionSummary} from './conversion-service.js';
+import {stageRecentPulls} from './recent-pulls.js';
 import {MANUAL_SHIPPING_ACTIONS} from './manual-shipping.js';
 import {shippingService} from './shipping-service.js';
 import {grantOwnerPromo} from './admin-promo-credit.js';
@@ -223,6 +224,7 @@ export function accountService(db, { freeTopups = () => true, now = () => Date.n
         }
         if(ownedRef)tx.update(ownedRef,{status:'opened',openedAt:stamp(),cardIds:cards.map(c=>c.id)});
         for (const card of cards) tx.create(account.collection('items').doc(card.id), { ...card, wonAt:stamp() });
+        stageRecentPulls(tx,db,{uid,operationId,cards,atMs:now(),mode});
         result = { cards, balanceCents:patch.balanceCents, totalCents:total };
         activity = { type:'purchase', label:`${ownedRef?'Opened reward pack · ': 'Opened '}${data.quantity} ${data.packId} pack${data.quantity===1?'':'s'}`, amountCents:-total };
       } else if (action === 'sell' || action === 'ship') {

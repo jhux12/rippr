@@ -5,7 +5,7 @@ import {saveHomepageGrails as serverSaveHomepageGrails} from '../functions/homep
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, serverTimestamp, collection, getDocs, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, serverTimestamp, collection, getDocs, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { defaultPack, OWNER_PHONE } from '../src/catalog-model.js';
 import { cleanLibraryCard, nameKey } from '../src/library-model.js';
@@ -113,6 +113,31 @@ test('members can read only their test account and cannot mint balances or winni
   await assertFails(setDoc(doc(member,'testAccounts/member'),{balanceCents:1000000}));
   await assertFails(setDoc(doc(member,'testAccounts/member/items/fake'),{name:'Forged winning'}));
   await assertFails(setDoc(doc(member,'testAccounts/member/operations/fake'),{result:{balanceCents:999999}}));
+});
+
+test('recent pulls allow only bounded recent public lists and reject all browser writes and direct reads',async()=>{
+ const now=Date.now(),week=7*24*60*60*1000;
+ for(const name of ['testRecentPulls','liveRecentPulls']){
+  await env.withSecurityRulesDisabled(async ctx=>{
+   await setDoc(doc(ctx.firestore(),name+'/recent'),{name:'Card summary',pulledAtMs:now,testOnly:name==='testRecentPulls'});
+   await setDoc(doc(ctx.firestore(),name+'/old'),{name:'Old summary',pulledAtMs:now-21*24*60*60*1000,testOnly:name==='testRecentPulls'});
+  });
+  for(const ctx of [env.unauthenticatedContext(),context('+12025550123'),context(OWNER_PHONE)]){
+   const db=ctx.firestore(),summaries=collection(db,name),recent=query(summaries,where('pulledAtMs','>=',now-week),orderBy('pulledAtMs','desc'),limit(12));
+   const snapshot=await assertSucceeds(getDocs(recent));assert.equal(snapshot.size,1);assert.equal(snapshot.docs[0].id,'recent');
+   await assertFails(getDocs(summaries));
+   await assertFails(getDocs(query(summaries,orderBy('pulledAtMs','desc'),limit(12))));
+   await assertFails(getDocs(query(summaries,where('pulledAtMs','>=',now-week),orderBy('pulledAtMs','desc'))));
+   await assertFails(getDocs(query(summaries,where('pulledAtMs','>=',now-week),orderBy('pulledAtMs','desc'),limit(13))));
+   await assertFails(getDocs(query(summaries,where('pulledAtMs','>=',now-21*24*60*60*1000),orderBy('pulledAtMs','desc'),limit(12))));
+   await assertFails(getDoc(doc(db,name+'/recent')));
+   await assertFails(setDoc(doc(db,name+'/forged'),{name:'Invented pull',pulledAtMs:now}));
+   await assertFails(setDoc(doc(db,name+'/recent'),{name:'Altered pull',pulledAtMs:now}));
+   await assertFails(deleteDoc(doc(db,name+'/recent')));
+   await assertFails(getDocs(query(collection(db,'liveAccounts/another-member/items'),limit(12))));
+   await assertFails(getDocs(query(collection(db,'testAccounts/another-member/items'),limit(12))));
+  }
+ }
 });
 
 test('reward settings are public display data but clients cannot edit them or mint unopened packs',async()=>{

@@ -1,4 +1,10 @@
-# Latest: selected-lane lighting and cosmetic vending transition
+# Latest: real anonymous recent pulls on the homepage
+
+Added “Fresh from the machine” below vending and above grails: up to 12 card awards from seven days, with rarity colors, Near Mint/slab grades and source-pack links. Paid and owned/reward openings publish whitelisted card-only snapshots atomically with their awards. Opaque IDs and strict fields exclude customer identity, private inventory IDs and operations; invalid/demo/private artwork is skipped. Live/test collections and reads are isolated, with explicitly labeled test results. No historical backfill, invented activity, museum spotlight or welcome panel was added.
+
+303 domain tests and recent-pulls browser checks at 320/390/768/1440px passed; helper query/cache/concurrency checks and build/site checks passed. Rules tests are implemented but the emulator download was blocked by workspace proxy HTTP 403. [RECENT-PULLS.md](RECENT-PULLS.md) contains the Cloud Shell Rules-check/account deployment command and managed TTL setup. No production deployment, TTL policy, payment or customer record was changed here.
+
+# Previous: selected-lane lighting and cosmetic vending transition
 
 Added pack-accent spotlights, shelf-edge lighting, selected badges and a single foil reflection on selection. Ordinary View pack clicks now play a brief chrome-coil/drop/pickup-tray sequence before navigating to the frozen pack/quantity URL. Offscreen source/tray fallbacks preserve feedback without forced scrolling. No purchase, wallet, inventory or catalog mutation occurs. Modified/new-tab clicks and reduced-motion/missing-art cases retain direct native links; temporary controls and owned effects are cleaned up on page exit/return. Verification and frontend deployment notes are in [PACK-VENDING.md](PACK-VENDING.md).
 

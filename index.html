@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shipping-content.css">
   <script src="firebase-config.js" defer></script><script src="firebase-client.js" defer></script><script src="conversion.js" defer></script><script src="account-state.js" defer></script><script src="packs.js" defer></script>
   <script src="catalog.js" defer></script>
-  <script src="app.js" defer></script><link rel="stylesheet" href="vending-machine.css"><script src="vending-machine.js" defer></script>
+  <script src="app.js" defer></script><link rel="stylesheet" href="vending-machine.css"><script src="vending-machine.js" defer></script><link rel="stylesheet" href="recent-pulls.css"><script src="artwork-loader.js" defer></script><script src="recent-pulls.js" defer></script>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="navigation.css?v=2"><script src="navigation.js" defer></script><link rel="stylesheet" href="mascot.css"><link rel="stylesheet" href="footer.css"><script src="footer-config.js" defer></script><script src="footer.js" defer></script><link rel="stylesheet" href="brand-states.css"><link rel="stylesheet" href="condition-badges.css"><script src="/runtime-ui.js" defer></script></head>
 <body class="has-site-footer" id="top">
   <a href="#main" class="skip-link">Skip to content</a>
@@ -69,6 +69,14 @@
       <div class="vending-toolbar"><div class="pack-collections" role="group" aria-label="Pack collection"><button type="button" data-collection="core" aria-pressed="true">Core packs</button><button type="button" data-collection="limited" aria-pressed="false">Limited time</button></div></div>
       <p id="catalog-status" class="vending-status" role="status" aria-live="polite">Loading current packs…</p><button id="catalog-retry" class="vending-retry" type="button" hidden>Retry packs</button>
       <noscript><p><a href="opening.html?pack=basic">View the Basic pack</a></p></noscript>
+    </section>
+
+    <section id="recent-pulls" class="recent-pulls" aria-labelledby="recent-pulls-title">
+      <div class="recent-pulls-heading"><div><div class="recent-pulls-title-row"><h2 id="recent-pulls-title">Fresh from the machine</h2><span id="recent-pulls-mode" class="recent-pulls-mode" hidden>Test pulls</span></div><p>Recent cards pulled from rippr packs.</p></div><div class="recent-pulls-controls" role="group" aria-label="Browse recent pulls" hidden><button id="recent-pulls-prev" type="button" aria-label="Previous pulls" aria-controls="recent-pulls-track" disabled>‹</button><button id="recent-pulls-next" type="button" aria-label="Next pulls" aria-controls="recent-pulls-track" disabled>›</button></div></div>
+      <div id="recent-pulls-status" class="recent-pulls-state" role="status"><img src="assets/hero/pip-hover.webp" alt="" width="48" height="48"><div><p>Finding the latest pulls…</p></div></div>
+      <button id="recent-pulls-retry" class="recent-pulls-retry" type="button" hidden>Try again</button>
+      <ul id="recent-pulls-track" class="recent-pulls-track" aria-label="Recent cards and their source packs" aria-busy="true" tabindex="0" hidden></ul>
+      <noscript><p>Enable JavaScript to see recent pulls.</p></noscript>
     </section>
 
     <section class="grails" aria-labelledby="grails-title">

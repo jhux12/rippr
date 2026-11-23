@@ -3,11 +3,11 @@ import {FieldValue} from 'firebase-admin/firestore';
 import {OWNER_PHONE} from './catalog-model.js';
 import {initialLiveWallet} from './wallet-ledger.js';
 export const LIVE_POLICY_VERSION='live-2026-11-14-v1';
-const roots=['testAccounts','referralCodes','museumDirectory','accountEligibility','accountClosureRequests','accountClosureState','shippingQueue','supportQueue','paymentReviewQueue','paymentReviewAudit','paymentAuditByAccount','stripeTestWebhookEvents','emailOutbox','promotionDays','operationalDays','shippingSettings','shippingProviderJobs','conversionSessions','conversionAccounts','conversionDays','conversionLimits'];
+const roots=['testAccounts','testRecentPulls','referralCodes','museumDirectory','accountEligibility','accountClosureRequests','accountClosureState','shippingQueue','supportQueue','paymentReviewQueue','paymentReviewAudit','paymentAuditByAccount','stripeTestWebhookEvents','emailOutbox','promotionDays','operationalDays','shippingSettings','shippingProviderJobs','conversionSessions','conversionAccounts','conversionDays','conversionLimits'];
 export function validateMode(mode){if(!['test','live'].includes(mode))throw new HttpsError('failed-precondition','Invalid site mode.');return mode}
 export function scopedDatabase(db,mode='test'){
  validateMode(mode);if(mode==='test')return db;
- const path=value=>{const parts=value.split('/');if(roots.includes(parts[0]))parts[0]=parts[0]==='testAccounts'?'liveAccounts':parts[0]==='stripeTestWebhookEvents'?'stripeLiveWebhookEvents':'live'+parts[0][0].toUpperCase()+parts[0].slice(1);return parts.join('/')};
+ const path=value=>{const parts=value.split('/');if(roots.includes(parts[0]))parts[0]=parts[0]==='testAccounts'?'liveAccounts':parts[0]==='testRecentPulls'?'liveRecentPulls':parts[0]==='stripeTestWebhookEvents'?'stripeLiveWebhookEvents':'live'+parts[0][0].toUpperCase()+parts[0].slice(1);return parts.join('/')};
  return{mode:'live',doc:p=>db.doc(path(p)),collection:p=>db.collection(path(p)),runTransaction:callback=>db.runTransaction(callback)};
 }
 export function assertRuntime(mode,input={}){validateMode(mode);if((mode==='live'&&input.runtimeMode!=='live')||(input.runtimeMode&&input.runtimeMode!==mode))throw new HttpsError('failed-precondition','The site mode changed. Reload this page before continuing.',{reason:'runtime-mode-changed'})}
