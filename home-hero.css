@@ -21,3 +21,19 @@
 @media(min-width:701px) and (max-width:1000px){.home-hero h1{font-size:34px}.home-hero .hero-copy{padding-right:18px}.home-hero .primary-button{font-size:13px;padding:11px 17px}}
 @media(max-width:700px){.home-hero.hero{height:238px}.home-hero-inner{width:calc(100% - 36px);grid-template-columns:49% 51%}.home-hero .hero-copy{padding:12px 4px 12px 0}.home-hero h1{font-size:clamp(22px,5.8vw,29px);line-height:1.14;letter-spacing:-.65px}.home-hero .primary-button{font-size:11px;padding:10px 12px;margin-top:15px;border-radius:7px}.home-hero .hero-scenes{grid-column:2;grid-row:1;width:100%;height:100%}.home-hero .scene-signature{inset:6px 0}.home-hero .hero-controls{gap:3px}.home-hero .hero-controls #hero-dots button{width:27px;min-width:27px}.home-hero .hero-controls #hero-rotation{min-width:52px;margin-left:4px}}
 @media(max-width:370px){.home-hero.hero{height:232px}.home-hero h1{font-size:22px}.home-hero .primary-button{font-size:10px;padding:10px 11px}.home-hero .hero-controls{gap:2px}.home-hero .hero-controls #hero-dots button{width:24px;min-width:24px}.home-hero .hero-controls #hero-rotation{min-width:50px;margin-left:2px}}
+/* Mobile artwork uses the same tall focal framing as the Icy Rush wrapper. */
+@media(max-width:700px){
+ .home-hero .scene-signature{inset:6px 0}
+ .home-hero .hero-pack-fan{height:100%;aspect-ratio:auto}
+ .home-hero .scene-pack{left:50%;height:96%}
+ .home-hero .scene-pack.fan-left{height:82%;transform:translateX(-86%) rotate(-9deg)}
+ .home-hero .scene-pack.fan-right{height:82%;transform:translateX(-6%) rotate(9deg)}
+ .home-hero .scene-daily{inset:7px 0}
+ .home-hero .daily-art{width:100%;height:100%;object-fit:cover;object-position:65% 50%}
+ .home-hero .scene-gallery{inset:7px 0}
+ .home-hero .grail-art{width:100%;height:100%;object-fit:cover;object-position:50% 50%}
+ .home-hero .hero-museum{padding:8px 0 14px;gap:0;overflow:hidden}
+ .home-hero .museum-mini-case{position:absolute;left:-22%;top:14%;width:50%;height:76%;padding:5px 2px 10px}
+ .home-hero .museum-mini-case.case-right{left:auto;right:-22%}
+ .home-hero .museum-mini-case.case-center{position:relative;left:auto;top:auto;width:78%;height:96%;padding:6px 3px 12px;z-index:2}
+}

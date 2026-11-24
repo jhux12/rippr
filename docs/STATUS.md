@@ -1,4 +1,8 @@
-# Latest: tactile foil tear and cleaner extraction
+# Latest: larger mobile hero artwork
+
+Enlarged the signature pack fan, daily reward chest, grail cards and central Community display to use the taller focal framing of Icy Rush on mobile. The existing banner height, copy/CTA separation and carousel controls remain fixed; desktop and Icy Rush styling are unchanged. All-five-slide browser checks passed at 320/390/768/1440/1920px, with mobile artwork crops reviewed. Build/site checks passed 24 pages and 1,343 references. Frontend only; no additional Firebase deployment required.
+
+# Previous: tactile foil tear and cleaner extraction
 
 Refined the original pack artwork into a curling top seal with metallic underside, stable torn fibers, a dark mouth/inner lip and subtle inner-wrapper tension. Drag direction locks after horizontal intent, reverses progress without flipping the hinge and cleans up short/canceled/lost-capture/hidden gestures. The 480ms release joins the existing centered extraction, rarity/flip, grade, keep/sell, mute and batch-wide skip flow; the card stays narrow inside the wrapper before enlarging. Stage sizing and account/payment/catalog calls are unchanged. Four-width tear checks, 29-batch/83-award repeatability, reveal/sale spacing including landscape, and resource/audio checks passed. The focused 390px run also covers missing/throwing animation engines and reduced motion during release. See `tests/browser/foil-tearing.cjs` and [PERFORMANCE.md](PERFORMANCE.md). Frontend only; no additional Firebase deployment required.
 
