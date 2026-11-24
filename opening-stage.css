@@ -157,7 +157,7 @@
 .arena.is-revealing{transition:none}
 .arena.is-revealing .reveal-stage{z-index:2}
 .arena.is-extracting .display{visibility:visible;z-index:3;pointer-events:none}
-.arena.is-extracting .pack-shell.unsealed .pack.artwork{animation:pack-release-card .9s cubic-bezier(.2,.6,.2,1) both}
+.arena.is-extracting .pack-shell.unsealed :is(.pack.artwork,.foil-mouth,.foil-inner-lip,.foil-cut-edge){animation:pack-release-card .9s cubic-bezier(.2,.6,.2,1) both}
 .arena.is-extracting .reveal-art-stage{animation:card-from-pack .9s cubic-bezier(.2,.6,.2,1) both}
 .arena.is-extracting .reveal-plinth,.arena.is-extracting .reveal-halo,.arena.is-extracting .reveal-motes{opacity:0}
 
@@ -215,8 +215,8 @@
 .is-cycling .reveal-motes i{animation:rarity-mote-in 2.4s calc(var(--i)*30ms) ease-in-out both}
 .skip-reveal-motion .reveal-card-turn{transition:none}
 .skip-reveal-motion .reveal-stage *,.skip-reveal-motion .reveal-stage *::before,.skip-reveal-motion .reveal-stage *::after{animation:none!important;transition:none!important}
-@keyframes card-from-pack{0%{transform:translate(-50%,var(--extract-y,60px)) scale(var(--extract-scale,.8))}75%{transform:translate(-50%,-7px) scale(1)}100%{transform:translate(-50%,0) scale(1)}}
-@keyframes pack-release-card{0%,20%{opacity:1;translate:0 0}65%{opacity:.85;translate:0 75px}100%{opacity:0;translate:0 150px}}
+@keyframes card-from-pack{0%,10%{transform:translate(-50%,var(--extract-y,60px)) scale(var(--extract-scale,.8))}52%{transform:translate(-50%,calc(var(--extract-y,60px) - 12px)) scale(var(--extract-scale,.8))}80%{transform:translate(-50%,-7px) scale(1)}100%{transform:translate(-50%,0) scale(1)}}
+@keyframes pack-release-card{0%,15%{opacity:1;translate:0 0}64%{opacity:1;translate:0 calc(var(--pack-height)*.25)}100%{opacity:0;translate:0 calc(var(--pack-height)*.54)}}
 @keyframes rarity-edge-breathe{from{opacity:.45;transform:scale(.999)}to{opacity:1;transform:scale(1.006)}}
 @keyframes rarity-lock-ring{0%{opacity:.85;transform:scale(.995)}100%{opacity:0;transform:scale(1.13)}}
 @keyframes rarity-lock-glow{0%,100%{opacity:.7;transform:scale(1)}40%{opacity:1;transform:scale(1.1)}}

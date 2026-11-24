@@ -41,7 +41,12 @@ function syncPhaseVisibility(){
  }
 }
 function animateOpening(element,keyframes,options){
- const effect=element.animate(keyframes,options);motionEffects.add(effect);
+ let effect;
+ try{effect=element.animate(keyframes,options)}catch{
+  // A missing/interrupted compositor effect must never strand a paid card.
+  return{finished:Promise.resolve(),playState:'finished',cancel(){}};
+ }
+ motionEffects.add(effect);
  const release=()=>{motionEffects.delete(effect);visibilityPaused.delete(effect)};
  effect.finished.then(release,release);
  if(openingHidden()){effect.pause();visibilityPaused.add(effect)}
@@ -75,7 +80,8 @@ const signature=document.createElement('div');signature.className='stage-signatu
 signature.innerHTML=`<svg viewBox="0 0 1000 540" preserveAspectRatio="xMidYMid slice">${stageSignatures[selectedPack.id]||stageSignatures.basic}</svg>`;
 $('.stage-effects').append(signature);
 const sound=window.RipprOpeningAudio||{play:()=>false,stop:()=>{}};
-const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const openingMotion=matchMedia('(prefers-reduced-motion: reduce)');
+const reduced=()=>openingMotion.matches;
 const catalog=window.RipprCatalog;
 let contents=catalog.defaultPack(selectedPack.id),contentsReady=false,artReady=false,loadError=false;
 let inventoryStatus=inventoryPackId?'checking':'none',inventoryCheckVersion=0;
@@ -207,6 +213,7 @@ async function expandOpening(){
  }
 }
 function collapseOpening(focus=true){
+ if(state==='ripping')cancelRipGesture();
  theaterAnimation?.cancel();theaterAnimation=null;
  if(arena.parentNode===theaterSlot)arenaHome.after(arena);
  if(announcement.parentNode===theaterSlot)announcementHome.after(announcement);
@@ -373,7 +380,11 @@ packImage.onload=async()=>{
 packImage.onerror=()=>{phase.textContent='Pack image could not load. Please reload.'};
 packImage.src=selectedPack.image;
 let ripLabel=-1;
-function releaseDrag(){const id=drag?.id;drag=null;if(id!==undefined&&ripButton.hasPointerCapture(id))ripButton.releasePointerCapture(id)}
+function releaseDrag(){
+ const id=drag?.id;drag=null;shell.classList.remove('foil-gripping','foil-dragging');
+ try{if(id!==undefined&&ripButton.hasPointerCapture?.(id))ripButton.releasePointerCapture(id)}catch{}
+}
+function cancelRipGesture(){releaseDrag();if(state==='ripping')setRip(0)}
 function setRip(value){progress=Math.max(0,Math.min(1,value));shell.style.setProperty('--rip',progress);foil?.setProgress(progress,ripDirection);const label=Math.round(progress*100);if(label!==ripLabel){ripLabel=label;ripButton.setAttribute('aria-label',`Rip top foil: ${label} percent. Drag across, or press Enter`)}}
 function prepareRip(){
  // Skip applies to this entire purchased batch while preserving each card's actions.
@@ -388,23 +399,65 @@ function prepareRip(){
 }
 function completeRip(){
  if(state!=='ripping')return;clearOpeningTimer();state='unsealing';releaseDrag();setRip(1);ripButton.hidden=true;shell.classList.add('unsealed');phase.textContent='';
- announcement.textContent='Foil removed. Revealing your card.';sound.play('rip',{channel:'foil'});
- const peelDelay=foil?.release(reduced())??(reduced()?0:180);
+ announcement.textContent='Seal torn. Pulling your card from the open pack.';sound.play('rip',{channel:'foil'});
+ let peelDelay=0;
+ try{peelDelay=foil?.release(reduced())??(reduced()?0:180)}catch{foil?.cancel()}
+ if(!Number.isFinite(peelDelay)||peelDelay<0)peelDelay=0;
  scheduleOpening(()=>showReveal(false),peelDelay);
 }
 function showReveal(instant){
  if(!['zooming','ripping','unsealing'].includes(state))return;
- clearOpeningTimer();releaseDrag();if(instant)foil?.cancel();setRip(1);ripButton.hidden=true;skipOpening.hidden=true;
+ clearOpeningTimer();releaseDrag();setRip(1);
+ // Finish the seal at the phase boundary so no filled strip effect survives a
+ // skipped/hidden-tab deadline or reappears over the card during extraction.
+ try{foil?.release(true)}catch{foil?.cancel()}
+ ripButton.hidden=true;skipOpening.hidden=true;
  shell.getAnimations().forEach(animation=>animation.cancel());
  arena.classList.add('is-revealing');arena.classList.toggle('skip-reveal-motion',instant);stage.hidden=false;renderCard(instant);
 }
 skipOpening.addEventListener('click',()=>{skipBatchAnimations=true;sound.stop();if(['extracting','cycling','settling','flipping'].includes(state))completeCardReveal(true);else showReveal(true)});
-ripButton.addEventListener('pointerdown',event=>{if(state!=='ripping'||drag||(event.pointerType==='mouse'&&event.button!==0))return;event.preventDefault();drag={x:event.clientX,id:event.pointerId,width:ripButton.getBoundingClientRect().width};ripButton.setPointerCapture(event.pointerId);setRip(0)});
-ripButton.addEventListener('pointermove',event=>{if(!drag||event.pointerId!==drag.id)return;ripDirection=event.clientX<drag.x?-1:1;setRip(Math.abs(event.clientX-drag.x)/(Math.max(1,drag.width)*.75))});
-ripButton.addEventListener('pointerup',event=>{if(!drag||event.pointerId!==drag.id)return;releaseDrag();if(progress>=.8)completeRip();else setRip(0)});
-ripButton.addEventListener('pointercancel',event=>{if(!drag||event.pointerId!==drag.id)return;releaseDrag();if(state==='ripping')setRip(0)});
-ripButton.addEventListener('lostpointercapture',event=>{if(drag&&event.pointerId===drag.id){drag=null;setRip(0)}});
-ripButton.addEventListener('click',event=>{if(event.detail===0)completeRip()});
+ripButton.addEventListener('pointerdown',event=>{
+ if(state!=='ripping'||drag||(event.pointerType==='mouse'&&event.button!==0)||event.isPrimary===false)return;
+ event.preventDefault();drag={x:event.clientX,y:event.clientY,id:event.pointerId,width:ripButton.getBoundingClientRect().width,direction:0};
+ shell.classList.add('foil-gripping');setRip(0);
+ try{ripButton.setPointerCapture(event.pointerId)}catch{}
+});
+function moveRipGesture(event){
+ if(state!=='ripping'||!drag||event.pointerId!==drag.id)return;
+ const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+ if(!drag.direction){
+  if(Math.abs(dx)<6||Math.abs(dy)>Math.abs(dx)*1.2)return;
+  drag.direction=dx<0?-1:1;shell.classList.add('foil-dragging');
+ }
+ // The advancing edge keeps its hinge when a finger reverses; it never jumps
+ // to the opposite side of the wrapper midway through the same gesture.
+ ripDirection=drag.direction;setRip(Math.max(0,dx*drag.direction)/(Math.max(1,drag.width)*.78));
+}
+function endRipGesture(event){
+ if(!drag||event.pointerId!==drag.id)return;
+ releaseDrag();if(state!=='ripping')return;
+ if(progress>=.86)completeRip();else setRip(0);
+}
+function abortRipGesture(event){if(drag&&event.pointerId===drag.id)cancelRipGesture()}
+ripButton.addEventListener('pointermove',moveRipGesture,{passive:true});
+ripButton.addEventListener('pointerup',endRipGesture);
+ripButton.addEventListener('pointercancel',abortRipGesture);
+ripButton.addEventListener('lostpointercapture',abortRipGesture);
+// Capture is best-effort on older/touch browsers; an outside release must still
+// clean up the gesture rather than leave the next pack permanently gripped.
+window.addEventListener('pointermove',event=>{if(drag&&!(event.target instanceof Node&&ripButton.contains(event.target)))moveRipGesture(event)},{passive:true});
+window.addEventListener('pointerup',endRipGesture);window.addEventListener('pointercancel',abortRipGesture);
+window.addEventListener('blur',()=>{if(drag)cancelRipGesture()});
+window.addEventListener('resize',()=>{if(drag)cancelRipGesture()});
+window.addEventListener('pagehide',()=>{if(drag)cancelRipGesture()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&drag)cancelRipGesture()});
+openingMotion.addEventListener('change',()=>{
+ if(!reduced())return;
+ if(drag)cancelRipGesture();
+ if(state==='unsealing')showReveal(true);
+ else if(['extracting','cycling','settling','flipping'].includes(state))completeCardReveal(true);
+});
+ripButton.addEventListener('click',event=>{if(event.detail===0&&!event.pointerType)completeRip()});
 ripButton.addEventListener('keydown',event=>{if(state!=='ripping')return;if(event.key==='ArrowRight'){event.preventDefault();setRip(progress+.25);if(progress>=1)completeRip()}else if(event.key==='ArrowLeft'){event.preventDefault();setRip(progress-.25)}});
 openButton.addEventListener('click',async()=>{
  if(state!=='idle'||!contentsReady||!canOpenCatalog())return;
