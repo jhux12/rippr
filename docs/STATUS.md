@@ -1,4 +1,10 @@
-# Latest: larger mobile hero artwork
+# Latest: ranked Fresh from the machine rail
+
+Fresh from the machine defaults to Biggest this week (rolling last seven days), with Latest available. An indexed value/time query ranks the full window before limiting to 12; sort/runtime caches stay isolated. Compact rarity-colored cards show recorded card values, relative pull times and condition. Inspect opens a card dialog with a source-pack thumbnail/link; native source links remain available. Explicit refresh stages updates while browsing rather than moving the rail, and brief entrance motion honors reduced-motion settings. No fabricated activity, customer identity, background polling or purchase action was added.
+
+Query/cache/concurrency checks and browser checks passed at 320/390/768/1440px; Firebase SDK query validation and build/site checks passed. Ranked Rules coverage was added, but the emulator artifact download was unavailable here. Existing Rules and account projection are unchanged. Deploy `firestore:indexes` for Biggest and allow index building to finish; see [RECENT-PULLS.md](RECENT-PULLS.md).
+
+# Previous: larger mobile hero artwork
 
 Enlarged the signature pack fan, daily reward chest, grail cards and central Community display to use the taller focal framing of Icy Rush on mobile. The existing banner height, copy/CTA separation and carousel controls remain fixed; desktop and Icy Rush styling are unchanged. All-five-slide browser checks passed at 320/390/768/1440/1920px, with mobile artwork crops reviewed. Build/site checks passed 24 pages and 1,343 references. Frontend only; no additional Firebase deployment required.
 

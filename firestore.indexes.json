@@ -1,0 +1,33 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "liveRecentPulls",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "valueCents",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "pulledAtMs",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "testRecentPulls",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "valueCents",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "pulledAtMs",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

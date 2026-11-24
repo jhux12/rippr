@@ -36,7 +36,7 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
     loadHomepageGrails:async()=>({source:'firebase',version:1,items:[]}),
     loadPackContents:async id=>({...RipprCatalog.defaultPack(id),source:'firebase',version:2,enabled:true,savedPriceCents:100,priceCents:100}),
     loadRecentPulls:async(options={})=>{
-     const mode=RIPPR_RUNTIME.mode,fixture=fixtureMode;feedReads.push({mode,force:options.force===true});
+     const mode=RIPPR_RUNTIME.mode,fixture=fixtureMode;feedReads.push({mode,force:options.force===true,sort:options.sort});
      if(fixture==='held'&&mode==='live')await new Promise(resolve=>releaseFeed.push(resolve));
      if(fixture==='failed')throw Error('Fixture feed unavailable');
      const items=makeFeed(mode);
@@ -60,7 +60,9 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   async function ready(){await page.waitForFunction(()=>document.querySelector('#recent-pulls-track')?.getAttribute('aria-busy')==='false'||document.querySelector('#recent-pulls')?.getAttribute('aria-busy')==='false')}
   async function home(fixture='normal'){await page.goto(origin+'/index.html?fixture='+fixture);await ready()}
 
-  await home();assert.equal(await cards().count(),12,'A bounded row contains the returned genuine fixture pulls');
+  await home();assert.equal(await page.locator('[data-pull-sort=biggest]').getAttribute('aria-pressed'),'true');assert.equal(await cards().first().getAttribute('data-recent-pull'),'000000000000000000000000000000000000000000000000000000000000000c','Default is highest value, even when older');
+  if([390,1440].includes(width)){await section().scrollIntoViewIfNeeded();await section().screenshot({path:'/tmp/rippr-biggest-pulls-'+width+'.png'})}
+  await page.locator('[data-pull-sort=latest]').click();await ready();assert.equal((await page.evaluate(()=>feedReads)).at(-1).sort,'latest');assert.equal(await cards().count(),12,'A bounded row contains the returned genuine fixture pulls');
   assert(await section().evaluate(el=>{const packs=document.querySelector('#packs'),grails=document.querySelector('.grails');return Boolean(packs.compareDocumentPosition(el)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(el.compareDocumentPosition(grails)&Node.DOCUMENT_POSITION_FOLLOWING)}),'Recent pulls sits after vending and before grails');
   assert.equal(await section().getByText('Epic',{exact:true}).count(),2);assert.equal(await section().getByText('Ultra rare',{exact:true}).count(),2);
   assert(await section().getByText('PSA 10',{exact:true}).isVisible(),'Explicit grading remains visible');
@@ -68,7 +70,7 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   for(const card of await cards().all()){
    const pack=await card.getAttribute('data-pack-id'),link=card.locator('a[href*="opening.html"]').first();
    const target=new URL(await link.getAttribute('href'),origin);assert.equal(target.origin,origin);assert.equal(target.pathname,'/opening.html');assert.equal(target.searchParams.get('pack'),pack);
-   const image=card.locator('img').first();await image.evaluate(img=>{img.loading='eager';return img.decode().catch(()=>{})});const box=await image.boundingBox();assert(box&&box.height>=145,'Card artwork remains legible');
+   const image=card.locator('img').first();await image.evaluate(img=>{img.loading='eager';return img.decode().catch(()=>{})});const box=await image.boundingBox();assert(box&&box.height>=125,'Card artwork remains legible');
   }
   assert.equal(await section().getByText('Ultra rare',{exact:true}).first().evaluate(el=>getComputedStyle(el).color),'rgb(255, 92, 99)','Ultra rare uses the site red');
   const body=await section().evaluate(el=>el.outerHTML);for(const secret of ['PRIVATE-UID','PRIVATE-DISPLAY-NAME','private@example.com'])assert(!body.includes(secret),'Private metadata is never displayed');
@@ -85,13 +87,25 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   await track().evaluate(el=>{el.scrollLeft=0;el.dispatchEvent(new Event('scroll'))});await page.waitForFunction(()=>document.querySelector('#recent-pulls-prev').disabled);
   assert.equal(await page.evaluate(()=>purchaseCalls),0);
   if([390,1440].includes(width)){await section().scrollIntoViewIfNeeded();await section().screenshot({path:'/tmp/rippr-recent-pulls-'+width+'.png'})}
+  // Card inspection is separate from its native source-pack link.
+  await cards().first().locator('.recent-pull-inspect').click();assert(await page.locator('#recent-pull-preview').isVisible());
+  await page.locator('.pull-preview-art img').evaluate(img=>img.decode().catch(()=>{}));
+  assert(await page.locator('#recent-pull-preview').evaluate(dialog=>{const art=dialog.querySelector('.pull-preview-art').getBoundingClientRect(),img=dialog.querySelector('.pull-preview-art img').getBoundingClientRect(),info=dialog.querySelector('.pull-preview-info').getBoundingClientRect();return img.top>=art.top-1&&img.bottom<=art.bottom+1&&(innerWidth>700||img.bottom<=info.top)}),'Preview art is bounded and clears details');
+  assert.equal(await page.locator('#recent-pull-preview-name').textContent(),'Bloodmoon Ursaluna ex · Twilight Masquerade #216 · Holofoil');
+  assert((await page.locator('.pull-preview-value').textContent()).includes('$1.00'));
+  assert.equal(await page.locator('.pull-preview-pack').getAttribute('href'),'opening.html?pack=basic');
+  if([390,1440].includes(width))await page.screenshot({path:'/tmp/rippr-pull-preview-'+width+'.png'});
+  await page.keyboard.press('Escape');assert(await page.locator('#recent-pull-preview').isHidden());assert(await cards().first().locator('.recent-pull-inspect').evaluate(el=>el===document.activeElement));
+  await track().evaluate(el=>el.scrollLeft=el.scrollWidth);await page.locator('#recent-pulls-refresh').click();await ready();
+  assert.equal(await page.locator('#recent-pulls-refresh').textContent(),'Show updated pulls','Refresh does not move a rail being browsed');
+  assert(await track().evaluate(el=>el.scrollLeft>0));await page.locator('#recent-pulls-refresh').click();assert.equal(await page.locator('#recent-pulls-refresh').textContent(),'Refresh');
   const reads=await page.evaluate(()=>feedReads.length);await page.clock.install();await page.clock.fastForward(300000);assert.equal(await page.evaluate(()=>feedReads.length),reads,'The feed does not automatically poll or replay activity');await page.clock.resume();
 
   // An image error leaves a readable card and usable pack link.
   const firstName=await cards().first().textContent();await cards().first().locator('img').first().evaluate(img=>img.dispatchEvent(new Event('error')));assert((await cards().first().textContent()).includes('Bloodmoon Ursaluna'));
   assert(await cards().first().locator('a[href*="pack=basic"]').isVisible());assert.equal(await page.evaluate(()=>purchaseCalls),0);assert(firstName.includes('Bloodmoon Ursaluna'));
 
-  await home('broken-art');await section().scrollIntoViewIfNeeded();await cards().first().locator('img').evaluate(img=>img.loading='eager');await page.waitForFunction(()=>document.querySelector('#recent-pulls-track [data-recent-pull] .recent-pull-art-fallback')&&!document.querySelector('#recent-pulls-track [data-recent-pull] .recent-pull-art-fallback').hidden,{},{timeout:6000});assert(await cards().first().locator('img').isHidden());assert((await cards().first().textContent()).includes('Bloodmoon Ursaluna'));assert(await cards().first().locator('a[href*="pack=basic"]').isVisible());
+  await home('broken-art');await page.locator('[data-pull-sort=latest]').click();await ready();await section().scrollIntoViewIfNeeded();await cards().first().locator('img').evaluate(img=>img.loading='eager');await page.waitForFunction(()=>document.querySelector('#recent-pulls-track [data-recent-pull] .recent-pull-art-fallback')&&!document.querySelector('#recent-pulls-track [data-recent-pull] .recent-pull-art-fallback').hidden,{},{timeout:6000});assert(await cards().first().locator('img').isHidden());assert((await cards().first().textContent()).includes('Bloodmoon Ursaluna'));assert(await cards().first().locator('a[href*="pack=basic"]').isVisible());
 
   await home('empty');assert.equal(await cards().count(),0);assert(await page.locator('#recent-pulls-status').isVisible());assert(!(await page.locator('#recent-pulls-retry').isVisible()));assert(!(await section().textContent()).includes('Sample'));
   await home('failed');assert.equal(await cards().count(),0);assert(await page.locator('#recent-pulls-retry').isVisible());await page.evaluate(()=>fixtureMode='normal');await page.locator('#recent-pulls-retry').click();await page.waitForFunction(()=>document.querySelectorAll('#recent-pulls-track [data-recent-pull]').length===12);assert((await page.evaluate(()=>feedReads)).at(-1).force,'Retry explicitly bypasses a stale cache');

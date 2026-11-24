@@ -311,18 +311,20 @@ function recentPullCopy(result,nowMs=Date.now()){
   return clean?[{id:item.id,...clean}]:[];
  })};
 }
-export async function loadRecentPulls({force=false}={}){
+export async function loadRecentPulls({force=false,sort='biggest'}={}){
+ sort=sort==='latest'?'latest':'biggest';
  // Public reads need the verified storefront mode, not a signed-in account.
  await modeReady;const mode=runtimeMode(),nowMs=Date.now();
  if(!['test','live'].includes(mode))throw phoneError('recent-pulls/mode-changed','Reload to see the current recent pulls.');
- const cached=recentPullCache.get(mode);
+ const key=mode+':'+sort,cached=recentPullCache.get(key);
  if(!force&&cached&&cached.until>nowMs)return recentPullCopy(cached.result,nowMs);
- if(!force&&recentPullRequests.has(mode))return recentPullCopy(await recentPullRequests.get(mode).promise);
+ if(!force&&recentPullRequests.has(key))return recentPullCopy(await recentPullRequests.get(key).promise);
  const request={promise:null};
  request.promise=(async()=>{
   const name=mode==='live'?'liveRecentPulls':'testRecentPulls';
-  // One indexed range/order query: no listener, polling or private account read.
-  const snapshot=await getDocs(query(collection(getDatabase(),name),where('pulledAtMs','>=',nowMs-RECENT_PULL_WINDOW_MS),orderBy('pulledAtMs','desc'),limit(RECENT_PULL_LIMIT)));
+  // Rank the full seven-day window in Firestore, not just the latest 12 cards.
+  const ranking=sort==='biggest'?[where('valueCents','>=',0),orderBy('valueCents','desc'),orderBy('pulledAtMs','desc')]:[orderBy('pulledAtMs','desc')];
+  const snapshot=await getDocs(query(collection(getDatabase(),name),where('pulledAtMs','>=',nowMs-RECENT_PULL_WINDOW_MS),...ranking,limit(RECENT_PULL_LIMIT)));
   if(runtimeMode()!==mode)throw phoneError('recent-pulls/mode-changed','The storefront changed. Reload recent pulls.');
   const checkedAt=Date.now(),items=[];
   for(const record of snapshot.docs){
@@ -332,12 +334,12 @@ export async function loadRecentPulls({force=false}={}){
   }
   const result={source:'firebase',mode,items};
   // A slower earlier request cannot overwrite an explicit refresh's cache.
-  if(recentPullRequests.get(mode)===request)recentPullCache.set(mode,{result,until:checkedAt+60000});
+  if(recentPullRequests.get(key)===request)recentPullCache.set(key,{result,until:checkedAt+60000});
   return result;
  })();
- recentPullRequests.set(mode,request);
+ recentPullRequests.set(key,request);
  try{return recentPullCopy(await request.promise)}
- finally{if(recentPullRequests.get(mode)===request)recentPullRequests.delete(mode)}
+ finally{if(recentPullRequests.get(key)===request)recentPullRequests.delete(key)}
 }
 export async function saveHomepageGrails(config, expectedVersion) {
   const owner = await requireAdmin();

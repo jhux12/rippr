@@ -119,12 +119,13 @@ test('recent pulls allow only bounded recent public lists and reject all browser
  const now=Date.now(),week=7*24*60*60*1000;
  for(const name of ['testRecentPulls','liveRecentPulls']){
   await env.withSecurityRulesDisabled(async ctx=>{
-   await setDoc(doc(ctx.firestore(),name+'/recent'),{name:'Card summary',pulledAtMs:now,testOnly:name==='testRecentPulls'});
-   await setDoc(doc(ctx.firestore(),name+'/old'),{name:'Old summary',pulledAtMs:now-21*24*60*60*1000,testOnly:name==='testRecentPulls'});
+   await setDoc(doc(ctx.firestore(),name+'/recent'),{name:'Card summary',valueCents:100,pulledAtMs:now,testOnly:name==='testRecentPulls'});
+   await setDoc(doc(ctx.firestore(),name+'/old'),{name:'Old summary',valueCents:900,pulledAtMs:now-21*24*60*60*1000,testOnly:name==='testRecentPulls'});
   });
   for(const ctx of [env.unauthenticatedContext(),context('+12025550123'),context(OWNER_PHONE)]){
    const db=ctx.firestore(),summaries=collection(db,name),recent=query(summaries,where('pulledAtMs','>=',now-week),orderBy('pulledAtMs','desc'),limit(12));
    const snapshot=await assertSucceeds(getDocs(recent));assert.equal(snapshot.size,1);assert.equal(snapshot.docs[0].id,'recent');
+   const biggest=await assertSucceeds(getDocs(query(summaries,where('pulledAtMs','>=',now-week),where('valueCents','>=',0),orderBy('valueCents','desc'),orderBy('pulledAtMs','desc'),limit(12))));assert.equal(biggest.size,1);assert.equal(biggest.docs[0].id,'recent');
    await assertFails(getDocs(summaries));
    await assertFails(getDocs(query(summaries,orderBy('pulledAtMs','desc'),limit(12))));
    await assertFails(getDocs(query(summaries,where('pulledAtMs','>=',now-week),orderBy('pulledAtMs','desc'))));
