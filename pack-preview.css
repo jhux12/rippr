@@ -1,0 +1,37 @@
+/* A thin sealed foil pouch with independent front, back and edge surfaces. */
+.pack-preview{position:absolute;inset:0;perspective:950px;z-index:6;user-select:none;-webkit-user-select:none}
+.pack-preview[hidden]{display:none}
+.pack-shell.has-pack-preview>.pack.artwork,.pack-shell.has-pack-preview>.foil-underlay,.pack-shell.has-pack-preview>.foil-cut-edge,.pack-shell.has-pack-preview>.foil-crease,.pack-shell.has-pack-preview>.foil-mouth,.pack-shell.has-pack-preview>.foil-inner-lip{visibility:hidden}
+.arena .pack-shell.has-pack-preview{animation:none}
+.pack-turntable{position:absolute;inset:0;transform-style:preserve-3d;touch-action:pan-y;cursor:grab;outline:none;transform:rotateX(var(--preview-pitch,0deg)) rotateY(var(--preview-yaw,-12deg))}
+.pack-turntable:focus-visible{outline:2px solid var(--preview-accent);outline-offset:12px;border-radius:10px}
+.is-dragging .pack-turntable{cursor:grabbing}
+.pack-model{position:absolute;inset:0;transform-style:preserve-3d;transform:translateX(var(--fan-x,0%)) rotateZ(var(--fan-angle,0deg))}
+.pack-model[hidden]{display:none}
+.pack-face{position:absolute;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.pack-face-front,.pack-face-back{inset:0;border-radius:3px}
+.pack-face-front{transform:translateZ(6px)}
+.pack-face-front img{display:block;width:100%;height:100%;pointer-events:none}
+.pack-face-front::after{content:'';position:absolute;inset:2% 5%;background:linear-gradient(115deg,transparent 18%,#e7faff1a 36%,#fff3 44%,transparent 57%);mask-image:var(--pack-image);mask-size:100% 100%;pointer-events:none}
+.pack-face-back{transform:rotateY(180deg) translateZ(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden;background:repeating-linear-gradient(120deg,#ffffff04 0 2px,transparent 2px 34px),linear-gradient(100deg,#091221,#20334d 42%,#0b1425 49%,#172a41 54%,#0b1425);border:1px solid color-mix(in srgb,var(--preview-accent) 55%,#142436);color:#f5f9ff;box-shadow:inset 0 0 22px #0008}
+.pack-face-back::before,.pack-face-back::after{content:'';position:absolute;left:0;right:0;height:6%;background:repeating-linear-gradient(90deg,#dce7ff22 0 1px,#02081699 1px 3px),linear-gradient(var(--preview-accent),#101c32);border-block:1px solid #b8d7ef55}
+.pack-face-back::before{top:0}.pack-face-back::after{bottom:0}
+.pack-face-back strong{font:italic 900 clamp(27px,3vw,42px)/1 Arial,sans-serif;letter-spacing:-2px}
+.pack-face-back>span:not(.pack-back-mark){font:800 12px/1.3 Arial,sans-serif;letter-spacing:3px;color:var(--preview-accent);text-align:center;padding:0 12px}
+.pack-back-mark{font-size:54px;color:var(--preview-accent);opacity:.85}
+.pack-back-seam{position:absolute;top:7%;bottom:7%;right:13%;width:7%;background:linear-gradient(90deg,#0006,#c4e3ff18,#0007);border-left:1px solid #d9eeff30}
+.pack-face-left,.pack-face-right{top:0;bottom:0;width:12px;left:calc(50% - 6px);background:linear-gradient(90deg,#101a2c,var(--preview-accent),#101a2c)}
+.pack-face-left{left:-6px;transform:rotateY(-90deg)}.pack-face-right{left:auto;right:-6px;transform:rotateY(90deg)}
+.pack-face-top,.pack-face-bottom{left:0;right:0;height:12px;background:repeating-linear-gradient(90deg,#132439 0 2px,#a8bfd7 2px 3px)}
+.pack-face-top{top:-6px;transform:rotateX(90deg)}.pack-face-bottom{bottom:-6px;transform:rotateX(-90deg)}
+.pack-preview-hint{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);white-space:nowrap;color:#b3ccdb;font:600 11px/1.4 Manrope,Arial,sans-serif;pointer-events:none}
+.pack-preview.is-multiple .pack-turntable{cursor:default;touch-action:auto;transform:none}
+.pack-preview.is-multiple .pack-model{scale:.83}
+.pack-preview.is-multiple .pack-preview-hint{top:calc(100% + 2px)}
+@media(prefers-reduced-motion:reduce){.pack-turntable{transition:none}}
+/* Wrapper sources include transparent gutters; seams meet the printed pouch. */
+.pack-face-back{inset:4% 5%}
+.pack-face-left,.pack-face-right{top:4%;bottom:4%;background:linear-gradient(90deg,#101a2c,color-mix(in srgb,var(--preview-accent) 35%,#17243a),#101a2c)}
+.pack-face-left{left:calc(5% - 6px)}.pack-face-right{right:calc(5% - 6px)}
+.pack-face-top,.pack-face-bottom{left:5%;right:5%}
+.pack-face-top{top:calc(4% - 6px)}.pack-face-bottom{bottom:calc(4% - 6px)}

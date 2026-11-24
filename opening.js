@@ -20,6 +20,8 @@ if(selectedPack){
 const quantityButtons=[...document.querySelectorAll('[data-qty]')],openButton=$('#open'),display=$('#display'),arena=$('.arena'),stage=$('#reveal-stage'),controls=$('.controls'),results=$('#results'),cards=$('#cards'),announcement=$('#announcement'),phase=$('#phase'),skipOpening=$('#skip-opening');
 const requestedQuantity=new URLSearchParams(location.search).get('quantity');
 let quantity=!inventoryPackId&&/^[1-5]$/.test(requestedQuantity||'')?Number(requestedQuantity):1,state='idle',deck=[],cursor=0,openingTimer=null,openingSession=0,selling=false,pendingSale=null,skipBatchAnimations=false;
+const packPreview=window.RipprPackPreview?.mount($('#pack-shell'),selectedPack);
+packPreview?.sync(quantity);
 // One phase deadline belongs to one opening session. Hidden tabs retain the
 // remaining delay instead of letting timers outrun paused visual effects.
 let phaseTask=null,pageSuspended=false;
@@ -164,6 +166,7 @@ async function loadContents(){
 }
 document.addEventListener('DOMContentLoaded',()=>{loadContents();verifyInventoryPack()},{once:true});
 function label(){
+ packPreview?.sync(quantity,state==='idle');
  if(state!=='idle')return;
  if(window.RIPPR_ACCOUNT?.mode==='live'&&window.RIPPR_ACCOUNT?.livePurchasesEnabled===false){openButton.textContent='Openings paused';return}
  $('#pack-price').textContent=inventoryPackId?'Owned pack':contentsReady&&Number.isSafeInteger(contents.priceCents)?money.format(contents.priceCents/100):'—';$('#price-suffix').hidden=Boolean(inventoryPackId);
@@ -465,7 +468,7 @@ openButton.addEventListener('click',async()=>{
  sound.play('click');
  const uid=window.RIPPR_ACCOUNT?.user?.uid;
  const session=++openingSession;
- state='purchasing';quantityButtons.forEach(b=>b.disabled=true);openButton.disabled=true;controls.classList.add('is-busy');results.classList.remove('visible');phase.textContent='Opening…';
+ state='purchasing';packPreview?.sync(quantity,false);quantityButtons.forEach(b=>b.disabled=true);openButton.disabled=true;controls.classList.add('is-busy');results.classList.remove('visible');phase.textContent='Opening…';
  try{
   if(window.RIPPR_AUTH_OFFLINE)deck=makeDeck();
   else{

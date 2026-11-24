@@ -1,4 +1,10 @@
-# Latest: larger mobile hero artwork
+# Latest: interactive pack previews and selected batches
+
+Added a lightweight CSS 3D foil pouch to the idle pack stage for every pack tier, using the existing front artwork, a branded reverse, crimped seals and thin edges. Single packs rotate through 360 degrees with horizontal pointer drag or keyboard arrows (Home resets); vertical phone gestures retain scrolling. Selecting 2–5 shows the exact number in a stationary fan and disables rotation. Direct quantity links and owned packs retain their behavior. Purchase attempts hand the stage back to the existing foil/opening rig; failed purchases and Open again restore the preview. No WebGL, external model downloads or new account calls. The reusable five-model pool keeps DOM size constant.
+
+Preview checks passed at 320/390/1440px for every quantity, drag/keyboard, scrolling intent, purchase failure recovery and tear/skip handoff; physical foil checks passed at 320/390/768/1440px. Resource/audio and repeated-opening checks cover retained effects, batch skip and reset. Frontend only; no Firebase deployment required. Run `npm run test:pack-preview` for the isolated preview checks.
+
+# Previous: larger mobile hero artwork
 
 Enlarged the signature pack fan, daily reward chest, grail cards and central Community display to use the taller focal framing of Icy Rush on mobile. The existing banner height, copy/CTA separation and carousel controls remain fixed; desktop and Icy Rush styling are unchanged. All-five-slide browser checks passed at 320/390/768/1440/1920px, with mobile artwork crops reviewed. Build/site checks passed 24 pages and 1,343 references. Frontend only; no additional Firebase deployment required.
 
