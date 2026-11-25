@@ -59,3 +59,10 @@ TTL is asynchronous; client/Rules age checks bound display/access independently 
 - Build/site checks passed. Screenshots in `/tmp/rippr-recent-pulls-{390,1440}.png` use isolated fixture records and artwork, not production activity.
 
 Weekly update verification: isolated SDK-helper checks cover sort-specific queries/caches, concurrent deduplication, forced refresh and runtime rejection; the real Firebase SDK accepts the multi-range query. Browser checks at 320/390/768/1440px cover default Biggest, Latest, dialog focus/Escape, pack links, values/time, stable refresh and prior safety cases. The Rules suite now includes the ranked query, but could not run here because the emulator artifact download was unavailable. Build/site checks passed.
+
+
+## Diagnose weekly ranking after deployment
+
+One qualifying award is enough to populate the list. An empty list and a failed query are different states; “Biggest pulls are taking a moment” means the request failed. Deployment completion does not establish that an asynchronous Firestore index has reached READY.
+
+Run `node scripts/check-recent-pulls.mjs rippr-2b01c` in Cloud Shell. It issues the same two anonymous, bounded public queries used by the page and prints only counts and error statuses/messages. It then reads matching live-index metadata using the existing Cloud Shell account, without printing credentials. No account/private collection, wallet, payment or shipping records are accessed or changed. Optional third argument `test` checks the isolated test collection. READY plus successful public queries distinguishes index readiness from browser/runtime/cache issues; CREATING requires waiting, missing indexes require deployment, and PERMISSION_DENIED points to the deployed Rules. Share this diagnostic's output before changing the ranking algorithm or fabricating a latest-only fallback.
