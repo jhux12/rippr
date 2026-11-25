@@ -1,4 +1,10 @@
-# Latest: ranked Fresh from the machine rail
+# Latest: randomized curved rip and diagonal pull
+
+Integrated the two approved motion concepts into the existing opening stage. Each prepared pack randomly selects a curved top-seal rip or diagonal pull; a short or canceled grip retains that selection. A bounded textured strip bends using the original tier artwork, then the wrapper falls away as the face-down card rises. Existing stage size/themes, slide/keyboard trigger, rarity/flip, keep/sell, audio, batch skip and Open again behavior remain intact. No purchase, reward or wallet logic changed.
+
+One reusable 64-segment canvas follows an owned 640ms WAAPI clock with hidden-tab pause/return and cleanup. Reduced motion is instant; unavailable texture/canvas uses the existing release fallback. Deterministic variant/pixel/cleanup tests, resource/audio checks and four-width full tear regressions passed. Repeated-opening checks verify bounded actors and reset behavior; build/site checks passed. See [PERFORMANCE.md](PERFORMANCE.md). Frontend only; no Firebase deployment required.
+
+# Previous: ranked Fresh from the machine rail
 
 Fresh from the machine defaults to Biggest this week (rolling last seven days), with Latest available. An indexed value/time query ranks the full window before limiting to 12; sort/runtime caches stay isolated. Compact rarity-colored cards show recorded card values, relative pull times and condition. Inspect opens a card dialog with a source-pack thumbnail/link; native source links remain available. Explicit refresh stages updates while browsing rather than moving the rail, and brief entrance motion honors reduced-motion settings. No fabricated activity, customer identity, background polling or purchase action was added.
 

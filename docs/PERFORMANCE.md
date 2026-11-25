@@ -83,3 +83,12 @@ The detached strip releases in 480ms, with a direct reduced-motion/unsupported-a
 `npm run test:opening-motion` combines the actual foil/audio resource checks, repeated-opening lifecycle suite and new `foil-tearing.cjs` interaction checks. These remain isolated Chromium fixtures, not physical-device frame-rate measurements or live purchases. No new artwork download or Firebase deployment is required for this refinement.
 
 The refinement passed four-width tear checks at 320/390/768/1440px, including bidirectional drag/cancel, fixed outer geometry, keyboard activation, five-card skip, grades/actions/mute and bounded repeated actors. A focused 390px run also covers unavailable/throwing animation APIs after payment and a reduced-motion change during seal release. Existing 29-batch/83-award repeatability, foil/audio resource and reveal/sale-spacing checks (including 844×390 landscape) passed. The extraction keeps the card at its inside-pack width through the first half, then enlarges it into the existing reveal position as the wrapper moves away.
+
+
+## Randomized curved rip and diagonal pull
+
+Every prepared pack chooses a cosmetic `curved` or `diagonal` release with equal probability. Returning/canceling a short grip does not reroll it. This random choice is separate from the cryptographic reward draw and server award. Both variants keep the existing slide/keyboard trigger, fixed stage, rarity cycle, flip, keep/sell, mute and batch skip.
+
+A single reusable canvas bends 64 narrow samples from the selected wrapper during its 640ms release. It draws only while that release owns its WAAPI clock; the opening controller pauses the clock with other stage effects. Canvas resolution is capped at 2x, reused at stable dimensions, and no replacement artwork or model is downloaded. Reset, skip, finish and cancel hide the canvas and release scripted effects. Unsupported/unready texture or canvas falls back to the existing foil release; reduced motion resolves instantly. The wrapper falls out during the existing 900ms extraction while the face-down card rises and settles before the existing rarity sequence.
+
+`tests/browser/foil-variants.cjs` checks deterministic selection of both styles, nonempty wrapper pixels, distinct paths, stable grip choice, pause/return, bounded mount/cancellation and reduced motion. Existing resource/audio, full tear and repeatability checks cover the paid opening handoff and cleanup. Frontend only; no Firebase deployment required.

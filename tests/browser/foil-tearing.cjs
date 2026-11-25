@@ -82,7 +82,7 @@ async function screenshot(page,label,width,atMs){
   else{fixtureHidden=true;document.dispatchEvent(new Event('visibilitychange'))}
   if(at!==undefined)for(const effect of document.querySelector('.arena').getAnimations({subtree:true})){
    const node=effect.effect?.target;
-   if(node?.matches('.foil-piece,.foil-underlay,.pack.artwork,.foil-mouth,.foil-inner-lip,.foil-cut-edge,.reveal-art-stage'))effect.currentTime=at;
+   if(node?.matches('.foil-piece,.foil-underlay,.foil-ribbon,.pack.artwork,.foil-mouth,.foil-inner-lip,.foil-cut-edge,.reveal-art-stage'))effect.currentTime=at;
   }
  },{at:atMs,partial:label==='partial'});
  await page.screenshot({path:`/tmp/rippr-foil-${label}-${width}.png`});

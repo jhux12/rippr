@@ -21,3 +21,8 @@
 .has-physical-foil.foil-dragging .rip-helper{opacity:.28}
 .has-physical-foil.foil-gripping .rip-perforation::after{background:#174252;border-color:#d8f8ff}
 @media(prefers-reduced-motion:reduce){.pack-shell.has-physical-foil .pack.artwork,.pack-shell.has-physical-foil .foil-piece,.pack-shell.has-physical-foil .foil-underlay{transform:none!important;transition:none!important}.pack-shell.has-physical-foil.foil-detaching :is(.foil-piece,.foil-underlay){opacity:0!important}}
+
+/* The release is an actual textured bend rather than a rotating flat strip. */
+.pack-shell .foil-ribbon{position:absolute;left:-100%;top:-70%;width:300%;height:90%;z-index:7;pointer-events:none;filter:none;transform:translateZ(2px)}
+.pack-shell .foil-ribbon[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.pack-shell .foil-ribbon{display:none!important}}

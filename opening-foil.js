@@ -25,12 +25,19 @@
       return element;
     });
     const [underlay, edge, crease, mouth, lip] = layers;
+    // One reusable textured ribbon, allocated once for every tier/batch.
+    const ribbon=document.createElement('canvas');ribbon.className='foil-ribbon';ribbon.hidden=true;ribbon.setAttribute('aria-hidden','true');shell.insertBefore(ribbon,shell.querySelector('.rip-target'));
+    const context=ribbon.getContext('2d'),texture=new Image();
+    const source=artwork.style.backgroundImage||getComputedStyle(artwork).backgroundImage;
+    const sourceURL=source.match(/^url\(["']?(.*?)["']?\)$/)?.[1];if(sourceURL)texture.src=sourceURL;
+    let ribbonFrame=0,ribbonClock=null,variant='curved',ribbonPaint=-1,paintRibbonResume=null;
     const animations = new Set();
     let direction = 1, frame = 0, pendingProgress = 0, pendingDirection = 1;
     let lastProgress = -1, lastDirection = 0;
     shell.classList.add('has-physical-foil');
     function cancel() {
       cancelAnimationFrame(frame); frame = 0;
+      cancelAnimationFrame(ribbonFrame);ribbonFrame=0;ribbonClock=null;paintRibbonResume=null;ribbon.hidden=true;
       for (const animation of animations) {
         animation.onfinish = null; animation.oncancel = null; animation.cancel();
       }
@@ -91,11 +98,52 @@
     }
     function reset() {
       cancel(); lastProgress = -1; lastDirection = 0;
+      variant=Math.random()<.5?'curved':'diagonal';shell.dataset.foilStyle=variant;
       setProgress(0, 1);
       // The empty clip hides the reset strip. Let the next drag own opacity,
       // instead of preserving an inline zero left by a completed release.
       piece.style.removeProperty('opacity');underlay.style.removeProperty('opacity');
     }
+    function meshRelease(){
+      if(!context||!texture.complete||!texture.naturalWidth||typeof ribbon.animate!=='function')return null;
+      const bounds=shell.getBoundingClientRect(),w=shell.offsetWidth,h=shell.offsetHeight;
+      if(!bounds.width||!w||!h)return null;
+      const ratio=Math.min(devicePixelRatio||1,2);const width=Math.ceil(w*3*ratio),height=Math.ceil(h*.9*ratio);if(ribbon.width!==width)ribbon.width=width;if(ribbon.height!==height)ribbon.height=height;
+      ribbon.hidden=false;ribbonPaint=-1;
+      const clock=ribbon.animate([{opacity:1},{opacity:1}],{duration:640,fill:'forwards'});
+      ribbonClock=clock;animations.add(clock);clock.finished.catch(()=>{});
+      function done(){cancelAnimationFrame(ribbonFrame);ribbonFrame=0;ribbon.hidden=true;animations.delete(clock);if(ribbonClock===clock){ribbonClock=null;paintRibbonResume=null}clock.onfinish=null;clock.oncancel=null;clock.cancel()}
+      clock.onfinish=done;clock.oncancel=done;
+      function draw(){
+        ribbonFrame=0;if(ribbonClock!==clock)return;
+        const t=clamp(Number(clock.currentTime)/640);
+        if(t!==ribbonPaint){
+          ribbonPaint=t;context.setTransform(ratio,0,0,ratio,0,0);context.clearRect(0,0,w*3,h*.9);context.save();context.translate(w,h*.7);
+          const smooth=x=>{x=clamp(x);return x*x*(3-2*x)},bend=smooth(t/.62),fly=smooth((t-.5)/.5),segments=64;
+          context.globalAlpha=1-smooth((t-.75)/.25);
+          for(let i=0;i<segments;i++){
+            const u=(i+.5)/segments,a=u*Math.PI,pull=direction===1?u:1-u;
+            let x=u*w,y=0,turn=0;
+            if(variant==='curved'){
+              x=(u-.5)*w*(1-.24*bend)+w/2+direction*fly*w*.4;
+              y=-Math.sin(a)*h*.14*bend-fly*h*.52;
+              turn=Math.atan2(-h*.14*Math.PI*Math.cos(a)*bend,w*(1-.24*bend))+direction*fly*.35;
+            }else{
+              x+=direction*(pull*pull*bend*w*.4+fly*w*.85);y-=Math.pow(pull,1.4)*bend*h*.22+fly*h*.35;
+              turn=-direction*Math.atan(1.4*Math.pow(Math.max(.01,pull),.4)*bend*h*.22/w)+direction*fly*.2;
+            }
+            context.save();context.translate(x,y);context.rotate(turn);
+            context.drawImage(texture,i*texture.width/segments,0,texture.width/segments,texture.height*seamHeight/100,-w/segments*.6,0,w/segments*1.2,h*seamHeight/100);context.restore();
+          }
+          context.restore();
+        }
+        if(!document.hidden)ribbonFrame=requestAnimationFrame(draw);
+      }
+      paintRibbonResume=draw;piece.style.opacity='0';underlay.style.opacity='0';draw();return 640;
+    }
+    // The opening controller pauses the WAAPI clock with the other stage effects.
+    // Resume painting its current frame after a hidden tab returns.
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ribbonClock&&!ribbonFrame)paintRibbonResume?.()});
     function release(instant = false) {
       cancel(); setProgress(1, direction);
       shell.classList.add('foil-detaching');
@@ -104,6 +152,7 @@
         hideStrip(); return 0;
       }
       try {
+        const meshDelay=meshRelease();if(meshDelay!==null)return meshDelay;
         for (const layer of [piece, underlay]) {
           const metal = layer === underlay;
           const animation = layer.animate([

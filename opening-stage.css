@@ -215,8 +215,8 @@
 .is-cycling .reveal-motes i{animation:rarity-mote-in 2.4s calc(var(--i)*30ms) ease-in-out both}
 .skip-reveal-motion .reveal-card-turn{transition:none}
 .skip-reveal-motion .reveal-stage *,.skip-reveal-motion .reveal-stage *::before,.skip-reveal-motion .reveal-stage *::after{animation:none!important;transition:none!important}
-@keyframes card-from-pack{0%,10%{transform:translate(-50%,var(--extract-y,60px)) scale(var(--extract-scale,.8))}52%{transform:translate(-50%,calc(var(--extract-y,60px) - 12px)) scale(var(--extract-scale,.8))}80%{transform:translate(-50%,-7px) scale(1)}100%{transform:translate(-50%,0) scale(1)}}
-@keyframes pack-release-card{0%,15%{opacity:1;translate:0 0}64%{opacity:1;translate:0 calc(var(--pack-height)*.25)}100%{opacity:0;translate:0 calc(var(--pack-height)*.54)}}
+@keyframes card-from-pack{0%,10%{transform:translate(-50%,calc(var(--extract-y,60px) + var(--pack-height)*.3)) scale(var(--extract-scale,.8))}52%{transform:translate(-50%,calc(var(--extract-y,60px) - 18px)) scale(var(--extract-scale,.8))}80%{transform:translate(-50%,-7px) scale(1)}100%{transform:translate(-50%,0) scale(1)}}
+@keyframes pack-release-card{0%,15%{opacity:1;translate:0 0}64%{opacity:.8;translate:0 calc(var(--pack-height)*.72)}100%{opacity:0;translate:0 calc(var(--pack-height)*1.15)}}
 @keyframes rarity-edge-breathe{from{opacity:.45;transform:scale(.999)}to{opacity:1;transform:scale(1.006)}}
 @keyframes rarity-lock-ring{0%{opacity:.85;transform:scale(.995)}100%{opacity:0;transform:scale(1.13)}}
 @keyframes rarity-lock-glow{0%,100%{opacity:.7;transform:scale(1)}40%{opacity:1;transform:scale(1.1)}}
