@@ -66,3 +66,9 @@
 /* Intrinsic slab dimensions must not expand a dialog's bounded artwork row. */
 .pull-preview-art{position:relative;min-width:0;min-height:0;overflow:hidden}
 .pull-preview-art img{position:absolute;inset:0;display:block;min-width:0;min-height:0}
+/* Reserve card space while the bounded look-ahead queue fetches and decodes art. */
+.recent-pull-art::before{content:'✦';position:absolute;inset:13% 20% 6%;display:grid;place-items:center;border:1px solid #355368;border-radius:8px;background:linear-gradient(135deg,#132a39,#0b1824);color:#4c7788;font-size:28px;pointer-events:none}
+.recent-pull-art>img{position:relative;z-index:1;opacity:0;transition:opacity .15s ease}
+.recent-pull-art.art-ready>img{opacity:1}
+.recent-pull-art.art-ready::before,.recent-pull-art.art-failed::before{display:none}
+@media(prefers-reduced-motion:reduce){.recent-pull-art>img{transition:none}}

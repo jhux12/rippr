@@ -1,4 +1,10 @@
-# Latest: randomized curved rip and diagonal pull
+# Latest: eager visible pulls with bounded artwork look-ahead
+
+Recent-pull artwork uses an explicit queue: load the visible row before the visitor scrolls to it, warm about two cards ahead/one behind, and cap tile artwork requests at three. Distant images have no source until needed. Decoding completes before the artwork fades in over a static card silhouette. Existing original URLs/browser cache, retry/error handling, card previews and sort/refresh behavior are preserved. Visibility/page-exit cleanup avoids offscreen queue work and stale retry timers. No continuous polling or new image derivatives/services were added.
+
+Browser checks cover pre-scroll readiness, all visible images decoded, distant images unfetched, three-request concurrency, end-of-rail loading, errors and prior privacy/interaction cases at 320/390/768/1440px. Frontend only; no Firebase deployment required.
+
+# Previous: randomized curved rip and diagonal pull
 
 Integrated the two approved motion concepts into the existing opening stage. Each prepared pack randomly selects a curved top-seal rip or diagonal pull; a short or canceled grip retains that selection. A bounded textured strip bends using the original tier artwork, then the wrapper falls away as the face-down card rises. Existing stage size/themes, slide/keyboard trigger, rarity/flip, keep/sell, audio, batch skip and Open again behavior remain intact. No purchase, reward or wallet logic changed.
 

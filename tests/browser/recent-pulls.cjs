@@ -8,12 +8,12 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined,args:['--no-sandbox']});
  try{for(const width of [320,390,768,1440]){
-  const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'}),errors=[],destinations=[];
+  const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'}),errors=[],destinations=[];let activeArt=0,maxArt=0;
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/*',route=>{
    const url=new URL(route.request().url());
    // Remote public art is fulfilled from a local fixture, never fetched from its host.
-   if(url.origin==='https://assets.tcgdex.net'){if(page.url().includes('fixture=broken-art'))return route.abort();return route.fulfill({body:fs.readFileSync(path.join(root,'assets/hero/charizard-slab.webp')),contentType:'image/webp'})}
+   if(url.origin==='https://assets.tcgdex.net'){if(page.url().includes('fixture=broken-art'))return route.abort();activeArt++;maxArt=Math.max(maxArt,activeArt);return new Promise(resolve=>setTimeout(resolve,30)).then(()=>route.fulfill({body:fs.readFileSync(path.join(root,'assets/hero/charizard-slab.webp')),contentType:'image/webp'})).finally(()=>activeArt--)}
    assert.equal(url.origin,origin,'Recent-pull tests must not contact external services');
    const name=url.pathname.slice(1);
    if(name==='opening.html'){destinations.push(url.href);return route.fulfill({body:'<!doctype html><html><body>Pack page fixture</body></html>',contentType:'text/html'})}
@@ -60,9 +60,19 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   async function ready(){await page.waitForFunction(()=>document.querySelector('#recent-pulls-track')?.getAttribute('aria-busy')==='false'||document.querySelector('#recent-pulls')?.getAttribute('aria-busy')==='false')}
   async function home(fixture='normal'){await page.goto(origin+'/index.html?fixture='+fixture);await ready()}
 
-  await home();assert.equal(await page.locator('[data-pull-sort=biggest]').getAttribute('aria-pressed'),'true');assert.equal(await cards().first().getAttribute('data-recent-pull'),'000000000000000000000000000000000000000000000000000000000000000c','Default is highest value, even when older');
+  await home();
+  await page.waitForFunction(()=>document.querySelector('#recent-pulls-track img')?.closest('.recent-pull-art').classList.contains('art-ready'));
+  assert.equal(await page.evaluate(()=>scrollY),0,'First artwork loads before the visitor scrolls down');
+  await page.waitForFunction(()=>{const track=document.querySelector('#recent-pulls-track'),r=track.getBoundingClientRect();return [...track.children].filter(row=>row.getBoundingClientRect().left<r.right).every(row=>row.querySelector('.recent-pull-art').classList.contains('art-ready'))});
+  assert(await track().locator('img:not([src])').count()>0,'Distant cards do not fetch the whole rail upfront');
+  assert(maxArt<=3,'No more than three artwork requests run together');
+  assert.equal(await page.locator('[data-pull-sort=biggest]').getAttribute('aria-pressed'),'true');assert.equal(await cards().first().getAttribute('data-recent-pull'),'000000000000000000000000000000000000000000000000000000000000000c','Default is highest value, even when older');
   if([390,1440].includes(width)){await section().scrollIntoViewIfNeeded();await section().screenshot({path:'/tmp/rippr-biggest-pulls-'+width+'.png'})}
-  await page.locator('[data-pull-sort=latest]').click();await ready();assert.equal((await page.evaluate(()=>feedReads)).at(-1).sort,'latest');assert.equal(await cards().count(),12,'A bounded row contains the returned genuine fixture pulls');
+  await page.evaluate(()=>{window.pullFixtureHidden=true;Object.defineProperty(document,'hidden',{configurable:true,get:()=>pullFixtureHidden});document.dispatchEvent(new Event('visibilitychange'))});
+  await page.locator('[data-pull-sort=latest]').click();await ready();assert.equal(await track().locator('img[src]').count(),0,'Hidden tabs do not start queued artwork');
+  await page.evaluate(()=>{pullFixtureHidden=false;document.dispatchEvent(new Event('visibilitychange'))});
+  await page.waitForFunction(()=>document.querySelector('#recent-pulls-track img')?.closest('.recent-pull-art').classList.contains('art-ready'));
+  assert.equal((await page.evaluate(()=>feedReads)).at(-1).sort,'latest');assert.equal(await cards().count(),12,'A bounded row contains the returned genuine fixture pulls');
   assert(await section().evaluate(el=>{const packs=document.querySelector('#packs'),grails=document.querySelector('.grails');return Boolean(packs.compareDocumentPosition(el)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(el.compareDocumentPosition(grails)&Node.DOCUMENT_POSITION_FOLLOWING)}),'Recent pulls sits after vending and before grails');
   assert.equal(await section().getByText('Epic',{exact:true}).count(),2);assert.equal(await section().getByText('Ultra rare',{exact:true}).count(),2);
   assert(await section().getByText('PSA 10',{exact:true}).isVisible(),'Explicit grading remains visible');
@@ -84,6 +94,7 @@ const types={'.html':'text/html','.js':'application/javascript','.css':'text/css
   await track().focus();await page.keyboard.press('ArrowRight');await page.waitForFunction(()=>document.querySelector('#recent-pulls-track').scrollLeft>0);
   // Native scrolling/swiping also updates the boundary controls.
   await track().evaluate(el=>{el.scrollLeft=el.scrollWidth;el.dispatchEvent(new Event('scroll'))});await page.waitForFunction(()=>document.querySelector('#recent-pulls-next').disabled);
+  await page.waitForFunction(()=>document.querySelector('#recent-pulls-track li:last-child .recent-pull-art').classList.contains('art-ready'));
   await track().evaluate(el=>{el.scrollLeft=0;el.dispatchEvent(new Event('scroll'))});await page.waitForFunction(()=>document.querySelector('#recent-pulls-prev').disabled);
   assert.equal(await page.evaluate(()=>purchaseCalls),0);
   if([390,1440].includes(width)){await section().scrollIntoViewIfNeeded();await section().screenshot({path:'/tmp/rippr-recent-pulls-'+width+'.png'})}
